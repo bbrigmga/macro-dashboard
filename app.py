@@ -48,17 +48,23 @@ core_cpi_data.columns = ['Date', 'CPI']
 core_cpi_data['CPI_YoY'] = core_cpi_data['CPI'].pct_change(periods=12) * 100
 current_cpi = core_cpi_data['CPI_YoY'].iloc[-1]
 
-payrolls_data = pd.DataFrame(fred.get_series('PAYEMS'), columns=['Value']).reset_index()
-payrolls_data.columns = ['Date', 'Payrolls']
-payrolls_data['Monthly_Change'] = payrolls_data['Payrolls'].diff()
-current_payrolls = payrolls_data['Monthly_Change'].iloc[-1]
-payrolls_weakening = payrolls_data['Monthly_Change'].tail(3).mean() < payrolls_data['Monthly_Change'].tail(6).mean()
+# Fetch Hours Worked data
+hours_data = pd.DataFrame(fred.get_series('PRS85006031'), columns=['Value']).reset_index()
+hours_data.columns = ['Date', 'Hours']
+# Calculate 3-month moving average
+hours_data['MA3'] = hours_data['Hours'].rolling(window=3).mean()
+# Calculate YoY change for both actual and MA
+hours_data['YoY_Change'] = hours_data['Hours'].pct_change(periods=12) * 100
+hours_data['MA3_YoY_Change'] = hours_data['MA3'].pct_change(periods=12) * 100
+current_hours_change = hours_data['YoY_Change'].iloc[-1]
+current_hours_ma_change = hours_data['MA3_YoY_Change'].iloc[-1]
+hours_weakening = current_hours_ma_change < 0
 
 mfg_data = pd.DataFrame(fred.get_series('MANEMP'), columns=['Value']).reset_index()
 mfg_data.columns = ['Date', 'Manufacturing']
 mfg_data['YoY_Change'] = mfg_data['Manufacturing'].pct_change(periods=12) * 100
 current_mfg_change = mfg_data['YoY_Change'].iloc[-1]
-mfg_trend = "Contracting" if current_mfg_change < 0 else "Expanding"  # Define mfg_trend here
+mfg_trend = "Contracting" if current_mfg_change < 0 else "Expanding"
 
 # Create summary table
 st.header("Current Market Signals Summary")
@@ -67,28 +73,28 @@ summary_data = {
         'Initial Jobless Claims',
         'PCE (Inflation)',
         'Core CPI',
-        'Non-farm Payrolls',
+        'Hours Worked (3M MA)',
         'Manufacturing Employment'
     ],
     'Status': [
         create_warning_indicator(claims_increasing, 0.5),
         create_warning_indicator(current_pce, 2.0),
         create_warning_indicator(current_cpi, 2.0),
-        create_warning_indicator(payrolls_weakening, 0.5),
+        create_warning_indicator(hours_weakening, 0.5),
         create_warning_indicator(current_mfg_change, 0, higher_is_bad=False)
     ],
     'Current Value': [
         f"{claims_data['Claims'].iloc[-1]:,.0f} claims",
         f"{current_pce:.1f}% YoY",
         f"{current_cpi:.1f}% YoY",
-        f"{current_payrolls:,.0f} jobs added",
+        f"{current_hours_ma_change:.1f}% YoY",
         f"{current_mfg_change:.1f}% YoY"
     ],
     'Interpretation': [
         'Rising' if claims_increasing else 'Stable/Decreasing',
         'Above Target' if current_pce > 2.0 else 'Within Target',
         'Above Target' if current_cpi > 2.0 else 'Within Target',
-        'Weakening' if payrolls_weakening else 'Strong',
+        'Weakening' if hours_weakening else 'Strong',
         'Contracting' if current_mfg_change < 0 else 'Expanding'
     ]
 }
@@ -181,28 +187,44 @@ Current Core CPI YoY: {current_cpi:.1f}%
 - Divergence from PCE trends
 """)
 
-# 4. Non-farm Payrolls Section
-st.header("4. Non-farm Payrolls 👥")
+# 4. Hours Worked Section
+st.header("4. Hours Worked 🕒")
 st.markdown("""
-**Description:** Total number of paid U.S. workers excluding farm workers and some other categories.
-A key indicator of employment health and economic growth.
+**Description:** Average weekly hours worked in the private sector.
+A declining trend can signal reduced economic activity and potential job market weakness.
 """)
 
-# Create Non-farm Payrolls chart
-fig_payrolls = px.bar(payrolls_data.tail(24), x='Date', y='Monthly_Change',
-                      title='Monthly Change in Non-farm Payrolls (Last 24 Months)')
-st.plotly_chart(fig_payrolls, use_container_width=True)
+# Create Hours Worked chart with both actual and MA lines
+fig_hours = go.Figure()
+fig_hours.add_trace(go.Scatter(
+    x=hours_data.tail(24)['Date'],
+    y=hours_data.tail(24)['YoY_Change'],
+    name='Actual',
+    line=dict(color='blue')
+))
+fig_hours.add_trace(go.Scatter(
+    x=hours_data.tail(24)['Date'],
+    y=hours_data.tail(24)['MA3_YoY_Change'],
+    name='3-Month MA',
+    line=dict(color='red', dash='dash')
+))
+fig_hours.update_layout(
+    title='Hours Worked Year-over-Year % Change (Last 24 Months)',
+    showlegend=True
+)
+st.plotly_chart(fig_hours, use_container_width=True)
 
-# Warning signals for Payrolls
+# Warning signals for Hours Worked
 st.subheader("Warning Signals 🚨")
 st.markdown(f"""
-Current Status: {create_warning_indicator(payrolls_weakening, 0.5)} 
-Latest Monthly Change: {current_payrolls:,.0f} jobs
+Current Status: {create_warning_indicator(hours_weakening, 0.5)} 
+Latest YoY Change (3M MA): {current_hours_ma_change:.1f}%
 
 **Key Warning Signals to Watch:**
-- Negative monthly changes
-- Declining trend in job additions
-- Combination with rising jobless claims
+- Declining 3-month moving average
+- Negative year-over-year change
+- Divergence between actual and moving average
+- Combined weakness with rising jobless claims
 """)
 
 # 5. Manufacturing Employment Section
