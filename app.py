@@ -120,38 +120,39 @@ risk_on_opportunity = not pce_rising and not claims_increasing
 # Create summary table with numbered indicators
 summary_data = {
     'Indicator': [
-        '1. Initial Jobless Claims',
-        '2. PCE (Inflation)',
-        '3. Core CPI',
-        '4. Hours Worked (3M MA)',
+        '1. Hours Worked (3M MA)',
+        '2. Core CPI',
+        '3. Initial Jobless Claims',
+        '4. PCE (Inflation)',
         '5. ISM Manufacturing'
     ],
     'Status': [
+        create_warning_indicator(hours_weakening, 0.5),
+        create_warning_indicator(current_cpi, 2.0),
         create_warning_indicator(claims_increasing, 0.5),
         create_warning_indicator(current_pce, 2.0),
-        create_warning_indicator(current_cpi, 2.0),
-        create_warning_indicator(hours_weakening, 0.5),
         create_warning_indicator(ism_below_50, 0.5)
     ],
     'Current Value': [
+        f"{current_hours_ma_change:.1f}% YoY",
+        f"{current_cpi:.1f}% YoY",
         f"{claims_data['Claims'].iloc[-1]:,.0f} claims",
         f"{current_pce:.1f}% YoY",
-        f"{current_cpi:.1f}% YoY",
-        f"{current_hours_ma_change:.1f}% YoY",
         f"{current_ism:.1f}"
     ],
     'Interpretation': [
+        'Weakening' if hours_weakening else 'Strong',
+        'Above Target' if current_cpi > 2.0 else 'Within Target',
         'Rising' if claims_increasing else 'Stable/Decreasing',
         'Rising' if pce_rising else 'Falling',
-        'Above Target' if current_cpi > 2.0 else 'Within Target',
-        'Weakening' if hours_weakening else 'Strong',
         'Contraction' if ism_below_50 else 'Expansion'
     ]
 }
 
 st.header("Current Market Signals Summary")
 summary_df = pd.DataFrame(summary_data)
-st.table(summary_df)
+# Use st.dataframe instead of st.table with hide_index=True to properly hide the index
+st.dataframe(summary_df, hide_index=True)
 
 # Add overall market signal
 st.subheader("Overall Market Signal")
@@ -178,15 +179,88 @@ This dashboard tracks key macro economic indicators that help forecast market co
 Each indicator includes detailed explanations and warning signals to watch for.
 """)
 
-# 1. Initial Jobless Claims Section
-st.header("1. Initial Jobless Claims 📈")
+# 1. Hours Worked Section
+st.header("1. Hours Worked 🕒")
+st.markdown("""
+**Description:** Average weekly hours worked in the private sector.
+A declining trend can signal reduced economic activity and potential job market weakness.
+""")
+
+# Create Hours Worked chart with both actual and MA lines - convert dates to strings to avoid FutureWarning
+hours_plot_data = hours_data.tail(24).copy()
+# Convert numpy datetime64 to string format to avoid FutureWarning
+hours_plot_data['Date_Str'] = pd.to_datetime(hours_plot_data['Date']).dt.strftime('%Y-%m-%d')
+fig_hours = go.Figure()
+fig_hours.add_trace(go.Scatter(
+    x=hours_plot_data['Date_Str'],
+    y=hours_plot_data['YoY_Change'],
+    name='Actual',
+    line=dict(color='blue')
+))
+fig_hours.add_trace(go.Scatter(
+    x=hours_plot_data['Date_Str'],
+    y=hours_plot_data['MA3_YoY_Change'],
+    name='3-Month MA',
+    line=dict(color='red', dash='dash')
+))
+fig_hours.update_layout(
+    title='Hours Worked Year-over-Year % Change (Last 24 Months)',
+    showlegend=True
+)
+st.plotly_chart(fig_hours, use_container_width=True)
+
+# Warning signals for Hours Worked
+st.subheader("Warning Signals 🚨")
+st.markdown(f"""
+Current Status: {create_warning_indicator(hours_weakening, 0.5)} 
+Latest YoY Change (3M MA): {current_hours_ma_change:.1f}%
+
+**Key Warning Signals to Watch:**
+- Declining 3-month moving average
+- Negative year-over-year change
+- Part of the danger combination: ISM below 50 + Claims rising 3 weeks straight + Hours worked dropping
+""")
+
+# 2. Core CPI Section
+st.header("2. Core CPI (Consumer Price Index Less Food and Energy) 📊")
+st.markdown("""
+**Description:** Core CPI measures inflation excluding volatile food and energy prices.
+This provides a clearer picture of underlying inflation trends.
+""")
+
+# Create Core CPI chart - convert dates to strings to avoid FutureWarning
+cpi_plot_data = core_cpi_data.tail(24).copy()
+# Convert numpy datetime64 to string format to avoid FutureWarning
+cpi_plot_data['Date_Str'] = pd.to_datetime(cpi_plot_data['Date']).dt.strftime('%Y-%m-%d')
+fig_cpi = px.line(cpi_plot_data, x='Date_Str', y='CPI_YoY',
+                  title='Core CPI Year-over-Year % Change (Last 24 Months)')
+fig_cpi.update_layout(showlegend=False)
+st.plotly_chart(fig_cpi, use_container_width=True)
+
+# Warning signals for Core CPI
+st.subheader("Warning Signals 🚨")
+st.markdown(f"""
+Current Status: {create_warning_indicator(current_cpi, 2.0)} 
+Current Core CPI YoY: {current_cpi:.1f}%
+
+**Key Warning Signals to Watch:**
+- Core CPI above 2% Fed target
+- Acceleration in monthly rate
+- Divergence from PCE trends
+""")
+
+# 3. Initial Jobless Claims Section
+st.header("3. Initial Jobless Claims 📈")
 st.markdown("""
 **Description:** Initial Jobless Claims show how many people filed for unemployment for the first time in a given week.
 Released every Thursday by the Department of Labor.
 """)
 
-# Create claims chart
-fig_claims = px.line(claims_data.tail(52), x='Date', y='Claims',
+# Create claims chart - convert dates to strings to avoid FutureWarning
+claims_plot_data = claims_data.tail(52).copy()
+# Convert numpy datetime64 to string format to avoid FutureWarning
+claims_plot_data['Date_Str'] = pd.to_datetime(claims_plot_data['Date']).dt.strftime('%Y-%m-%d')
+fig_claims = px.line(claims_plot_data, x='Date_Str', y='Claims',
                      title='Weekly Initial Jobless Claims (Last 52 Weeks)')
 fig_claims.update_layout(showlegend=False)
 st.plotly_chart(fig_claims, use_container_width=True)
@@ -209,8 +283,8 @@ Current Status: {create_warning_indicator(claims_increasing, 0.5)}
 - "Small moves early beat big moves late"
 """)
 
-# 2. PCE Section
-st.header("2. Personal Consumption Expenditures (PCE) 💵")
+# 4. PCE Section
+st.header("4. Personal Consumption Expenditures (PCE) 💵")
 st.markdown("""
 **Description:** PCE is the Fed's preferred measure of inflation, tracking all spending across consumer, business, and government sectors.
 Released monthly by the Bureau of Economic Analysis.
@@ -223,8 +297,11 @@ PCE tracks ALL spending:
 - Shows how people adapt to price changes
 """)
 
-# Create PCE chart
-fig_pce = px.line(pce_data.tail(24), x='Date', y='PCE_YoY',
+# Create PCE chart - convert dates to strings to avoid FutureWarning
+pce_plot_data = pce_data.tail(24).copy()
+# Convert numpy datetime64 to string format to avoid FutureWarning
+pce_plot_data['Date_Str'] = pd.to_datetime(pce_plot_data['Date']).dt.strftime('%Y-%m-%d')
+fig_pce = px.line(pce_plot_data, x='Date_Str', y='PCE_YoY',
                   title='PCE Year-over-Year % Change (Last 24 Months)')
 fig_pce.update_layout(showlegend=False)
 st.plotly_chart(fig_pce, use_container_width=True)
@@ -248,70 +325,6 @@ Trend: {'Rising' if pce_rising else 'Falling'}
 **Remember:** "Everyone watches CPI, but PCE guides policy."
 """)
 
-# 3. Core CPI Section
-st.header("3. Core CPI (Consumer Price Index Less Food and Energy) 📊")
-st.markdown("""
-**Description:** Core CPI measures inflation excluding volatile food and energy prices.
-This provides a clearer picture of underlying inflation trends.
-""")
-
-# Create Core CPI chart
-fig_cpi = px.line(core_cpi_data.tail(24), x='Date', y='CPI_YoY',
-                  title='Core CPI Year-over-Year % Change (Last 24 Months)')
-fig_cpi.update_layout(showlegend=False)
-st.plotly_chart(fig_cpi, use_container_width=True)
-
-# Warning signals for Core CPI
-st.subheader("Warning Signals 🚨")
-st.markdown(f"""
-Current Status: {create_warning_indicator(current_cpi, 2.0)} 
-Current Core CPI YoY: {current_cpi:.1f}%
-
-**Key Warning Signals to Watch:**
-- Core CPI above 2% Fed target
-- Acceleration in monthly rate
-- Divergence from PCE trends
-""")
-
-# 4. Hours Worked Section
-st.header("4. Hours Worked 🕒")
-st.markdown("""
-**Description:** Average weekly hours worked in the private sector.
-A declining trend can signal reduced economic activity and potential job market weakness.
-""")
-
-# Create Hours Worked chart with both actual and MA lines
-fig_hours = go.Figure()
-fig_hours.add_trace(go.Scatter(
-    x=hours_data.tail(24)['Date'],
-    y=hours_data.tail(24)['YoY_Change'],
-    name='Actual',
-    line=dict(color='blue')
-))
-fig_hours.add_trace(go.Scatter(
-    x=hours_data.tail(24)['Date'],
-    y=hours_data.tail(24)['MA3_YoY_Change'],
-    name='3-Month MA',
-    line=dict(color='red', dash='dash')
-))
-fig_hours.update_layout(
-    title='Hours Worked Year-over-Year % Change (Last 24 Months)',
-    showlegend=True
-)
-st.plotly_chart(fig_hours, use_container_width=True)
-
-# Warning signals for Hours Worked
-st.subheader("Warning Signals 🚨")
-st.markdown(f"""
-Current Status: {create_warning_indicator(hours_weakening, 0.5)} 
-Latest YoY Change (3M MA): {current_hours_ma_change:.1f}%
-
-**Key Warning Signals to Watch:**
-- Declining 3-month moving average
-- Negative year-over-year change
-- Part of the danger combination: ISM below 50 + Claims rising 3 weeks straight + Hours worked dropping
-""")
-
 # 5. ISM Manufacturing Section
 st.header("5. ISM Manufacturing Index 🏭")
 st.markdown("""
@@ -322,12 +335,14 @@ st.markdown("""
 "Think of it as the economy's pulse"
 """)
 
-# Create ISM Manufacturing chart with improved visualization
+# Create ISM Manufacturing chart with improved visualization - convert dates to strings to avoid FutureWarning
 if 'ISM' in ism_data.columns:
-    # Ensure we're only plotting the last 24 months of data
-    recent_ism_data = ism_data.tail(24)
+    # Ensure we're only plotting the last 24 months of data and using a copy to avoid FutureWarning
+    recent_ism_data = ism_data.tail(24).copy()
+    # Convert numpy datetime64 to string format to avoid FutureWarning
+    recent_ism_data['Date_Str'] = pd.to_datetime(recent_ism_data['Date']).dt.strftime('%Y-%m-%d')
     
-    fig_ism = px.line(recent_ism_data, x='Date', y='ISM',
+    fig_ism = px.line(recent_ism_data, x='Date_Str', y='ISM',
                       title='ISM Manufacturing Index (Last 24 Months)')
     
     # Add the 50-point threshold line
