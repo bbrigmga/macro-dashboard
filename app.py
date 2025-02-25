@@ -42,6 +42,7 @@ pce_data = pd.DataFrame(fred.get_series('PCEPI'), columns=['Value']).reset_index
 pce_data.columns = ['Date', 'PCE']
 pce_data['PCE_YoY'] = pce_data['PCE'].pct_change(periods=12) * 100
 current_pce = pce_data['PCE_YoY'].iloc[-1]
+pce_rising = pce_data['PCE_YoY'].iloc[-1] > pce_data['PCE_YoY'].iloc[-2]
 
 core_cpi_data = pd.DataFrame(fred.get_series('CPILFESL'), columns=['Value']).reset_index()
 core_cpi_data.columns = ['Date', 'CPI']
@@ -60,11 +61,25 @@ current_hours_change = hours_data['YoY_Change'].iloc[-1]
 current_hours_ma_change = hours_data['MA3_YoY_Change'].iloc[-1]
 hours_weakening = current_hours_ma_change < 0
 
-mfg_data = pd.DataFrame(fred.get_series('MANEMP'), columns=['Value']).reset_index()
-mfg_data.columns = ['Date', 'Manufacturing']
-mfg_data['YoY_Change'] = mfg_data['Manufacturing'].pct_change(periods=12) * 100
-current_mfg_change = mfg_data['YoY_Change'].iloc[-1]
-mfg_trend = "Contracting" if current_mfg_change < 0 else "Expanding"
+# Fetch ISM Manufacturing data
+try:
+    ism_data = pd.DataFrame(fred.get_series('NAPM'), columns=['Value']).reset_index()
+    ism_data.columns = ['Date', 'ISM']
+    current_ism = ism_data['ISM'].iloc[-1]
+    ism_below_50 = current_ism < 50
+except:
+    # Fallback to manufacturing employment if ISM data is unavailable
+    ism_data = pd.DataFrame(fred.get_series('MANEMP'), columns=['Value']).reset_index()
+    ism_data.columns = ['Date', 'ISM']
+    ism_data['ISM_YoY'] = ism_data['ISM'].pct_change(periods=12) * 100
+    current_ism = ism_data['ISM'].iloc[-1]
+    ism_below_50 = False  # Not applicable for employment data
+
+# Check for danger combination
+danger_combination = ism_below_50 and claims_increasing and hours_weakening
+
+# Check for risk-on opportunity
+risk_on_opportunity = not pce_rising and not claims_increasing
 
 # Create summary table
 st.header("Current Market Signals Summary")
@@ -74,33 +89,48 @@ summary_data = {
         'PCE (Inflation)',
         'Core CPI',
         'Hours Worked (3M MA)',
-        'Manufacturing Employment'
+        'ISM Manufacturing'
     ],
     'Status': [
         create_warning_indicator(claims_increasing, 0.5),
         create_warning_indicator(current_pce, 2.0),
         create_warning_indicator(current_cpi, 2.0),
         create_warning_indicator(hours_weakening, 0.5),
-        create_warning_indicator(current_mfg_change, 0, higher_is_bad=False)
+        create_warning_indicator(ism_below_50, 0.5)
     ],
     'Current Value': [
         f"{claims_data['Claims'].iloc[-1]:,.0f} claims",
         f"{current_pce:.1f}% YoY",
         f"{current_cpi:.1f}% YoY",
         f"{current_hours_ma_change:.1f}% YoY",
-        f"{current_mfg_change:.1f}% YoY"
+        f"{current_ism:.1f}"
     ],
     'Interpretation': [
         'Rising' if claims_increasing else 'Stable/Decreasing',
-        'Above Target' if current_pce > 2.0 else 'Within Target',
+        'Rising' if pce_rising else 'Falling',
         'Above Target' if current_cpi > 2.0 else 'Within Target',
         'Weakening' if hours_weakening else 'Strong',
-        'Contracting' if current_mfg_change < 0 else 'Expanding'
+        'Contraction' if ism_below_50 else 'Expansion'
     ]
 }
 
 summary_df = pd.DataFrame(summary_data)
 st.table(summary_df)
+
+# Add overall market signal
+st.subheader("Overall Market Signal")
+if danger_combination:
+    st.error("⚠️ DANGER COMBINATION DETECTED: ISM below 50 + Claims rising + Hours worked dropping")
+    st.markdown("**Recommended Action:** Protect capital first. Scale back aggressive positions.")
+elif claims_increasing and pce_rising:
+    st.warning("⚠️ WARNING: PCE rising + Rising claims = Get defensive")
+    st.markdown("**Recommended Action:** Shift toward defensive sectors, build cash reserves.")
+elif risk_on_opportunity:
+    st.success("✅ OPPORTUNITY: PCE dropping + Stable jobs = Add risk")
+    st.markdown("**Recommended Action:** Consider adding risk to portfolio.")
+else:
+    st.info("📊 Mixed signals - Monitor closely and wait for confirmation")
+    st.markdown("**Recommended Action:** Make gradual moves based on trend changes.")
 
 st.markdown("""
 🔴 = Warning Signal / Needs Attention
@@ -135,6 +165,12 @@ Current Status: {create_warning_indicator(claims_increasing, 0.5)}
 - Three consecutive weeks of rising claims
 - Claims rising while PCE is also rising
 - Sudden spike in claims (>10% week-over-week)
+
+**Playbook for Rising Claims:**
+- Scale back aggressive positions
+- Shift toward defensive sectors
+- Build cash reserves
+- "Small moves early beat big moves late"
 """)
 
 # 2. PCE Section
@@ -142,6 +178,13 @@ st.header("2. Personal Consumption Expenditures (PCE) 💵")
 st.markdown("""
 **Description:** PCE is the Fed's preferred measure of inflation, tracking all spending across consumer, business, and government sectors.
 Released monthly by the Bureau of Economic Analysis.
+
+PCE tracks ALL spending:
+- Consumer spending
+- Business spending
+- Government spending
+- Includes healthcare costs insurance covers
+- Shows how people adapt to price changes
 """)
 
 # Create PCE chart
@@ -155,11 +198,18 @@ st.subheader("Warning Signals 🚨")
 st.markdown(f"""
 Current Status: {create_warning_indicator(current_pce, 2.0)} 
 Current PCE YoY: {current_pce:.1f}%
+Trend: {'Rising' if pce_rising else 'Falling'}
 
-**Key Warning Signals to Watch:**
-- PCE rising + Rising jobless claims = Defensive positioning needed
-- PCE above Fed's 2% target
-- PCE rising faster than expected
+**Key Framework:**
+- PCE dropping + Stable jobs = Add risk
+- PCE rising + Rising claims = Get defensive
+
+**What PCE Tells Us:**
+- Rate trends
+- Market conditions
+- Risk appetite
+
+**Remember:** "Everyone watches CPI, but PCE guides policy."
 """)
 
 # 3. Core CPI Section
@@ -223,35 +273,41 @@ Latest YoY Change (3M MA): {current_hours_ma_change:.1f}%
 **Key Warning Signals to Watch:**
 - Declining 3-month moving average
 - Negative year-over-year change
-- Divergence between actual and moving average
-- Combined weakness with rising jobless claims
+- Part of the danger combination: ISM below 50 + Claims rising 3 weeks straight + Hours worked dropping
 """)
 
-# 5. Manufacturing Employment Section
-st.header("5. Manufacturing Employment 🏭")
+# 5. ISM Manufacturing Section
+st.header("5. ISM Manufacturing Index 🏭")
 st.markdown("""
-**Description:** Manufacturing employment data serves as a proxy for manufacturing sector health.
-A rising trend indicates sector expansion, while a declining trend suggests contraction.
+**Description:** A monthly survey of manufacturing businesses showing if factories are growing or shrinking.
+- Above 50 = Growth/Expansion
+- Below 50 = Contraction
+
+"Think of it as the economy's pulse"
 """)
 
-# Create Manufacturing Employment chart
-fig_ism = px.line(mfg_data.tail(24), x='Date', y='YoY_Change',
-                  title='Manufacturing Employment Year-over-Year % Change (Last 24 Months)')
-fig_ism.add_hline(y=0, line_dash="dash", line_color="red",
-                  annotation_text="Growth/Contraction Line")
+# Create ISM Manufacturing chart
+fig_ism = px.line(ism_data.tail(24), x='Date', y='ISM',
+                  title='ISM Manufacturing Index (Last 24 Months)')
+fig_ism.add_hline(y=50, line_dash="dash", line_color="red",
+                  annotation_text="Expansion/Contraction Line")
 fig_ism.update_layout(showlegend=False)
 st.plotly_chart(fig_ism, use_container_width=True)
 
-# Warning signals for Manufacturing
+# Warning signals for ISM
 st.subheader("Warning Signals 🚨")
 st.markdown(f"""
-Current Status: {create_warning_indicator(current_mfg_change, 0, higher_is_bad=False)} 
-Current YoY Change: {current_mfg_change:.1f}% ({mfg_trend})
+Current Status: {create_warning_indicator(ism_below_50, 0.5)} 
+Current ISM: {current_ism:.1f} ({'Contraction' if ism_below_50 else 'Expansion'})
+
+**Key Insight:** "Watch trends, not levels."
 
 **Danger Combination to Watch:**
-- Manufacturing employment declining
+- ISM below 50
 - Claims rising 3 weeks straight
-- PCE rising
+- Hours worked dropping
+
+"When these align, protect capital first."
 """)
 
 # Defensive Playbook Section
@@ -277,6 +333,8 @@ When warning signals align, consider this defensive strategy:
    - Scale back aggressive positions
    - Make gradual moves
    - Stay disciplined
+
+Then return to growth when trends improve.
 """)
 
 # Core Principles Section
@@ -287,13 +345,13 @@ st.markdown("""
 - Wait for confirmation
 - Make gradual moves
 - Stay disciplined
-- Focus on being profitable, not being right
+- It's not about being right - it's about being profitable
 
 **Market Dynamics:**
 - Markets are driven by simple forces: Jobs, Spending, Business activity
 - Like weather forecasting, you can't predict every storm
 - But you can spot conditions that make storms likely
-- These indicators help identify those conditions
+- That's what these 5 indicators do
 """)
 
 # Add footer with data disclaimer
