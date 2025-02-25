@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime, timedelta
@@ -35,26 +36,41 @@ def create_warning_indicator(value, threshold, higher_is_bad=True):
         color = "red" if value < threshold else "green"
     return f"🔴" if color == "red" else "🟢"
 
+# Helper function to convert datetime index to numpy datetime64 array
+def convert_dates(df):
+    if isinstance(df.index, pd.DatetimeIndex):
+        df = df.copy()
+        df.index = df.index.to_numpy()
+    return df
+
 # Fetch all data first for summary
 claims_data = pd.DataFrame(fred.get_series('ICSA'), columns=['Value']).reset_index()
 claims_data.columns = ['Date', 'Claims']
+# Convert Date to numpy datetime64 to avoid FutureWarning
+claims_data['Date'] = pd.to_datetime(claims_data['Date']).to_numpy()
 recent_claims = claims_data['Claims'].tail(4).values
 claims_increasing = all(recent_claims[i] < recent_claims[i+1] for i in range(len(recent_claims)-1))
 
 pce_data = pd.DataFrame(fred.get_series('PCEPI'), columns=['Value']).reset_index()
 pce_data.columns = ['Date', 'PCE']
+# Convert Date to numpy datetime64 to avoid FutureWarning
+pce_data['Date'] = pd.to_datetime(pce_data['Date']).to_numpy()
 pce_data['PCE_YoY'] = pce_data['PCE'].pct_change(periods=12) * 100
 current_pce = pce_data['PCE_YoY'].iloc[-1]
 pce_rising = pce_data['PCE_YoY'].iloc[-1] > pce_data['PCE_YoY'].iloc[-2]
 
 core_cpi_data = pd.DataFrame(fred.get_series('CPILFESL'), columns=['Value']).reset_index()
 core_cpi_data.columns = ['Date', 'CPI']
+# Convert Date to numpy datetime64 to avoid FutureWarning
+core_cpi_data['Date'] = pd.to_datetime(core_cpi_data['Date']).to_numpy()
 core_cpi_data['CPI_YoY'] = core_cpi_data['CPI'].pct_change(periods=12) * 100
 current_cpi = core_cpi_data['CPI_YoY'].iloc[-1]
 
 # Fetch Hours Worked data
 hours_data = pd.DataFrame(fred.get_series('PRS85006031'), columns=['Value']).reset_index()
 hours_data.columns = ['Date', 'Hours']
+# Convert Date to numpy datetime64 to avoid FutureWarning
+hours_data['Date'] = pd.to_datetime(hours_data['Date']).to_numpy()
 # Calculate 3-month moving average
 hours_data['MA3'] = hours_data['Hours'].rolling(window=3).mean()
 # Calculate YoY change for both actual and MA
@@ -80,6 +96,8 @@ try:
         raise ValueError("Not enough ISM data points")
         
     ism_data.columns = ['Date', 'ISM']
+    # Convert Date to numpy datetime64 to avoid FutureWarning
+    ism_data['Date'] = pd.to_datetime(ism_data['Date']).to_numpy()
     current_ism = ism_data['ISM'].iloc[-1]
     ism_below_50 = current_ism < 50
 except Exception as e:
@@ -87,6 +105,8 @@ except Exception as e:
     st.warning(f"Could not fetch ISM Manufacturing data: {str(e)}. Using Manufacturing Employment as fallback.")
     ism_data = pd.DataFrame(fred.get_series('MANEMP'), columns=['Value']).reset_index()
     ism_data.columns = ['Date', 'ISM']
+    # Convert Date to numpy datetime64 to avoid FutureWarning
+    ism_data['Date'] = pd.to_datetime(ism_data['Date']).to_numpy()
     ism_data['ISM_YoY'] = ism_data['ISM'].pct_change(periods=12) * 100
     current_ism = ism_data['ISM'].iloc[-1]
     ism_below_50 = False  # Not applicable for employment data
