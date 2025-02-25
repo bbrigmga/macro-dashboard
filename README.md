@@ -1,6 +1,6 @@
 # Macro Economic Indicators Dashboard
 
-A Streamlit dashboard that tracks and visualizes key macro economic indicators including Initial Jobless Claims, PCE (Personal Consumption Expenditures), and ISM Manufacturing Index. The dashboard provides real-time data visualization, warning signals, and interpretation guidelines for each indicator.
+A Streamlit dashboard that tracks and visualizes key macro economic indicators including Initial Jobless Claims, PCE (Personal Consumption Expenditures), Core CPI, Non-farm Payrolls, and Manufacturing Employment. The dashboard provides real-time data visualization, warning signals, and interpretation guidelines for each indicator.
 
 ## Features
 
@@ -9,10 +9,15 @@ A Streamlit dashboard that tracks and visualizes key macro economic indicators i
 - Warning signals and interpretation guidelines
 - Defensive playbook recommendations
 - Core principles for market analysis
+- Summary table with current status of all indicators
 
-## Setup Instructions
+## Local Setup
 
-1. Clone this repository or download the files
+1. Clone this repository:
+```bash
+git clone [your-repository-url]
+cd [repository-name]
+```
 
 2. Install required packages:
 ```bash
@@ -28,10 +33,40 @@ pip install -r requirements.txt
    - Copy `.env.example` to a new file named `.env`
    - Replace `your_api_key_here` with your actual FRED API key
 
-5. Run the dashboard:
+5. Run the dashboard locally:
 ```bash
 streamlit run app.py
 ```
+
+## Deployment on Streamlit Cloud
+
+This dashboard can be deployed for free on Streamlit Cloud:
+
+1. Push your code to GitHub:
+   - Create a new repository on GitHub
+   - Push your code:
+   ```bash
+   git remote add origin [your-github-repo-url]
+   git branch -M main
+   git push -u origin main
+   ```
+
+2. Deploy on Streamlit Cloud:
+   - Go to https://streamlit.io/cloud
+   - Sign in with your GitHub account
+   - Click "New app"
+   - Select your repository, branch, and main file (app.py)
+   - Add your FRED API key as a secret:
+     - In the app settings, add a secret named `FRED_API_KEY`
+     - Set its value to your FRED API key
+
+3. Your app will be available at a public URL provided by Streamlit
+
+## Security Notes
+
+- Never commit your `.env` file containing your FRED API key
+- Use environment variables or secrets management for API keys
+- The `.gitignore` file is configured to exclude the `.env` file
 
 ## Indicators Tracked
 
@@ -45,34 +80,37 @@ streamlit run app.py
    - Year-over-year change tracking
    - Combined analysis with other indicators
 
-3. **ISM Manufacturing Index**
-   - Monthly manufacturing business survey
-   - Expansion/contraction threshold monitoring
-   - Trend analysis and warning combinations
+3. **Core CPI**
+   - Inflation excluding food and energy
+   - Monthly rate changes
+   - Comparison with PCE trends
 
-## Usage
+4. **Non-farm Payrolls**
+   - Monthly employment changes
+   - Trend analysis
+   - Job market health indicators
 
-The dashboard automatically updates with the latest data from FRED. Each indicator section includes:
-- Interactive charts
-- Current status indicators
-- Warning signals to watch for
-- Interpretation guidelines
-- Recommended actions based on signals
-
-## Defensive Playbook
-
-The dashboard includes a comprehensive defensive playbook that activates when warning signals align, providing guidance on:
-- Portfolio review strategies
-- Position sizing
-- Risk management
-- Cash reserve management
+5. **Manufacturing Employment**
+   - Sector health indicator
+   - Year-over-year changes
+   - Combined analysis with other metrics
 
 ## Maintenance
 
 The dashboard automatically updates with new data as it becomes available:
 - Initial Jobless Claims: Updated weekly (Thursday)
 - PCE: Updated monthly
-- ISM Manufacturing: Updated monthly
+- Core CPI: Updated monthly
+- Non-farm Payrolls: Updated monthly
+- Manufacturing Employment: Updated monthly
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## Note
 
