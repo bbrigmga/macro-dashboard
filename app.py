@@ -80,39 +80,19 @@ current_hours_change = hours_data['YoY_Change'].iloc[-1]
 current_hours_ma_change = hours_data['MA3_YoY_Change'].iloc[-1]
 hours_weakening = current_hours_ma_change < 0
 
-# Fetch ISM Manufacturing data with improved error handling
-try:
-    # Get ISM Manufacturing data for the last 5 years to ensure we have enough history
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=5*365)  # 5 years of data
-    
-    ism_data = pd.DataFrame(
-        fred.get_series('NAPM', observation_start=start_date, observation_end=end_date),
-        columns=['Value']
-    ).reset_index()
-    
-    # Check if we have enough data
-    if len(ism_data) < 2:
-        raise ValueError("Not enough ISM data points")
-        
-    ism_data.columns = ['Date', 'ISM']
-    # Convert Date to numpy datetime64 to avoid FutureWarning
-    ism_data['Date'] = pd.to_datetime(ism_data['Date']).to_numpy()
-    current_ism = ism_data['ISM'].iloc[-1]
-    ism_below_50 = current_ism < 50
-except Exception as e:
-    # Fallback to manufacturing employment if ISM data is unavailable
-    st.warning(f"Could not fetch ISM Manufacturing data: {str(e)}. Using Manufacturing Employment as fallback.")
-    ism_data = pd.DataFrame(fred.get_series('MANEMP'), columns=['Value']).reset_index()
-    ism_data.columns = ['Date', 'ISM']
-    # Convert Date to numpy datetime64 to avoid FutureWarning
-    ism_data['Date'] = pd.to_datetime(ism_data['Date']).to_numpy()
-    ism_data['ISM_YoY'] = ism_data['ISM'].pct_change(periods=12) * 100
-    current_ism = ism_data['ISM'].iloc[-1]
-    ism_below_50 = False  # Not applicable for employment data
+# Fetch Manufacturing Employment data
+manuf_emp_data = pd.DataFrame(fred.get_series('MANEMP'), columns=['Value']).reset_index()
+manuf_emp_data.columns = ['Date', 'Employment']
+# Convert Date to numpy datetime64 to avoid FutureWarning
+manuf_emp_data['Date'] = pd.to_datetime(manuf_emp_data['Date']).to_numpy()
+# Calculate year-over-year change
+manuf_emp_data['YoY_Change'] = manuf_emp_data['Employment'].pct_change(periods=12) * 100
+current_manuf_emp = manuf_emp_data['Employment'].iloc[-1]
+current_manuf_emp_yoy = manuf_emp_data['YoY_Change'].iloc[-1]
+manuf_emp_declining = current_manuf_emp_yoy < 0
 
 # Check for danger combination
-danger_combination = ism_below_50 and claims_increasing and hours_weakening
+danger_combination = manuf_emp_declining and claims_increasing and hours_weakening
 
 # Check for risk-on opportunity
 risk_on_opportunity = not pce_rising and not claims_increasing
@@ -124,28 +104,28 @@ summary_data = {
         '2. Core CPI',
         '3. Initial Jobless Claims',
         '4. PCE (Inflation)',
-        '5. ISM Manufacturing'
+        '5. Manufacturing Employment'
     ],
     'Status': [
         create_warning_indicator(hours_weakening, 0.5),
         create_warning_indicator(current_cpi, 2.0),
         create_warning_indicator(claims_increasing, 0.5),
         create_warning_indicator(current_pce, 2.0),
-        create_warning_indicator(ism_below_50, 0.5)
+        create_warning_indicator(manuf_emp_declining, 0.5)
     ],
     'Current Value': [
         f"{current_hours_ma_change:.1f}% YoY",
         f"{current_cpi:.1f}% YoY",
         f"{claims_data['Claims'].iloc[-1]:,.0f} claims",
         f"{current_pce:.1f}% YoY",
-        f"{current_ism:.1f}"
+        f"{current_manuf_emp_yoy:.1f}% YoY"
     ],
     'Interpretation': [
         'Weakening' if hours_weakening else 'Strong',
         'Above Target' if current_cpi > 2.0 else 'Within Target',
         'Rising' if claims_increasing else 'Stable/Decreasing',
         'Rising' if pce_rising else 'Falling',
-        'Contraction' if ism_below_50 else 'Expansion'
+        'Declining' if manuf_emp_declining else 'Growing'
     ]
 }
 
@@ -157,7 +137,7 @@ st.dataframe(summary_df, hide_index=True)
 # Add overall market signal
 st.subheader("Overall Market Signal")
 if danger_combination:
-    st.error("⚠️ DANGER COMBINATION DETECTED: ISM below 50 + Claims rising + Hours worked dropping")
+    st.error("⚠️ DANGER COMBINATION DETECTED: Manufacturing Employment declining + Claims rising + Hours worked dropping")
     st.markdown("**Recommended Action:** Protect capital first. Scale back aggressive positions.")
 elif claims_increasing and pce_rising:
     st.warning("⚠️ WARNING: PCE rising + Rising claims = Get defensive")
@@ -209,6 +189,9 @@ fig_hours.update_layout(
 )
 st.plotly_chart(fig_hours, use_container_width=True)
 
+# Add FRED reference link
+st.markdown("[FRED Data Source: PRS85006031 - Nonfarm Business Sector: Hours Worked](https://fred.stlouisfed.org/series/PRS85006031)")
+
 # Warning signals for Hours Worked
 st.subheader("Warning Signals 🚨")
 st.markdown(f"""
@@ -218,7 +201,7 @@ Latest YoY Change (3M MA): {current_hours_ma_change:.1f}%
 **Key Warning Signals to Watch:**
 - Declining 3-month moving average
 - Negative year-over-year change
-- Part of the danger combination: ISM below 50 + Claims rising 3 weeks straight + Hours worked dropping
+- Part of the danger combination: Manufacturing Employment declining + Claims rising + Hours worked dropping
 """)
 
 # 2. Core CPI Section
@@ -236,6 +219,9 @@ fig_cpi = px.line(cpi_plot_data, x='Date_Str', y='CPI_YoY',
                   title='Core CPI Year-over-Year % Change (Last 24 Months)')
 fig_cpi.update_layout(showlegend=False)
 st.plotly_chart(fig_cpi, use_container_width=True)
+
+# Add FRED reference link
+st.markdown("[FRED Data Source: CPILFESL - Core Consumer Price Index](https://fred.stlouisfed.org/series/CPILFESL)")
 
 # Warning signals for Core CPI
 st.subheader("Warning Signals 🚨")
@@ -264,6 +250,9 @@ fig_claims = px.line(claims_plot_data, x='Date_Str', y='Claims',
                      title='Weekly Initial Jobless Claims (Last 52 Weeks)')
 fig_claims.update_layout(showlegend=False)
 st.plotly_chart(fig_claims, use_container_width=True)
+
+# Add FRED reference link
+st.markdown("[FRED Data Source: ICSA - Initial Claims for Unemployment Insurance](https://fred.stlouisfed.org/series/ICSA)")
 
 # Warning signals for Claims
 st.subheader("Warning Signals 🚨")
@@ -306,6 +295,9 @@ fig_pce = px.line(pce_plot_data, x='Date_Str', y='PCE_YoY',
 fig_pce.update_layout(showlegend=False)
 st.plotly_chart(fig_pce, use_container_width=True)
 
+# Add FRED reference link
+st.markdown("[FRED Data Source: PCEPI - Personal Consumption Expenditures Price Index](https://fred.stlouisfed.org/series/PCEPI)")
+
 # Warning signals for PCE
 st.subheader("Warning Signals 🚨")
 st.markdown(f"""
@@ -325,54 +317,42 @@ Trend: {'Rising' if pce_rising else 'Falling'}
 **Remember:** "Everyone watches CPI, but PCE guides policy."
 """)
 
-# 5. ISM Manufacturing Section
-st.header("5. ISM Manufacturing Index 🏭")
+# 5. Manufacturing Employment Section
+st.header("5. Manufacturing Employment 🏭")
 st.markdown("""
-**Description:** A monthly survey of manufacturing businesses showing if factories are growing or shrinking.
-- Above 50 = Growth/Expansion
-- Below 50 = Contraction
+**Description:** Total number of employees in the manufacturing sector.
+A declining trend can signal reduced industrial activity and potential economic weakness.
 
-"Think of it as the economy's pulse"
+"Manufacturing employment is a key indicator of industrial health"
 """)
 
-# Create ISM Manufacturing chart with improved visualization - convert dates to strings to avoid FutureWarning
-if 'ISM' in ism_data.columns:
-    # Ensure we're only plotting the last 24 months of data and using a copy to avoid FutureWarning
-    recent_ism_data = ism_data.tail(24).copy()
-    # Convert numpy datetime64 to string format to avoid FutureWarning
-    recent_ism_data['Date_Str'] = pd.to_datetime(recent_ism_data['Date']).dt.strftime('%Y-%m-%d')
-    
-    fig_ism = px.line(recent_ism_data, x='Date_Str', y='ISM',
-                      title='ISM Manufacturing Index (Last 24 Months)')
-    
-    # Add the 50-point threshold line
-    fig_ism.add_hline(y=50, line_dash="dash", line_color="red",
-                      annotation_text="Expansion/Contraction Line")
-    
-    # Improve y-axis range to better show the data
-    y_min = max(0, recent_ism_data['ISM'].min() - 5)  # Add some padding below
-    y_max = recent_ism_data['ISM'].max() + 5  # Add some padding above
-    fig_ism.update_layout(
-        yaxis=dict(range=[y_min, y_max]),
-        showlegend=False
-    )
-    
-    st.plotly_chart(fig_ism, use_container_width=True)
-else:
-    st.error("ISM Manufacturing data is not available in the expected format.")
+# Create Manufacturing Employment chart - convert dates to strings to avoid FutureWarning
+recent_manuf_data = manuf_emp_data.tail(24).copy()
+# Convert numpy datetime64 to string format to avoid FutureWarning
+recent_manuf_data['Date_Str'] = pd.to_datetime(recent_manuf_data['Date']).dt.strftime('%Y-%m-%d')
 
-# Warning signals for ISM
+# Create YoY change chart
+fig_manuf_yoy = px.line(recent_manuf_data, x='Date_Str', y='YoY_Change',
+                  title='Manufacturing Employment Year-over-Year % Change (Last 24 Months)')
+fig_manuf_yoy.update_layout(showlegend=False)
+
+st.plotly_chart(fig_manuf_yoy, use_container_width=True)
+
+# Add FRED reference link
+st.markdown("[FRED Data Source: MANEMP - All Employees, Manufacturing](https://fred.stlouisfed.org/series/MANEMP)")
+
+# Warning signals for Manufacturing Employment
 st.subheader("Warning Signals 🚨")
 st.markdown(f"""
-Current Status: {create_warning_indicator(ism_below_50, 0.5)} 
-Current ISM: {current_ism:.1f} ({'Contraction' if ism_below_50 else 'Expansion'})
+Current Status: {create_warning_indicator(manuf_emp_declining, 0.5)} 
+Current Manufacturing Employment YoY Change: {current_manuf_emp_yoy:.1f}%
+
+**Key Warning Signals to Watch:**
+- Negative year-over-year change
+- Accelerating decline in employment
+- Part of the danger combination: Manufacturing Employment declining + Claims rising + Hours worked dropping
 
 **Key Insight:** "Watch trends, not levels."
-
-**Danger Combination to Watch:**
-- ISM below 50
-- Claims rising 3 weeks straight
-- Hours worked dropping
 
 "When these align, protect capital first."
 """)
