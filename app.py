@@ -66,35 +66,48 @@ core_cpi_data.columns = ['Date', 'CPI']
 core_cpi_data['Date'] = pd.to_datetime(core_cpi_data['Date']).to_numpy()
 # Use ffill() before pct_change() to avoid FutureWarning about deprecated fill_method
 core_cpi_data['CPI_YoY'] = core_cpi_data['CPI'].ffill().pct_change(periods=12) * 100
+core_cpi_data['CPI_MoM'] = core_cpi_data['CPI'].ffill().pct_change(periods=1) * 100
+
+# Get the last 4 months of MoM changes
+recent_cpi_mom = core_cpi_data['CPI_MoM'].tail(4).values
+# Check if MoM changes have been accelerating (each month higher than the previous)
+cpi_accelerating = all(recent_cpi_mom[i] < recent_cpi_mom[i+1] for i in range(len(recent_cpi_mom)-1))
+
 current_cpi = core_cpi_data['CPI_YoY'].iloc[-1]
+current_cpi_mom = core_cpi_data['CPI_MoM'].iloc[-1]
 
 # Fetch Hours Worked data
 hours_data = pd.DataFrame(fred.get_series('AWHAETP'), columns=['Value']).reset_index()
 hours_data.columns = ['Date', 'Hours']
 # Convert Date to numpy datetime64 to avoid FutureWarning
 hours_data['Date'] = pd.to_datetime(hours_data['Date']).to_numpy()
-# Calculate 3-month moving average
-hours_data['MA3'] = hours_data['Hours'].rolling(window=3).mean()
-# Calculate MoM change for both actual and MA
+# Calculate MoM change
 # Use ffill() before pct_change() to avoid FutureWarning about deprecated fill_method
 hours_data['MoM_Change'] = hours_data['Hours'].ffill().pct_change(periods=1) * 100
-# Calculate 3-month rolling average of MoM changes
-hours_data['MoM_Change_MA3'] = hours_data['MoM_Change'].rolling(window=3).mean()
 
 # Handle outliers by capping extreme values
 def cap_outliers(series, lower_limit=-2, upper_limit=2):
     return series.clip(lower=lower_limit, upper=upper_limit)
 
 hours_data['MoM_Change_Capped'] = cap_outliers(hours_data['MoM_Change'])
-hours_data['MoM_Change_MA3_Capped'] = cap_outliers(hours_data['MoM_Change_MA3'])
+
+# Check if hours have fallen for 3 consecutive months
+recent_hours = hours_data['Hours'].tail(4).values  # Get last 4 months
+# Check if each of the last 3 months is lower than the previous month
+hours_weakening = all(recent_hours[i] > recent_hours[i+1] for i in range(len(recent_hours)-1))
 
 # Use the actual values for analysis but capped values for display
 current_hours_change = hours_data['MoM_Change'].iloc[-1]
-current_hours_ma_change = hours_data['MoM_Change_MA3'].iloc[-1]
 # Cap the display values
 current_hours_change_display = cap_outliers(pd.Series([current_hours_change])).iloc[0]
-current_hours_ma_change_display = cap_outliers(pd.Series([current_hours_ma_change])).iloc[0]
-hours_weakening = current_hours_ma_change < 0
+
+# For display purposes, calculate how many consecutive months of decline
+consecutive_declines = 0
+for i in range(len(recent_hours)-1, 0, -1):
+    if recent_hours[i-1] > recent_hours[i]:
+        consecutive_declines += 1
+    else:
+        break
 
 # Function to calculate PMI proxy
 def calculate_pmi_proxy():
@@ -167,7 +180,7 @@ risk_on_opportunity = not pce_rising and not claims_increasing
 # Create summary table with numbered indicators
 summary_data = {
     'Indicator': [
-        '1. Average Weekly Hours (3M MA)',
+        '1. Average Weekly Hours',
         '2. Core CPI',
         '3. Initial Jobless Claims',
         '4. PCE (Inflation)',
@@ -175,21 +188,21 @@ summary_data = {
     ],
     'Status': [
         create_warning_indicator(hours_weakening, 0.5),
-        create_warning_indicator(current_cpi, 2.0),
+        create_warning_indicator(cpi_accelerating, 0.5),
         create_warning_indicator(claims_increasing, 0.5),
         create_warning_indicator(current_pce, 2.0),
         create_warning_indicator(current_pmi < 50, 0.5)
     ],
     'Current Value': [
-        f"{current_hours_ma_change_display:.1f}% MoM",
-        f"{current_cpi:.1f}% YoY",
+        f"{consecutive_declines} consecutive months of decline",
+        f"{current_cpi_mom:.2f}% MoM",
         f"{claims_data['Claims'].iloc[-1]:,.0f} claims",
         f"{current_pce:.1f}% YoY",
         f"{current_pmi:.1f}"
     ],
     'Interpretation': [
         'Weakening' if hours_weakening else 'Strong',
-        'Above Target' if current_cpi > 2.0 else 'Within Target',
+        'Accelerating' if cpi_accelerating else 'Stable/Decelerating',
         'Rising' if claims_increasing else 'Stable/Decreasing',
         'Rising' if pce_rising else 'Falling',
         'Contraction' if pmi_below_50 else 'Expansion'
@@ -222,7 +235,7 @@ with col1:
         'Current Value': [
             f"{current_pmi:.1f}",
             f"{'Rising' if claims_increasing else 'Stable/Falling'}",
-            f"{current_hours_ma_change_display:.1f}% MoM"
+            f"{consecutive_declines} consecutive months of decline"
         ]
     }
     danger_df = pd.DataFrame(danger_data)
@@ -274,7 +287,7 @@ st.markdown("""
 A declining trend can signal reduced economic activity and potential job market weakness.
 """)
 
-# Create Hours Worked chart with both actual and MA lines - convert dates to strings to avoid FutureWarning
+# Create Hours Worked chart - convert dates to strings to avoid FutureWarning
 hours_plot_data = hours_data.tail(24).copy()
 # Convert numpy datetime64 to string format to avoid FutureWarning
 hours_plot_data['Date_Str'] = pd.to_datetime(hours_plot_data['Date']).dt.strftime('%Y-%m-%d')
@@ -284,12 +297,6 @@ fig_hours.add_trace(go.Scatter(
     y=hours_plot_data['MoM_Change_Capped'],
     name='Monthly Change',
     line=dict(color='blue')
-))
-fig_hours.add_trace(go.Scatter(
-    x=hours_plot_data['Date_Str'],
-    y=hours_plot_data['MoM_Change_MA3_Capped'],
-    name='3-Month MA',
-    line=dict(color='red', dash='dash')
 ))
 fig_hours.update_layout(
     title='Average Weekly Hours Month-over-Month % Change (Last 24 Months)',
@@ -308,11 +315,11 @@ st.markdown("[FRED Data Source: AWHAETP - Average Weekly Hours of All Employees:
 st.subheader("Warning Signals 🚨")
 st.markdown(f"""
 Current Status: {create_warning_indicator(hours_weakening, 0.5)} 
-Latest MoM Change (3M MA): {current_hours_ma_change_display:.1f}%
+Consecutive Months of Decline: {consecutive_declines}
 
 **Key Warning Signals to Watch:**
-- Declining 3-month moving average of monthly changes
-- Negative month-over-month change
+- Three or more consecutive months of declining hours
+- Steep month-over-month drops (> 0.5%)
 - Part of the danger combination: Manufacturing PMI below 50 + Claims rising + Average weekly hours dropping
 """)
 
@@ -323,13 +330,64 @@ st.markdown("""
 This provides a clearer picture of underlying inflation trends.
 """)
 
-# Create Core CPI chart - convert dates to strings to avoid FutureWarning
+# Create Core CPI chart with only MoM changes as the main axis
 cpi_plot_data = core_cpi_data.tail(24).copy()
 # Convert numpy datetime64 to string format to avoid FutureWarning
 cpi_plot_data['Date_Str'] = pd.to_datetime(cpi_plot_data['Date']).dt.strftime('%Y-%m-%d')
-fig_cpi = px.line(cpi_plot_data, x='Date_Str', y='CPI_YoY',
-                  title='Core CPI Year-over-Year % Change (Last 24 Months)')
-fig_cpi.update_layout(showlegend=False)
+
+# Create a figure with MoM as the main axis
+fig_cpi = go.Figure()
+
+# Add MoM trace
+fig_cpi.add_trace(go.Scatter(
+    x=cpi_plot_data['Date_Str'],
+    y=cpi_plot_data['CPI_MoM'],
+    name='MoM Change',
+    line=dict(color='red')
+))
+
+# Add a horizontal line at 0.3% MoM (annualizes to >3.6%) using add_shape
+fig_cpi.add_shape(
+    type="line",
+    x0=0,
+    y0=0.3,
+    x1=1,
+    y1=0.3,
+    xref="paper",
+    yref="y",
+    line=dict(
+        color="red",
+        width=1,
+        dash="dash",
+    )
+)
+
+# Add annotation for the threshold line
+fig_cpi.add_annotation(
+    x=0.95,
+    y=0.3,
+    xref="paper",
+    yref="y",
+    text="Monthly 0.3% threshold",
+    showarrow=False,
+    font=dict(
+        color="red",
+        size=10
+    ),
+    align="right"
+)
+
+# Update layout
+fig_cpi.update_layout(
+    title='Core CPI Month-over-Month % Change (Last 24 Months)',
+    yaxis=dict(
+        title="MoM Percent Change (%)",
+        titlefont=dict(color="red"),
+        tickfont=dict(color="red")
+    ),
+    showlegend=True
+)
+
 st.plotly_chart(fig_cpi, use_container_width=True)
 
 # Add FRED reference link
@@ -338,12 +396,13 @@ st.markdown("[FRED Data Source: CPILFESL - Core Consumer Price Index](https://fr
 # Warning signals for Core CPI
 st.subheader("Warning Signals 🚨")
 st.markdown(f"""
-Current Status: {create_warning_indicator(current_cpi, 2.0)} 
-Current Core CPI YoY: {current_cpi:.1f}%
+Current Status: {create_warning_indicator(cpi_accelerating, 0.5)} 
+Current Core CPI MoM: {current_cpi_mom:.2f}%
+{'⚠️ CPI has been accelerating for 3+ months - Inflation pressure building' if cpi_accelerating else '✅ CPI trend stable/decelerating - Inflation pressure easing'}
 
 **Key Warning Signals to Watch:**
-- Core CPI above 2% Fed target
-- Acceleration in monthly rate
+- Three consecutive months of accelerating MoM inflation
+- Monthly rate above 0.3% (annualizes to >3.6%)
 - Divergence from PCE trends
 """)
 
@@ -458,10 +517,36 @@ fig_pmi.add_trace(go.Scatter(
     name='PMI Proxy',
     line=dict(color='blue')
 ))
-# Add a horizontal line at 50 (expansion/contraction threshold)
-fig_pmi.add_hline(y=50, line_dash="dash", line_color="red",
-                 annotation_text="Expansion/Contraction Threshold", 
-                 annotation_position="bottom right")
+# Add a horizontal line at 50 (expansion/contraction threshold) using add_shape instead of add_hline
+fig_pmi.add_shape(
+    type="line",
+    x0=0,
+    y0=50,
+    x1=1,
+    y1=50,
+    xref="paper",
+    yref="y",
+    line=dict(
+        color="red",
+        width=1,
+        dash="dash",
+    )
+)
+
+# Add annotation for the threshold line
+fig_pmi.add_annotation(
+    x=0.95,
+    y=50,
+    xref="paper",
+    yref="y",
+    text="Expansion/Contraction Threshold",
+    showarrow=False,
+    font=dict(
+        color="red",
+        size=10
+    ),
+    align="right"
+)
 fig_pmi.update_layout(
     title='Manufacturing PMI Proxy (Last 24 Months)',
     showlegend=True
