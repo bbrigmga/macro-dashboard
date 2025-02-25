@@ -55,7 +55,8 @@ pce_data = pd.DataFrame(fred.get_series('PCEPI'), columns=['Value']).reset_index
 pce_data.columns = ['Date', 'PCE']
 # Convert Date to numpy datetime64 to avoid FutureWarning
 pce_data['Date'] = pd.to_datetime(pce_data['Date']).to_numpy()
-pce_data['PCE_YoY'] = pce_data['PCE'].pct_change(periods=12) * 100
+# Use ffill() before pct_change() to avoid FutureWarning about deprecated fill_method
+pce_data['PCE_YoY'] = pce_data['PCE'].ffill().pct_change(periods=12) * 100
 current_pce = pce_data['PCE_YoY'].iloc[-1]
 pce_rising = pce_data['PCE_YoY'].iloc[-1] > pce_data['PCE_YoY'].iloc[-2]
 
@@ -63,30 +64,33 @@ core_cpi_data = pd.DataFrame(fred.get_series('CPILFESL'), columns=['Value']).res
 core_cpi_data.columns = ['Date', 'CPI']
 # Convert Date to numpy datetime64 to avoid FutureWarning
 core_cpi_data['Date'] = pd.to_datetime(core_cpi_data['Date']).to_numpy()
-core_cpi_data['CPI_YoY'] = core_cpi_data['CPI'].pct_change(periods=12) * 100
+# Use ffill() before pct_change() to avoid FutureWarning about deprecated fill_method
+core_cpi_data['CPI_YoY'] = core_cpi_data['CPI'].ffill().pct_change(periods=12) * 100
 current_cpi = core_cpi_data['CPI_YoY'].iloc[-1]
 
 # Fetch Hours Worked data
-hours_data = pd.DataFrame(fred.get_series('PRS85006031'), columns=['Value']).reset_index()
+hours_data = pd.DataFrame(fred.get_series('AWHAETP'), columns=['Value']).reset_index()
 hours_data.columns = ['Date', 'Hours']
 # Convert Date to numpy datetime64 to avoid FutureWarning
 hours_data['Date'] = pd.to_datetime(hours_data['Date']).to_numpy()
 # Calculate 3-month moving average
 hours_data['MA3'] = hours_data['Hours'].rolling(window=3).mean()
-# Calculate YoY change for both actual and MA
-hours_data['YoY_Change'] = hours_data['Hours'].pct_change(periods=12) * 100
-hours_data['MA3_YoY_Change'] = hours_data['MA3'].pct_change(periods=12) * 100
+# Calculate MoM change for both actual and MA
+# Use ffill() before pct_change() to avoid FutureWarning about deprecated fill_method
+hours_data['MoM_Change'] = hours_data['Hours'].ffill().pct_change(periods=1) * 100
+# Calculate 3-month rolling average of MoM changes
+hours_data['MoM_Change_MA3'] = hours_data['MoM_Change'].rolling(window=3).mean()
 
 # Handle outliers by capping extreme values
-def cap_outliers(series, lower_limit=-5, upper_limit=5):
+def cap_outliers(series, lower_limit=-2, upper_limit=2):
     return series.clip(lower=lower_limit, upper=upper_limit)
 
-hours_data['YoY_Change_Capped'] = cap_outliers(hours_data['YoY_Change'])
-hours_data['MA3_YoY_Change_Capped'] = cap_outliers(hours_data['MA3_YoY_Change'])
+hours_data['MoM_Change_Capped'] = cap_outliers(hours_data['MoM_Change'])
+hours_data['MoM_Change_MA3_Capped'] = cap_outliers(hours_data['MoM_Change_MA3'])
 
 # Use the actual values for analysis but capped values for display
-current_hours_change = hours_data['YoY_Change'].iloc[-1]
-current_hours_ma_change = hours_data['MA3_YoY_Change'].iloc[-1]
+current_hours_change = hours_data['MoM_Change'].iloc[-1]
+current_hours_ma_change = hours_data['MoM_Change_MA3'].iloc[-1]
 # Cap the display values
 current_hours_change_display = cap_outliers(pd.Series([current_hours_change])).iloc[0]
 current_hours_ma_change_display = cap_outliers(pd.Series([current_hours_ma_change])).iloc[0]
@@ -127,7 +131,8 @@ def calculate_pmi_proxy():
     df = pd.DataFrame(data)
 
     # Calculate month-over-month percentage change
-    df_pct_change = df.pct_change() * 100  # Convert to percentage
+    # Use ffill() before pct_change() to avoid FutureWarning about deprecated fill_method
+    df_pct_change = df.ffill().pct_change() * 100  # Convert to percentage
 
     # Transform to diffusion-like indices
     df_diffusion = df_pct_change.apply(lambda x: to_diffusion_index(x))
@@ -162,7 +167,7 @@ risk_on_opportunity = not pce_rising and not claims_increasing
 # Create summary table with numbered indicators
 summary_data = {
     'Indicator': [
-        '1. Hours Worked (3M MA)',
+        '1. Average Weekly Hours (3M MA)',
         '2. Core CPI',
         '3. Initial Jobless Claims',
         '4. PCE (Inflation)',
@@ -176,7 +181,7 @@ summary_data = {
         create_warning_indicator(current_pmi < 50, 0.5)
     ],
     'Current Value': [
-        f"{current_hours_ma_change_display:.1f}% YoY",
+        f"{current_hours_ma_change_display:.1f}% MoM",
         f"{current_cpi:.1f}% YoY",
         f"{claims_data['Claims'].iloc[-1]:,.0f} claims",
         f"{current_pce:.1f}% YoY",
@@ -196,10 +201,51 @@ summary_df = pd.DataFrame(summary_data)
 # Use st.dataframe instead of st.table with hide_index=True to properly hide the index
 st.dataframe(summary_df, hide_index=True)
 
+# Add danger combination visualization
+st.subheader("Danger Combination Status")
+# Create columns for the visualization
+col1, col2 = st.columns([3, 2])
+
+with col1:
+    # Create a DataFrame for the danger combination
+    danger_data = {
+        'Indicator': [
+            'Manufacturing PMI < 50',
+            'Initial Claims Rising',
+            'Avg Weekly Hours Dropping'
+        ],
+        'Status': [
+            create_warning_indicator(pmi_below_50, 0.5, higher_is_bad=True),
+            create_warning_indicator(claims_increasing, 0.5, higher_is_bad=True),
+            create_warning_indicator(hours_weakening, 0.5, higher_is_bad=True)
+        ],
+        'Current Value': [
+            f"{current_pmi:.1f}",
+            f"{'Rising' if claims_increasing else 'Stable/Falling'}",
+            f"{current_hours_ma_change_display:.1f}% MoM"
+        ]
+    }
+    danger_df = pd.DataFrame(danger_data)
+    st.dataframe(danger_df, hide_index=True)
+
+with col2:
+    # Create a gauge or indicator for the danger combination
+    if danger_combination:
+        st.error("⚠️ DANGER COMBINATION ACTIVE")
+        st.markdown("**All three warning signals are active!**")
+    else:
+        active_count = sum([pmi_below_50, claims_increasing, hours_weakening])
+        if active_count == 0:
+            st.success("✅ No warning signals active")
+        elif active_count == 1:
+            st.info("ℹ️ 1 of 3 warning signals active")
+        elif active_count == 2:
+            st.warning("⚠️ 2 of 3 warning signals active")
+
 # Add overall market signal
 st.subheader("Overall Market Signal")
 if danger_combination:
-    st.error("⚠️ DANGER COMBINATION DETECTED: Manufacturing PMI below 50 + Claims rising + Hours worked dropping")
+    st.error("⚠️ DANGER COMBINATION DETECTED: Manufacturing PMI below 50 + Claims rising + Average weekly hours dropping")
     st.markdown("**Recommended Action:** Protect capital first. Scale back aggressive positions.")
 elif claims_increasing and pce_rising:
     st.warning("⚠️ WARNING: PCE rising + Rising claims = Get defensive")
@@ -222,9 +268,9 @@ Each indicator includes detailed explanations and warning signals to watch for.
 """)
 
 # 1. Hours Worked Section
-st.header("1. Hours Worked 🕒")
+st.header("1. Average Weekly Hours 🕒")
 st.markdown("""
-**Description:** Average weekly hours worked in the private sector.
+**Description:** Average weekly hours of all employees in the total private sector.
 A declining trend can signal reduced economic activity and potential job market weakness.
 """)
 
@@ -235,39 +281,39 @@ hours_plot_data['Date_Str'] = pd.to_datetime(hours_plot_data['Date']).dt.strftim
 fig_hours = go.Figure()
 fig_hours.add_trace(go.Scatter(
     x=hours_plot_data['Date_Str'],
-    y=hours_plot_data['YoY_Change_Capped'],
-    name='Actual',
+    y=hours_plot_data['MoM_Change_Capped'],
+    name='Monthly Change',
     line=dict(color='blue')
 ))
 fig_hours.add_trace(go.Scatter(
     x=hours_plot_data['Date_Str'],
-    y=hours_plot_data['MA3_YoY_Change_Capped'],
+    y=hours_plot_data['MoM_Change_MA3_Capped'],
     name='3-Month MA',
     line=dict(color='red', dash='dash')
 ))
 fig_hours.update_layout(
-    title='Hours Worked Year-over-Year % Change (Last 24 Months)',
+    title='Average Weekly Hours Month-over-Month % Change (Last 24 Months)',
     showlegend=True,
     yaxis=dict(
-        range=[-5, 5],  # Set a fixed y-axis range to focus on relevant data
+        range=[-2, 2],  # Set a fixed y-axis range to focus on relevant data
         title="Percent Change (%)"
     )
 )
 st.plotly_chart(fig_hours, use_container_width=True)
 
 # Add FRED reference link
-st.markdown("[FRED Data Source: PRS85006031 - Nonfarm Business Sector: Hours Worked](https://fred.stlouisfed.org/series/PRS85006031)")
+st.markdown("[FRED Data Source: AWHAETP - Average Weekly Hours of All Employees: Total Private](https://fred.stlouisfed.org/series/AWHAETP)")
 
 # Warning signals for Hours Worked
 st.subheader("Warning Signals 🚨")
 st.markdown(f"""
 Current Status: {create_warning_indicator(hours_weakening, 0.5)} 
-Latest YoY Change (3M MA): {current_hours_ma_change_display:.1f}%
+Latest MoM Change (3M MA): {current_hours_ma_change_display:.1f}%
 
 **Key Warning Signals to Watch:**
-- Declining 3-month moving average
-- Negative year-over-year change
-- Part of the danger combination: Manufacturing PMI below 50 + Claims rising + Hours worked dropping
+- Declining 3-month moving average of monthly changes
+- Negative month-over-month change
+- Part of the danger combination: Manufacturing PMI below 50 + Claims rising + Average weekly hours dropping
 """)
 
 # 2. Core CPI Section
@@ -453,7 +499,7 @@ Current PMI Proxy Value: {current_pmi:.1f}
 **Key Warning Signals to Watch:**
 - PMI below 50 (indicating contraction)
 - Declining trend over multiple months
-- Part of the danger combination: PMI below 50 + Claims rising + Hours worked dropping
+- Part of the danger combination: PMI below 50 + Claims rising + Average weekly hours dropping
 
 **Key Insight:** "PMI is a leading indicator of manufacturing health."
 
