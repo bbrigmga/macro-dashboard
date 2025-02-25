@@ -76,23 +76,85 @@ hours_data['MA3'] = hours_data['Hours'].rolling(window=3).mean()
 # Calculate YoY change for both actual and MA
 hours_data['YoY_Change'] = hours_data['Hours'].pct_change(periods=12) * 100
 hours_data['MA3_YoY_Change'] = hours_data['MA3'].pct_change(periods=12) * 100
+
+# Handle outliers by capping extreme values
+def cap_outliers(series, lower_limit=-5, upper_limit=5):
+    return series.clip(lower=lower_limit, upper=upper_limit)
+
+hours_data['YoY_Change_Capped'] = cap_outliers(hours_data['YoY_Change'])
+hours_data['MA3_YoY_Change_Capped'] = cap_outliers(hours_data['MA3_YoY_Change'])
+
+# Use the actual values for analysis but capped values for display
 current_hours_change = hours_data['YoY_Change'].iloc[-1]
 current_hours_ma_change = hours_data['MA3_YoY_Change'].iloc[-1]
+# Cap the display values
+current_hours_change_display = cap_outliers(pd.Series([current_hours_change])).iloc[0]
+current_hours_ma_change_display = cap_outliers(pd.Series([current_hours_ma_change])).iloc[0]
 hours_weakening = current_hours_ma_change < 0
 
-# Fetch Manufacturing Employment data
-manuf_emp_data = pd.DataFrame(fred.get_series('MANEMP'), columns=['Value']).reset_index()
-manuf_emp_data.columns = ['Date', 'Employment']
-# Convert Date to numpy datetime64 to avoid FutureWarning
-manuf_emp_data['Date'] = pd.to_datetime(manuf_emp_data['Date']).to_numpy()
-# Calculate year-over-year change
-manuf_emp_data['YoY_Change'] = manuf_emp_data['Employment'].pct_change(periods=12) * 100
-current_manuf_emp = manuf_emp_data['Employment'].iloc[-1]
-current_manuf_emp_yoy = manuf_emp_data['YoY_Change'].iloc[-1]
-manuf_emp_declining = current_manuf_emp_yoy < 0
+# Function to calculate PMI proxy
+def calculate_pmi_proxy():
+    # Define FRED series IDs for proxy variables
+    series_ids = {
+        'new_orders': 'DGORDER',      # Manufacturers' New Orders: Durable Goods
+        'production': 'INDPRO',       # Industrial Production Index
+        'employment': 'MANEMP',       # All Employees: Manufacturing
+        'supplier_deliveries': 'AMTMUO',  # Manufacturers: Unfilled Orders for All Manufacturing Industries
+        'inventories': 'BUSINV'       # Total Business Inventories
+    }
+
+    # Define PMI component weights
+    weights = {
+        'new_orders': 0.30,
+        'production': 0.25,
+        'employment': 0.20,
+        'supplier_deliveries': 0.15,
+        'inventories': 0.10
+    }
+
+    # Function to calculate diffusion-like index from percentage change
+    def to_diffusion_index(pct_change, scale=10):
+        return 50 + (pct_change * scale)
+
+    # Pull the data for each series
+    data = {}
+    for component, series_id in series_ids.items():
+        series = fred.get_series(series_id, observation_start='2020-01-01')
+        series = series.resample('M').last()  # Ensure monthly frequency
+        data[component] = series
+
+    # Create a DataFrame
+    df = pd.DataFrame(data)
+
+    # Calculate month-over-month percentage change
+    df_pct_change = df.pct_change() * 100  # Convert to percentage
+
+    # Transform to diffusion-like indices
+    df_diffusion = df_pct_change.apply(lambda x: to_diffusion_index(x))
+
+    # Calculate the approximated PMI as a weighted average
+    df['approximated_pmi'] = (df_diffusion * pd.Series(weights)).sum(axis=1)
+
+    # Store component values for the latest month
+    component_values = {}
+    for component in series_ids.keys():
+        component_values[component] = df_diffusion[component].iloc[-1]
+
+    # Return the latest PMI value, the full time series, and component values
+    return {
+        'latest_pmi': df['approximated_pmi'].iloc[-1],
+        'pmi_series': df['approximated_pmi'],
+        'component_values': component_values,
+        'component_weights': weights
+    }
+
+# Calculate PMI proxy
+pmi_data = calculate_pmi_proxy()
+current_pmi = pmi_data['latest_pmi']
+pmi_below_50 = current_pmi < 50
 
 # Check for danger combination
-danger_combination = manuf_emp_declining and claims_increasing and hours_weakening
+danger_combination = pmi_below_50 and claims_increasing and hours_weakening
 
 # Check for risk-on opportunity
 risk_on_opportunity = not pce_rising and not claims_increasing
@@ -104,28 +166,28 @@ summary_data = {
         '2. Core CPI',
         '3. Initial Jobless Claims',
         '4. PCE (Inflation)',
-        '5. Manufacturing Employment'
+        '5. Manufacturing PMI Proxy'
     ],
     'Status': [
         create_warning_indicator(hours_weakening, 0.5),
         create_warning_indicator(current_cpi, 2.0),
         create_warning_indicator(claims_increasing, 0.5),
         create_warning_indicator(current_pce, 2.0),
-        create_warning_indicator(manuf_emp_declining, 0.5)
+        create_warning_indicator(current_pmi < 50, 0.5)
     ],
     'Current Value': [
-        f"{current_hours_ma_change:.1f}% YoY",
+        f"{current_hours_ma_change_display:.1f}% YoY",
         f"{current_cpi:.1f}% YoY",
         f"{claims_data['Claims'].iloc[-1]:,.0f} claims",
         f"{current_pce:.1f}% YoY",
-        f"{current_manuf_emp_yoy:.1f}% YoY"
+        f"{current_pmi:.1f}"
     ],
     'Interpretation': [
         'Weakening' if hours_weakening else 'Strong',
         'Above Target' if current_cpi > 2.0 else 'Within Target',
         'Rising' if claims_increasing else 'Stable/Decreasing',
         'Rising' if pce_rising else 'Falling',
-        'Declining' if manuf_emp_declining else 'Growing'
+        'Contraction' if pmi_below_50 else 'Expansion'
     ]
 }
 
@@ -137,7 +199,7 @@ st.dataframe(summary_df, hide_index=True)
 # Add overall market signal
 st.subheader("Overall Market Signal")
 if danger_combination:
-    st.error("⚠️ DANGER COMBINATION DETECTED: Manufacturing Employment declining + Claims rising + Hours worked dropping")
+    st.error("⚠️ DANGER COMBINATION DETECTED: Manufacturing PMI below 50 + Claims rising + Hours worked dropping")
     st.markdown("**Recommended Action:** Protect capital first. Scale back aggressive positions.")
 elif claims_increasing and pce_rising:
     st.warning("⚠️ WARNING: PCE rising + Rising claims = Get defensive")
@@ -173,19 +235,23 @@ hours_plot_data['Date_Str'] = pd.to_datetime(hours_plot_data['Date']).dt.strftim
 fig_hours = go.Figure()
 fig_hours.add_trace(go.Scatter(
     x=hours_plot_data['Date_Str'],
-    y=hours_plot_data['YoY_Change'],
+    y=hours_plot_data['YoY_Change_Capped'],
     name='Actual',
     line=dict(color='blue')
 ))
 fig_hours.add_trace(go.Scatter(
     x=hours_plot_data['Date_Str'],
-    y=hours_plot_data['MA3_YoY_Change'],
+    y=hours_plot_data['MA3_YoY_Change_Capped'],
     name='3-Month MA',
     line=dict(color='red', dash='dash')
 ))
 fig_hours.update_layout(
     title='Hours Worked Year-over-Year % Change (Last 24 Months)',
-    showlegend=True
+    showlegend=True,
+    yaxis=dict(
+        range=[-5, 5],  # Set a fixed y-axis range to focus on relevant data
+        title="Percent Change (%)"
+    )
 )
 st.plotly_chart(fig_hours, use_container_width=True)
 
@@ -196,12 +262,12 @@ st.markdown("[FRED Data Source: PRS85006031 - Nonfarm Business Sector: Hours Wor
 st.subheader("Warning Signals 🚨")
 st.markdown(f"""
 Current Status: {create_warning_indicator(hours_weakening, 0.5)} 
-Latest YoY Change (3M MA): {current_hours_ma_change:.1f}%
+Latest YoY Change (3M MA): {current_hours_ma_change_display:.1f}%
 
 **Key Warning Signals to Watch:**
 - Declining 3-month moving average
 - Negative year-over-year change
-- Part of the danger combination: Manufacturing Employment declining + Claims rising + Hours worked dropping
+- Part of the danger combination: Manufacturing PMI below 50 + Claims rising + Hours worked dropping
 """)
 
 # 2. Core CPI Section
@@ -317,42 +383,79 @@ Trend: {'Rising' if pce_rising else 'Falling'}
 **Remember:** "Everyone watches CPI, but PCE guides policy."
 """)
 
-# 5. Manufacturing Employment Section
-st.header("5. Manufacturing Employment 🏭")
+# 5. Manufacturing PMI Proxy Section
+st.header("5. Manufacturing PMI Proxy 🏭")
 st.markdown("""
-**Description:** Total number of employees in the manufacturing sector.
-A declining trend can signal reduced industrial activity and potential economic weakness.
+**Description:** A proxy for the ISM Manufacturing PMI using FRED data.
+This index approximates manufacturing sector activity using a weighted average of key economic indicators.
 
-"Manufacturing employment is a key indicator of industrial health"
+PMI values above 50 indicate expansion, while values below 50 indicate contraction.
 """)
 
-# Create Manufacturing Employment chart - convert dates to strings to avoid FutureWarning
-recent_manuf_data = manuf_emp_data.tail(24).copy()
+# Create PMI chart
+# First, convert the PMI series to a DataFrame with a date index
+pmi_series = pmi_data['pmi_series']
+pmi_df = pd.DataFrame(pmi_series)
+pmi_df.reset_index(inplace=True)
+pmi_df.columns = ['Date', 'PMI']
+
+# Get the last 24 months of data
+pmi_plot_data = pmi_df.tail(24).copy()
 # Convert numpy datetime64 to string format to avoid FutureWarning
-recent_manuf_data['Date_Str'] = pd.to_datetime(recent_manuf_data['Date']).dt.strftime('%Y-%m-%d')
+pmi_plot_data['Date_Str'] = pd.to_datetime(pmi_plot_data['Date']).dt.strftime('%Y-%m-%d')
 
-# Create YoY change chart
-fig_manuf_yoy = px.line(recent_manuf_data, x='Date_Str', y='YoY_Change',
-                  title='Manufacturing Employment Year-over-Year % Change (Last 24 Months)')
-fig_manuf_yoy.update_layout(showlegend=False)
+# Create PMI chart
+fig_pmi = go.Figure()
+fig_pmi.add_trace(go.Scatter(
+    x=pmi_plot_data['Date_Str'],
+    y=pmi_plot_data['PMI'],
+    name='PMI Proxy',
+    line=dict(color='blue')
+))
+# Add a horizontal line at 50 (expansion/contraction threshold)
+fig_pmi.add_hline(y=50, line_dash="dash", line_color="red",
+                 annotation_text="Expansion/Contraction Threshold", 
+                 annotation_position="bottom right")
+fig_pmi.update_layout(
+    title='Manufacturing PMI Proxy (Last 24 Months)',
+    showlegend=True
+)
+st.plotly_chart(fig_pmi, use_container_width=True)
 
-st.plotly_chart(fig_manuf_yoy, use_container_width=True)
+# Display PMI components
+st.subheader("PMI Components")
+component_data = {
+    'Component': list(pmi_data['component_values'].keys()),
+    'Weight': [f"{pmi_data['component_weights'][comp]*100:.0f}%" for comp in pmi_data['component_values'].keys()],
+    'Value': [f"{pmi_data['component_values'][comp]:.1f}" for comp in pmi_data['component_values'].keys()],
+    'Status': [create_warning_indicator(pmi_data['component_values'][comp] < 50, 0.5, higher_is_bad=True) 
+               for comp in pmi_data['component_values'].keys()]
+}
+component_df = pd.DataFrame(component_data)
+st.dataframe(component_df, hide_index=True)
 
-# Add FRED reference link
-st.markdown("[FRED Data Source: MANEMP - All Employees, Manufacturing](https://fred.stlouisfed.org/series/MANEMP)")
+# Add FRED reference links
+st.markdown("""
+**FRED Data Sources used in this proxy:**
+- [DGORDER - Manufacturers' New Orders: Durable Goods](https://fred.stlouisfed.org/series/DGORDER)
+- [INDPRO - Industrial Production Index](https://fred.stlouisfed.org/series/INDPRO)
+- [MANEMP - All Employees, Manufacturing](https://fred.stlouisfed.org/series/MANEMP)
+- [AMTMUO - Manufacturers: Unfilled Orders for All Manufacturing Industries](https://fred.stlouisfed.org/series/AMTMUO)
+- [BUSINV - Total Business Inventories](https://fred.stlouisfed.org/series/BUSINV)
+""")
 
-# Warning signals for Manufacturing Employment
+# Warning signals for PMI
 st.subheader("Warning Signals 🚨")
 st.markdown(f"""
-Current Status: {create_warning_indicator(manuf_emp_declining, 0.5)} 
-Current Manufacturing Employment YoY Change: {current_manuf_emp_yoy:.1f}%
+Current Status: {create_warning_indicator(current_pmi < 50, 0.5)} 
+Current PMI Proxy Value: {current_pmi:.1f}
 
 **Key Warning Signals to Watch:**
-- Negative year-over-year change
-- Accelerating decline in employment
-- Part of the danger combination: Manufacturing Employment declining + Claims rising + Hours worked dropping
+- PMI below 50 (indicating contraction)
+- Declining trend over multiple months
+- Part of the danger combination: PMI below 50 + Claims rising + Hours worked dropping
 
-**Key Insight:** "Watch trends, not levels."
+**Key Insight:** "PMI is a leading indicator of manufacturing health."
 
 "When these align, protect capital first."
 """)
