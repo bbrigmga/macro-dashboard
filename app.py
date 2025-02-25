@@ -24,6 +24,9 @@ fred = Fred(api_key=os.getenv('FRED_API_KEY'))
 # Title and introduction
 st.title("📊 Macro Economic Indicators Dashboard")
 
+# Add tweet link button
+st.link_button("View Original Tweet Thread by @a_vroenne", "https://x.com/a_vroenne/status/1867241557658829130")
+
 # Function to create a warning signal indicator
 def create_warning_indicator(value, threshold, higher_is_bad=True):
     if higher_is_bad:
@@ -61,14 +64,27 @@ current_hours_change = hours_data['YoY_Change'].iloc[-1]
 current_hours_ma_change = hours_data['MA3_YoY_Change'].iloc[-1]
 hours_weakening = current_hours_ma_change < 0
 
-# Fetch ISM Manufacturing data
+# Fetch ISM Manufacturing data with improved error handling
 try:
-    ism_data = pd.DataFrame(fred.get_series('NAPM'), columns=['Value']).reset_index()
+    # Get ISM Manufacturing data for the last 5 years to ensure we have enough history
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=5*365)  # 5 years of data
+    
+    ism_data = pd.DataFrame(
+        fred.get_series('NAPM', observation_start=start_date, observation_end=end_date),
+        columns=['Value']
+    ).reset_index()
+    
+    # Check if we have enough data
+    if len(ism_data) < 2:
+        raise ValueError("Not enough ISM data points")
+        
     ism_data.columns = ['Date', 'ISM']
     current_ism = ism_data['ISM'].iloc[-1]
     ism_below_50 = current_ism < 50
-except:
+except Exception as e:
     # Fallback to manufacturing employment if ISM data is unavailable
+    st.warning(f"Could not fetch ISM Manufacturing data: {str(e)}. Using Manufacturing Employment as fallback.")
     ism_data = pd.DataFrame(fred.get_series('MANEMP'), columns=['Value']).reset_index()
     ism_data.columns = ['Date', 'ISM']
     ism_data['ISM_YoY'] = ism_data['ISM'].pct_change(periods=12) * 100
@@ -81,15 +97,14 @@ danger_combination = ism_below_50 and claims_increasing and hours_weakening
 # Check for risk-on opportunity
 risk_on_opportunity = not pce_rising and not claims_increasing
 
-# Create summary table
-st.header("Current Market Signals Summary")
+# Create summary table with numbered indicators
 summary_data = {
     'Indicator': [
-        'Initial Jobless Claims',
-        'PCE (Inflation)',
-        'Core CPI',
-        'Hours Worked (3M MA)',
-        'ISM Manufacturing'
+        '1. Initial Jobless Claims',
+        '2. PCE (Inflation)',
+        '3. Core CPI',
+        '4. Hours Worked (3M MA)',
+        '5. ISM Manufacturing'
     ],
     'Status': [
         create_warning_indicator(claims_increasing, 0.5),
@@ -114,6 +129,7 @@ summary_data = {
     ]
 }
 
+st.header("Current Market Signals Summary")
 summary_df = pd.DataFrame(summary_data)
 st.table(summary_df)
 
@@ -286,13 +302,29 @@ st.markdown("""
 "Think of it as the economy's pulse"
 """)
 
-# Create ISM Manufacturing chart
-fig_ism = px.line(ism_data.tail(24), x='Date', y='ISM',
-                  title='ISM Manufacturing Index (Last 24 Months)')
-fig_ism.add_hline(y=50, line_dash="dash", line_color="red",
-                  annotation_text="Expansion/Contraction Line")
-fig_ism.update_layout(showlegend=False)
-st.plotly_chart(fig_ism, use_container_width=True)
+# Create ISM Manufacturing chart with improved visualization
+if 'ISM' in ism_data.columns:
+    # Ensure we're only plotting the last 24 months of data
+    recent_ism_data = ism_data.tail(24)
+    
+    fig_ism = px.line(recent_ism_data, x='Date', y='ISM',
+                      title='ISM Manufacturing Index (Last 24 Months)')
+    
+    # Add the 50-point threshold line
+    fig_ism.add_hline(y=50, line_dash="dash", line_color="red",
+                      annotation_text="Expansion/Contraction Line")
+    
+    # Improve y-axis range to better show the data
+    y_min = max(0, recent_ism_data['ISM'].min() - 5)  # Add some padding below
+    y_max = recent_ism_data['ISM'].max() + 5  # Add some padding above
+    fig_ism.update_layout(
+        yaxis=dict(range=[y_min, y_max]),
+        showlegend=False
+    )
+    
+    st.plotly_chart(fig_ism, use_container_width=True)
+else:
+    st.error("ISM Manufacturing data is not available in the expected format.")
 
 # Warning signals for ISM
 st.subheader("Warning Signals 🚨")
