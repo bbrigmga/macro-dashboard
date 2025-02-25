@@ -1,15 +1,42 @@
 # Macro Economic Indicators Dashboard
 
-A Streamlit dashboard that tracks and visualizes key macro economic indicators including Initial Jobless Claims, PCE (Personal Consumption Expenditures), Core CPI, Non-farm Payrolls, and Manufacturing Employment. The dashboard provides real-time data visualization, warning signals, and interpretation guidelines for each indicator.
+A Streamlit dashboard that tracks and visualizes key macro economic indicators including Average Weekly Hours, Core CPI, Initial Jobless Claims, PCE (Personal Consumption Expenditures), and Manufacturing PMI Proxy. The dashboard provides real-time data visualization, warning signals, and interpretation guidelines for each indicator.
 
 ## Features
 
 - Real-time data from FRED (Federal Reserve Economic Data)
 - Interactive charts for each economic indicator
 - Warning signals and interpretation guidelines
+- Danger combination detection
 - Defensive playbook recommendations
 - Core principles for market analysis
 - Summary table with current status of all indicators
+
+## Code Structure
+
+The codebase follows a modular architecture for better maintainability:
+
+```
+macro_dashboard/
+├── app.py                  # Main application entry point
+├── requirements.txt        # Dependencies
+├── .env.example            # Example environment variables
+├── README.md               # Documentation
+├── data/                   # Data handling modules
+│   ├── __init__.py
+│   ├── fred_client.py      # FRED API client
+│   ├── indicators.py       # Data fetching for each indicator
+│   └── processing.py       # Data processing utilities
+├── visualization/          # Visualization modules
+│   ├── __init__.py
+│   ├── charts.py           # Chart creation functions
+│   └── indicators.py       # Indicator-specific visualizations
+└── ui/                     # UI components
+    ├── __init__.py
+    ├── dashboard.py        # Main dashboard layout
+    ├── summary.py          # Summary section
+    └── indicators.py       # Individual indicator sections
+```
 
 ## Local Setup
 
@@ -70,30 +97,43 @@ This dashboard can be deployed for free on Streamlit Cloud:
 
 ## Indicators Tracked
 
-1. **Initial Jobless Claims**
+1. **Average Weekly Hours**
+   - Hours worked in the private sector
+   - Warning signals for consecutive months of decline
+   - Part of the danger combination when declining
+
+2. **Core CPI (Consumer Price Index Less Food and Energy)**
+   - Inflation excluding volatile food and energy prices
+   - Month-over-month change tracking
+   - Warning signals for accelerating inflation
+
+3. **Initial Jobless Claims**
    - Weekly unemployment claims data
    - Warning signals for consecutive increases
-   - Trend analysis and interpretation
+   - Part of the danger combination when rising
 
-2. **PCE (Personal Consumption Expenditures)**
+4. **PCE (Personal Consumption Expenditures)**
    - The Fed's preferred inflation measure
    - Year-over-year change tracking
    - Combined analysis with other indicators
 
-3. **Core CPI**
-   - Inflation excluding food and energy
-   - Monthly rate changes
-   - Comparison with PCE trends
+5. **Manufacturing PMI Proxy**
+   - Proxy for ISM Manufacturing PMI using FRED data
+   - Expansion/contraction threshold at 50
+   - Part of the danger combination when below 50
 
-4. **Non-farm Payrolls**
-   - Monthly employment changes
-   - Trend analysis
-   - Job market health indicators
+## Key Concepts
 
-5. **Manufacturing Employment**
-   - Sector health indicator
-   - Year-over-year changes
-   - Combined analysis with other metrics
+### Danger Combination
+The dashboard tracks a specific combination of warning signals that indicate potential market trouble:
+- Manufacturing PMI below 50
+- Initial Claims rising for 3+ weeks
+- Average Weekly Hours dropping for 3+ months
+
+### Risk Framework
+The dashboard uses a simple framework for risk assessment:
+- PCE dropping + Stable jobs = Add risk
+- PCE rising + Rising claims = Get defensive
 
 ## Maintenance
 
@@ -101,8 +141,8 @@ The dashboard automatically updates with new data as it becomes available:
 - Initial Jobless Claims: Updated weekly (Thursday)
 - PCE: Updated monthly
 - Core CPI: Updated monthly
-- Non-farm Payrolls: Updated monthly
-- Manufacturing Employment: Updated monthly
+- Average Weekly Hours: Updated monthly
+- Manufacturing PMI Proxy: Updated monthly (calculated from multiple indicators)
 
 ## Contributing
 
