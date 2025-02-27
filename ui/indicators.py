@@ -42,7 +42,6 @@ def display_hours_worked_section(hours_data):
     **Key Warning Signals to Watch:**
     - Three or more consecutive months of declining hours (current: {hours_data['consecutive_declines']})
     - Steep month-over-month drops (> 0.5%)
-    - Part of the danger combination: Manufacturing PMI below 50 + Claims rising + Average weekly hours dropping
     """)
 
 
@@ -151,6 +150,7 @@ def display_pce_section(pce_data):
     st.markdown(f"""
     Current Status: {create_warning_indicator(pce_data['current_pce'], 2.0)} 
     Current PCE YoY: {pce_data['current_pce']:.1f}%
+    Current PCE MoM: {pce_data['current_pce_mom']:.2f}%
     Trend: {'Rising' if pce_data['pce_rising'] else 'Falling'}
     
     **Key Framework:**
@@ -209,11 +209,8 @@ def display_pmi_section(pmi_data):
     **Key Warning Signals to Watch:**
     - PMI below 50 (indicating contraction)
     - Declining trend over multiple months
-    - Part of the danger combination: PMI below 50 + Claims rising + Average weekly hours dropping
     
     **Key Insight:** "PMI is a leading indicator of manufacturing health."
-    
-    "When these align, protect capital first."
     """)
 
 

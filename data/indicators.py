@@ -58,16 +58,19 @@ class IndicatorData:
         pce_data = self.fred_client.get_series('PCEPI')
         pce_data.columns = ['Date', 'PCE']
         
-        # Calculate year-over-year percentage change
+        # Calculate year-over-year and month-over-month percentage changes
         pce_data['PCE_YoY'] = calculate_pct_change(pce_data, 'PCE', periods=12)
+        pce_data['PCE_MoM'] = calculate_pct_change(pce_data, 'PCE', periods=1)
         
         # Get current PCE and check if it's rising
         current_pce = pce_data['PCE_YoY'].iloc[-1]
+        current_pce_mom = pce_data['PCE_MoM'].iloc[-1]
         pce_rising = pce_data['PCE_YoY'].iloc[-1] > pce_data['PCE_YoY'].iloc[-2]
         
         return {
             'data': pce_data,
             'current_pce': current_pce,
+            'current_pce_mom': current_pce_mom,
             'pce_rising': pce_rising
         }
     
@@ -222,25 +225,10 @@ class IndicatorData:
         hours_data = self.get_hours_worked()
         pmi_data = self.calculate_pmi_proxy()
         
-        # Check for danger combination
-        danger_combination = (
-            pmi_data['pmi_below_50'] and 
-            claims_data['claims_increasing'] and 
-            hours_data['hours_weakening']
-        )
-        
-        # Check for risk-on opportunity
-        risk_on_opportunity = (
-            not pce_data['pce_rising'] and 
-            not claims_data['claims_increasing']
-        )
-        
         return {
             'claims': claims_data,
             'pce': pce_data,
             'core_cpi': core_cpi_data,
             'hours_worked': hours_data,
-            'pmi': pmi_data,
-            'danger_combination': danger_combination,
-            'risk_on_opportunity': risk_on_opportunity
+            'pmi': pmi_data
         }

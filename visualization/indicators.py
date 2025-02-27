@@ -39,20 +39,19 @@ def create_hours_worked_chart(hours_data, periods=24):
     hours_plot_data = prepare_date_for_display(hours_plot_data)
     
     # Create the chart
-    fig = create_line_chart_with_threshold(
+    fig = create_line_chart(
         hours_plot_data,
         'Date_Str',
-        'MoM_Change_Capped',
-        'Average Weekly Hours Month-over-Month % Change (Last 24 Months)',
+        'Hours',
+        'Average Weekly Hours (Last 24 Months)',
         color='blue',
         show_legend=True
     )
     
-    # Set y-axis range to focus on relevant data
+    # Set y-axis title
     fig.update_layout(
         yaxis=dict(
-            range=[-2, 2],
-            title="Percent Change (%)"
+            title="Hours"
         )
     )
     
@@ -145,11 +144,16 @@ def create_pce_chart(pce_data, periods=24):
     fig = px.line(
         pce_plot_data, 
         x='Date_Str', 
-        y='PCE_YoY',
-        title='PCE Year-over-Year % Change (Last 24 Months)'
+        y='PCE_MoM',
+        title='PCE Month-over-Month % Change (Last 24 Months)'
     )
     
-    fig.update_layout(showlegend=False)
+    fig.update_layout(
+        showlegend=False,
+        yaxis=dict(
+            title="MoM Percent Change (%)"
+        )
+    )
     
     return fig
 

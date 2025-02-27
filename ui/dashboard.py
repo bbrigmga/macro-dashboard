@@ -2,7 +2,6 @@
 Functions for creating the main dashboard layout.
 """
 import streamlit as st
-from ui.summary import display_summary_section
 from ui.indicators import display_all_indicator_sections
 
 
@@ -54,9 +53,6 @@ def create_dashboard(indicators):
     
     # Display header
     display_header()
-    
-    # Display summary section
-    display_summary_section(indicators)
     
     # Display individual indicator sections
     display_all_indicator_sections(indicators)
