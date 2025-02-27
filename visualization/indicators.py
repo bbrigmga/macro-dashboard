@@ -204,7 +204,7 @@ def create_pmi_components_table(pmi_data):
     Returns:
         pd.DataFrame: DataFrame with PMI component data
     """
-    from visualization.charts import create_warning_indicator
+    from visualization.warning_signals import create_warning_indicator
     
     component_data = {
         'Component': list(pmi_data['component_values'].keys()),

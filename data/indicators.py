@@ -29,8 +29,8 @@ class IndicatorData:
         Returns:
             dict: Dictionary with claims data and analysis
         """
-        # Fetch claims data
-        claims_data = self.fred_client.get_series('ICSA')
+        # Fetch claims data with weekly frequency
+        claims_data = self.fred_client.get_series('ICSA', periods=periods, frequency='W')
         claims_data.columns = ['Date', 'Claims']
         
         # Get recent claims for analysis
@@ -54,8 +54,8 @@ class IndicatorData:
         Returns:
             dict: Dictionary with PCE data and analysis
         """
-        # Fetch PCE data
-        pce_data = self.fred_client.get_series('PCEPI')
+        # Fetch PCE data with monthly frequency
+        pce_data = self.fred_client.get_series('PCEPI', periods=periods, frequency='M')
         pce_data.columns = ['Date', 'PCE']
         
         # Calculate year-over-year and month-over-month percentage changes
@@ -84,8 +84,8 @@ class IndicatorData:
         Returns:
             dict: Dictionary with CPI data and analysis
         """
-        # Fetch Core CPI data
-        core_cpi_data = self.fred_client.get_series('CPILFESL')
+        # Fetch Core CPI data with monthly frequency
+        core_cpi_data = self.fred_client.get_series('CPILFESL', periods=periods, frequency='M')
         core_cpi_data.columns = ['Date', 'CPI']
         
         # Calculate year-over-year and month-over-month percentage changes
@@ -116,8 +116,8 @@ class IndicatorData:
         Returns:
             dict: Dictionary with hours worked data and analysis
         """
-        # Fetch Hours Worked data
-        hours_data = self.fred_client.get_series('AWHAETP')
+        # Fetch Hours Worked data with monthly frequency
+        hours_data = self.fred_client.get_series('AWHAETP', periods=periods, frequency='M')
         hours_data.columns = ['Date', 'Hours']
         
         # Calculate month-over-month percentage change
@@ -144,11 +144,12 @@ class IndicatorData:
             'current_hours_change_display': hours_data['MoM_Change_Capped'].iloc[-1]
         }
     
-    def calculate_pmi_proxy(self, start_date='2020-01-01'):
+    def calculate_pmi_proxy(self, periods=36, start_date=None):
         """
         Calculate a proxy for the ISM Manufacturing PMI using FRED data.
         
         Args:
+            periods (int, optional): Number of periods to fetch if start_date is not provided
             start_date (str, optional): Start date for data in format 'YYYY-MM-DD'
             
         Returns:
@@ -176,18 +177,29 @@ class IndicatorData:
         def to_diffusion_index(pct_change, scale=10):
             return 50 + (pct_change * scale)
         
-        # Pull the data for each series
-        data = {}
-        for component, series_id in series_ids.items():
-            series = self.fred_client.fred.get_series(series_id, observation_start=start_date)
-            series = series.resample('M').last()  # Ensure monthly frequency
-            data[component] = series
+        # Get all series in one batch request
+        all_series = self.fred_client.get_multiple_series(
+            list(series_ids.values()),
+            start_date=start_date,
+            periods=periods if start_date is None else None,
+            frequency='M'
+        )
         
-        # Create a DataFrame
-        df = pd.DataFrame(data)
+        # Rename columns to component names
+        rename_map = {v: k for k, v in series_ids.items()}
+        all_series.rename(columns=rename_map, inplace=True)
+        
+        # Keep only the component columns and Date
+        component_columns = list(series_ids.keys())
+        df = all_series[['Date'] + component_columns].copy()
+        
+        # Ensure monthly frequency
+        df.set_index('Date', inplace=True)
+        df = df.resample('M').last()
         
         # Calculate month-over-month percentage change
-        df_pct_change = df.ffill().pct_change() * 100  # Convert to percentage
+        # Only calculate pct_change on the component columns, not the DatetimeIndex
+        df_pct_change = df[component_columns].ffill().pct_change() * 100  # Convert to percentage
         
         # Transform to diffusion-like indices
         df_diffusion = df_pct_change.apply(lambda x: to_diffusion_index(x))
@@ -204,9 +216,15 @@ class IndicatorData:
         current_pmi = df['approximated_pmi'].iloc[-1]
         pmi_below_50 = current_pmi < 50
         
+        # Extract the PMI series with DatetimeIndex before resetting index
+        pmi_series = df['approximated_pmi'].copy()
+        
+        # Reset index to get Date as a column for other operations
+        df.reset_index(inplace=True)
+        
         return {
             'latest_pmi': current_pmi,
-            'pmi_series': df['approximated_pmi'],
+            'pmi_series': pmi_series,  # Series with DatetimeIndex
             'component_values': component_values,
             'component_weights': weights,
             'pmi_below_50': pmi_below_50
@@ -223,7 +241,7 @@ class IndicatorData:
         pce_data = self.get_pce()
         core_cpi_data = self.get_core_cpi()
         hours_data = self.get_hours_worked()
-        pmi_data = self.calculate_pmi_proxy()
+        pmi_data = self.calculate_pmi_proxy(periods=36)
         
         return {
             'claims': claims_data,

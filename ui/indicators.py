@@ -10,7 +10,13 @@ from visualization.indicators import (
     create_pmi_chart,
     create_pmi_components_table
 )
-from visualization.charts import create_warning_indicator
+from visualization.warning_signals import (
+    generate_hours_worked_warning,
+    generate_core_cpi_warning,
+    generate_initial_claims_warning,
+    generate_pce_warning,
+    generate_pmi_warning
+)
 
 
 def display_hours_worked_section(hours_data):
@@ -35,14 +41,7 @@ def display_hours_worked_section(hours_data):
     
     # Warning signals for Hours Worked
     st.subheader("Warning Signals 🚨")
-    st.markdown(f"""
-    Current Status: {create_warning_indicator(hours_data['hours_weakening'], 0.5)} 
-    Consecutive Months of Decline: {hours_data['consecutive_declines']}
-    
-    **Key Warning Signals to Watch:**
-    - Three or more consecutive months of declining hours (current: {hours_data['consecutive_declines']})
-    - Steep month-over-month drops (> 0.5%)
-    """)
+    st.markdown(generate_hours_worked_warning(hours_data))
 
 
 def display_core_cpi_section(core_cpi_data):
@@ -67,16 +66,7 @@ def display_core_cpi_section(core_cpi_data):
     
     # Warning signals for Core CPI
     st.subheader("Warning Signals 🚨")
-    st.markdown(f"""
-    Current Status: {create_warning_indicator(core_cpi_data['cpi_accelerating'], 0.5)} 
-    Current Core CPI MoM: {core_cpi_data['current_cpi_mom']:.2f}%
-    {'⚠️ CPI has been accelerating for 3+ months - Inflation pressure building' if core_cpi_data['cpi_accelerating'] else '✅ CPI trend stable/decelerating - Inflation pressure easing'}
-    
-    **Key Warning Signals to Watch:**
-    - Three consecutive months of accelerating MoM inflation
-    - Monthly rate above 0.3% (annualizes to >3.6%)
-    - Divergence from PCE trends
-    """)
+    st.markdown(generate_core_cpi_warning(core_cpi_data))
 
 
 def display_initial_claims_section(claims_data):
@@ -101,21 +91,7 @@ def display_initial_claims_section(claims_data):
     
     # Warning signals for Claims
     st.subheader("Warning Signals 🚨")
-    st.markdown(f"""
-    Current Status: {create_warning_indicator(claims_data['claims_increasing'], 0.5)} 
-    {'⚠️ Claims have been rising for 3+ weeks - Consider defensive positioning' if claims_data['claims_increasing'] else '✅ Claims trend stable/decreasing - Market conditions normal'}
-    
-    **Key Warning Signals to Watch:**
-    - Three consecutive weeks of rising claims
-    - Claims rising while PCE is also rising
-    - Sudden spike in claims (>10% week-over-week)
-    
-    **Playbook for Rising Claims:**
-    - Scale back aggressive positions
-    - Shift toward defensive sectors
-    - Build cash reserves
-    - "Small moves early beat big moves late"
-    """)
+    st.markdown(generate_initial_claims_warning(claims_data))
 
 
 def display_pce_section(pce_data):
@@ -147,23 +123,7 @@ def display_pce_section(pce_data):
     
     # Warning signals for PCE
     st.subheader("Warning Signals 🚨")
-    st.markdown(f"""
-    Current Status: {create_warning_indicator(pce_data['current_pce'], 2.0)} 
-    Current PCE YoY: {pce_data['current_pce']:.1f}%
-    Current PCE MoM: {pce_data['current_pce_mom']:.2f}%
-    Trend: {'Rising' if pce_data['pce_rising'] else 'Falling'}
-    
-    **Key Framework:**
-    - PCE dropping + Stable jobs = Add risk
-    - PCE rising + Rising claims = Get defensive
-    
-    **What PCE Tells Us:**
-    - Rate trends
-    - Market conditions
-    - Risk appetite
-    
-    **Remember:** "Everyone watches CPI, but PCE guides policy."
-    """)
+    st.markdown(generate_pce_warning(pce_data))
 
 
 def display_pmi_section(pmi_data):
@@ -202,16 +162,7 @@ def display_pmi_section(pmi_data):
     
     # Warning signals for PMI
     st.subheader("Warning Signals 🚨")
-    st.markdown(f"""
-    Current Status: {create_warning_indicator(pmi_data['latest_pmi'] < 50, 0.5)} 
-    Current PMI Proxy Value: {pmi_data['latest_pmi']:.1f}
-    
-    **Key Warning Signals to Watch:**
-    - PMI below 50 (indicating contraction)
-    - Declining trend over multiple months
-    
-    **Key Insight:** "PMI is a leading indicator of manufacturing health."
-    """)
+    st.markdown(generate_pmi_warning(pmi_data))
 
 
 def display_defensive_playbook_section():

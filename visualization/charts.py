@@ -164,20 +164,4 @@ def create_pmi_component_chart(component_data):
     return fig
 
 
-def create_warning_indicator(value, threshold, higher_is_bad=True):
-    """
-    Create a warning signal indicator.
-    
-    Args:
-        value: Value to check
-        threshold: Threshold for warning
-        higher_is_bad (bool, optional): Whether higher values are bad
-        
-    Returns:
-        str: Warning indicator emoji
-    """
-    if higher_is_bad:
-        color = "red" if value > threshold else "green"
-    else:
-        color = "red" if value < threshold else "green"
-    return f"🔴" if color == "red" else "🟢"
+# Warning indicator function moved to visualization/warning_signals.py
