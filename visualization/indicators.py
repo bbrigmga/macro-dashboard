@@ -88,8 +88,10 @@ def create_core_cpi_chart(core_cpi_data, periods=24):
     # Update layout
     fig.update_layout(
         yaxis=dict(
-            title="MoM Percent Change (%)",
-            titlefont=dict(color="red"),
+            title=dict(
+                text="MoM Percent Change (%)",
+                font=dict(color="red")
+            ),
             tickfont=dict(color="red")
         )
     )

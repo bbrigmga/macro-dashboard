@@ -3,9 +3,10 @@ Functions for generating and displaying warning signals for economic indicators.
 """
 import pandas as pd
 import numpy as np
+from data.processing import check_consecutive_increase, check_consecutive_decrease
 
 
-def create_warning_indicator(value, threshold, higher_is_bad=True):
+def create_warning_indicator(value, threshold, higher_is_bad=True, neutral=False):
     """
     Create a warning signal indicator.
     
@@ -13,10 +14,13 @@ def create_warning_indicator(value, threshold, higher_is_bad=True):
         value: Value to check
         threshold: Threshold for warning
         higher_is_bad (bool, optional): Whether higher values are bad
+        neutral (bool, optional): Whether to return a neutral indicator
         
     Returns:
         str: Warning indicator emoji
     """
+    if neutral:
+        return "⚪"  # Grey dot for neutral state
     if higher_is_bad:
         color = "red" if value > threshold else "green"
     else:
@@ -120,24 +124,28 @@ def generate_hours_worked_warning(hours_data):
         str: Formatted warning message
     """
     consecutive_declines = hours_data['consecutive_declines']
-    current_hours_change = hours_data['current_hours_change']
+    consecutive_increases = hours_data['consecutive_increases']
     
     # Determine warning status
     if consecutive_declines >= 3:
         status = create_warning_indicator(True, 0.5)  # Red indicator
-        message = f"⚠️ Hours have declined for {consecutive_declines} consecutive months"
-    else:
+        message = "Bearish"
+    elif consecutive_increases >= 3:
         status = create_warning_indicator(False, 0.5)  # Green indicator
-        message = "✅ Hours trend stable/increasing"
+        message = "Bullish"
+    else:
+        status = create_warning_indicator(False, 0.5, neutral=True)  # Grey indicator
+        message = "No Trend"
     
     # Add details
-    details = f"""
-    Consecutive Months of Decline: {consecutive_declines}
-    Current Month-over-Month Change: {current_hours_change:.2f}%
+    current_hours = hours_data['recent_hours'][-1]
     
-    **Key Warning Signals to Watch:**
-    - Three or more consecutive months of declining hours (current: {consecutive_declines})
-    - Steep month-over-month drops (> 0.5%)
+    details = f"""
+    Current Avg Weekly Hours: {current_hours:.1f}
+    
+    **Key Signals to Watch:**
+    - Three or more consecutive months of declining hours (Bearish)
+    - Three or more consecutive months of increasing hours (Bullish)
     """
     
     return format_warning_message(status, message, details)
@@ -153,25 +161,31 @@ def generate_core_cpi_warning(core_cpi_data):
     Returns:
         str: Formatted warning message
     """
-    cpi_accelerating = core_cpi_data['cpi_accelerating']
+    recent_cpi_mom = core_cpi_data['recent_cpi_mom']
     current_cpi_mom = core_cpi_data['current_cpi_mom']
     
+    # Check for consecutive increases and decreases
+    cpi_increasing = check_consecutive_increase(recent_cpi_mom, 3)
+    cpi_decreasing = check_consecutive_decrease(recent_cpi_mom, 3)
+    
     # Determine warning status
-    if cpi_accelerating:
+    if cpi_increasing:
         status = create_warning_indicator(True, 0.5)  # Red indicator
-        message = "⚠️ CPI has been accelerating for 3+ months - Inflation pressure building"
-    else:
+        message = "Bearish"
+    elif cpi_decreasing:
         status = create_warning_indicator(False, 0.5)  # Green indicator
-        message = "✅ CPI trend stable/decelerating - Inflation pressure easing"
+        message = "Bullish"
+    else:
+        status = create_warning_indicator(False, 0.5, neutral=True)  # Grey indicator
+        message = "No Trend"
     
     # Add details
     details = f"""
     Current Core CPI MoM: {current_cpi_mom:.2f}%
     
-    **Key Warning Signals to Watch:**
-    - Three consecutive months of accelerating MoM inflation
-    - Monthly rate above 0.3% (annualizes to >3.6%)
-    - Divergence from PCE trends
+    **Key Signals to Watch:**
+    - Three consecutive months of increasing MoM inflation (Bearish)
+    - Three consecutive months of decreasing MoM inflation (Bullish)
     """
     
     return format_warning_message(status, message, details)
@@ -188,14 +202,18 @@ def generate_initial_claims_warning(claims_data):
         str: Formatted warning message
     """
     claims_increasing = claims_data['claims_increasing']
+    claims_decreasing = claims_data['claims_decreasing']
     
     # Determine warning status
     if claims_increasing:
         status = create_warning_indicator(True, 0.5)  # Red indicator
-        message = "⚠️ Claims have been rising for 3+ weeks - Consider defensive positioning"
-    else:
+        message = "Bearish"
+    elif claims_decreasing:
         status = create_warning_indicator(False, 0.5)  # Green indicator
-        message = "✅ Claims trend stable/decreasing - Market conditions normal"
+        message = "Bullish"
+    else:
+        status = create_warning_indicator(False, 0.5, neutral=True)  # Grey indicator
+        message = "No Trend"
     
     # Add details
     details = f"""
@@ -226,22 +244,27 @@ def generate_pce_warning(pce_data):
     """
     current_pce = pce_data['current_pce']
     current_pce_mom = pce_data['current_pce_mom']
-    pce_rising = pce_data['pce_rising']
+    pce_increasing = pce_data['pce_increasing']
+    pce_decreasing = pce_data['pce_decreasing']
     
     # Determine warning status
-    status = create_warning_indicator(current_pce, 2.0)
-    
-    # Create message based on trend
-    if pce_rising:
-        trend_message = "Rising"
+    if pce_increasing:
+        status = create_warning_indicator(True, 0.5)  # Red indicator
+        message = "Bearish"
+    elif pce_decreasing:
+        status = create_warning_indicator(False, 0.5)  # Green indicator
+        message = "Bullish"
     else:
-        trend_message = "Falling"
+        status = create_warning_indicator(False, 0.5, neutral=True)  # Grey indicator
+        message = "No Trend"
     
     # Add details
     details = f"""
-    Current PCE YoY: {current_pce:.1f}%
     Current PCE MoM: {current_pce_mom:.2f}%
-    Trend: {trend_message}
+    
+    **Key Signals to Watch:**
+    - Three consecutive months of increasing MoM inflation (Bearish)
+    - Three consecutive months of decreasing MoM inflation (Bullish)
     
     **Key Framework:**
     - PCE dropping + Stable jobs = Add risk
@@ -255,7 +278,7 @@ def generate_pce_warning(pce_data):
     **Remember:** "Everyone watches CPI, but PCE guides policy."
     """
     
-    return format_warning_message(status, f"PCE is currently {trend_message}", details)
+    return format_warning_message(status, message, details)
 
 
 def generate_pmi_warning(pmi_data):
@@ -270,18 +293,20 @@ def generate_pmi_warning(pmi_data):
     """
     latest_pmi = pmi_data['latest_pmi']
     
-    # Determine warning status
+    # Determine warning status - this will give green for PMI >= 50
     status = create_warning_indicator(latest_pmi < 50, 0.5)
     
     # Create message based on PMI value
     if latest_pmi < 50:
-        message = "⚠️ PMI below 50 - Manufacturing sector contracting"
-    else:
-        message = "✅ PMI above 50 - Manufacturing sector expanding"
+        message = "Bearish"
+    else:  # This includes PMI == 50
+        message = "Bullish"
     
     # Add details
+    sector_status = "Manufacturing sector contracting" if latest_pmi < 50 else "Manufacturing sector expanding"
     details = f"""
     Current PMI Proxy Value: {latest_pmi:.1f}
+    {sector_status}
     
     **Key Warning Signals to Watch:**
     - PMI below 50 (indicating contraction)
