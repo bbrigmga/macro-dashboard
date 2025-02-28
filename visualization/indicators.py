@@ -1,10 +1,16 @@
 """
-Functions for creating visualizations for specific indicators.
+Functions for creating visualizations for specific indicators with a modern finance-based theme.
 """
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-from visualization.charts import create_line_chart, create_line_chart_with_threshold, create_pmi_component_chart
+from visualization.charts import (
+    create_line_chart, 
+    create_line_chart_with_threshold, 
+    create_pmi_component_chart,
+    THEME,
+    apply_dark_theme
+)
 
 
 def prepare_date_for_display(df, date_column='Date'):
@@ -19,13 +25,13 @@ def prepare_date_for_display(df, date_column='Date'):
         pd.DataFrame: DataFrame with added string date column
     """
     df = df.copy()
-    df['Date_Str'] = pd.to_datetime(df[date_column]).dt.strftime('%Y-%m-%d')
+    df['Date_Str'] = pd.to_datetime(df[date_column]).dt.strftime('%b %Y')  # More compact date format
     return df
 
 
-def create_hours_worked_chart(hours_data, periods=24):
+def create_hours_worked_chart(hours_data, periods=18):
     """
-    Create a chart for Average Weekly Hours data.
+    Create a chart for Average Weekly Hours data with modern styling.
     
     Args:
         hours_data (dict): Dictionary with hours worked data
@@ -43,24 +49,32 @@ def create_hours_worked_chart(hours_data, periods=24):
         hours_plot_data,
         'Date_Str',
         'Hours',
-        'Average Weekly Hours (Last 24 Months)',
-        color='blue',
-        show_legend=True
+        'Average Weekly Hours',
+        color=THEME['line_colors']['primary'],
+        show_legend=False
     )
     
     # Set y-axis title
     fig.update_layout(
         yaxis=dict(
-            title="Hours"
+            title=dict(
+                text="Hours",
+                font=dict(size=10)
+            ),
+            tickfont=dict(size=9)
+        ),
+        xaxis=dict(
+            tickangle=45,
+            tickfont=dict(size=9)
         )
     )
     
     return fig
 
 
-def create_core_cpi_chart(core_cpi_data, periods=24):
+def create_core_cpi_chart(core_cpi_data, periods=18):
     """
-    Create a chart for Core CPI data.
+    Create a chart for Core CPI data with modern styling.
     
     Args:
         core_cpi_data (dict): Dictionary with Core CPI data
@@ -78,30 +92,34 @@ def create_core_cpi_chart(core_cpi_data, periods=24):
         cpi_plot_data,
         'Date_Str',
         'CPI_MoM',
-        'Core CPI Month-over-Month % Change (Last 24 Months)',
+        'Core CPI MoM % Change',
         threshold=0.3,
-        threshold_label='Monthly 0.3% threshold',
-        color='red',
-        show_legend=True
+        threshold_label='0.3% threshold',
+        color=THEME['line_colors']['danger'],
+        show_legend=False
     )
     
     # Update layout
     fig.update_layout(
         yaxis=dict(
             title=dict(
-                text="MoM Percent Change (%)",
-                font=dict(color="red")
+                text="MoM %",
+                font=dict(size=10, color=THEME['line_colors']['danger'])
             ),
-            tickfont=dict(color="red")
+            tickfont=dict(size=9)
+        ),
+        xaxis=dict(
+            tickangle=45,
+            tickfont=dict(size=9)
         )
     )
     
     return fig
 
 
-def create_initial_claims_chart(claims_data, periods=52):
+def create_initial_claims_chart(claims_data, periods=26):
     """
-    Create a chart for Initial Jobless Claims data.
+    Create a chart for Initial Jobless Claims data with modern styling.
     
     Args:
         claims_data (dict): Dictionary with claims data
@@ -114,22 +132,37 @@ def create_initial_claims_chart(claims_data, periods=52):
     claims_plot_data = claims_data['data'].tail(periods).copy()
     claims_plot_data = prepare_date_for_display(claims_plot_data)
     
-    # Create the chart
-    fig = px.line(
-        claims_plot_data, 
-        x='Date_Str', 
-        y='Claims',
-        title='Weekly Initial Jobless Claims (Last 52 Weeks)'
+    # Create the chart with our custom function instead of px.line
+    fig = create_line_chart(
+        claims_plot_data,
+        'Date_Str',
+        'Claims',
+        'Weekly Initial Jobless Claims',
+        color=THEME['line_colors']['warning'],
+        show_legend=False
     )
     
-    fig.update_layout(showlegend=False)
+    # Update layout
+    fig.update_layout(
+        yaxis=dict(
+            title=dict(
+                text="Claims",
+                font=dict(size=10)
+            ),
+            tickfont=dict(size=9)
+        ),
+        xaxis=dict(
+            tickangle=45,
+            tickfont=dict(size=9)
+        )
+    )
     
     return fig
 
 
-def create_pce_chart(pce_data, periods=24):
+def create_pce_chart(pce_data, periods=18):
     """
-    Create a chart for PCE data.
+    Create a chart for PCE data with modern styling.
     
     Args:
         pce_data (dict): Dictionary with PCE data
@@ -142,27 +175,37 @@ def create_pce_chart(pce_data, periods=24):
     pce_plot_data = pce_data['data'].tail(periods).copy()
     pce_plot_data = prepare_date_for_display(pce_plot_data)
     
-    # Create the chart
-    fig = px.line(
-        pce_plot_data, 
-        x='Date_Str', 
-        y='PCE_MoM',
-        title='PCE Month-over-Month % Change (Last 24 Months)'
+    # Create the chart with our custom function instead of px.line
+    fig = create_line_chart(
+        pce_plot_data,
+        'Date_Str',
+        'PCE_MoM',
+        'PCE MoM % Change',
+        color=THEME['line_colors']['danger'],
+        show_legend=False
     )
     
+    # Update layout
     fig.update_layout(
-        showlegend=False,
         yaxis=dict(
-            title="MoM Percent Change (%)"
+            title=dict(
+                text="MoM %",
+                font=dict(size=10)
+            ),
+            tickfont=dict(size=9)
+        ),
+        xaxis=dict(
+            tickangle=45,
+            tickfont=dict(size=9)
         )
     )
     
     return fig
 
 
-def create_pmi_chart(pmi_data, periods=24):
+def create_pmi_chart(pmi_data, periods=18):
     """
-    Create a chart for PMI data.
+    Create a chart for PMI data with modern styling.
     
     Args:
         pmi_data (dict): Dictionary with PMI data
@@ -186,11 +229,26 @@ def create_pmi_chart(pmi_data, periods=24):
         pmi_plot_data,
         'Date_Str',
         'PMI',
-        'Manufacturing PMI Proxy (Last 24 Months)',
+        'Manufacturing PMI Proxy',
         threshold=50,
-        threshold_label='Expansion/Contraction Threshold',
-        color='blue',
-        show_legend=True
+        threshold_label='Expansion/Contraction',
+        color=THEME['line_colors']['primary'],
+        show_legend=False
+    )
+    
+    # Update layout
+    fig.update_layout(
+        yaxis=dict(
+            title=dict(
+                text="PMI Value",
+                font=dict(size=10)
+            ),
+            tickfont=dict(size=9)
+        ),
+        xaxis=dict(
+            tickangle=45,
+            tickfont=dict(size=9)
+        )
     )
     
     return fig
@@ -198,7 +256,7 @@ def create_pmi_chart(pmi_data, periods=24):
 
 def create_pmi_components_table(pmi_data):
     """
-    Create a DataFrame for PMI components.
+    Create a DataFrame for PMI components with modern styling.
     
     Args:
         pmi_data (dict): Dictionary with PMI data

@@ -1,14 +1,65 @@
 """
-Functions for creating charts and visualizations.
+Functions for creating charts and visualizations with a modern finance-based theme.
 """
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 
 
-def create_line_chart(df, x_column, y_column, title, color='blue', show_legend=False):
+# Define theme colors
+THEME = {
+    'background': '#0f1924',
+    'paper_bgcolor': '#162231',
+    'font_color': '#e6e9ed',
+    'grid_color': 'rgba(255, 255, 255, 0.1)',
+    'line_colors': {
+        'primary': '#1a7fe0',
+        'success': '#00c853',
+        'warning': '#ff9800',
+        'danger': '#f44336',
+        'neutral': '#78909c'
+    },
+    'colorscale': [[0, '#f44336'], [0.5, '#ff9800'], [1, '#00c853']]
+}
+
+
+def apply_dark_theme(fig):
     """
-    Create a line chart using Plotly.
+    Apply the dark finance theme to a plotly figure.
+    
+    Args:
+        fig (go.Figure): Plotly figure object
+        
+    Returns:
+        go.Figure: Themed figure object
+    """
+    fig.update_layout(
+        paper_bgcolor=THEME['paper_bgcolor'],
+        plot_bgcolor=THEME['background'],
+        font=dict(
+            family="'Inter', 'Roboto', sans-serif",
+            color=THEME['font_color']
+        ),
+        margin=dict(l=10, r=10, t=30, b=10),
+        height=250
+    )
+    
+    # Update axes
+    fig.update_xaxes(
+        gridcolor=THEME['grid_color'],
+        zerolinecolor=THEME['grid_color']
+    )
+    fig.update_yaxes(
+        gridcolor=THEME['grid_color'],
+        zerolinecolor=THEME['grid_color']
+    )
+    
+    return fig
+
+
+def create_line_chart(df, x_column, y_column, title, color=None, show_legend=False):
+    """
+    Create a line chart using Plotly with the dark finance theme.
     
     Args:
         df (pd.DataFrame): DataFrame with data
@@ -21,24 +72,32 @@ def create_line_chart(df, x_column, y_column, title, color='blue', show_legend=F
     Returns:
         go.Figure: Plotly figure object
     """
+    if color is None:
+        color = THEME['line_colors']['primary']
+    
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=df[x_column],
         y=df[y_column],
         name=y_column,
-        line=dict(color=color)
+        line=dict(color=color, width=2)
     ))
+    
     fig.update_layout(
-        title=title,
+        title=dict(
+            text=title,
+            font=dict(size=14)
+        ),
         showlegend=show_legend
     )
-    return fig
+    
+    return apply_dark_theme(fig)
 
 
 def create_line_chart_with_threshold(df, x_column, y_column, title, threshold=None, 
-                                    threshold_label=None, color='blue', show_legend=True):
+                                    threshold_label=None, color=None, show_legend=True):
     """
-    Create a line chart with a horizontal threshold line.
+    Create a line chart with a horizontal threshold line using the dark finance theme.
     
     Args:
         df (pd.DataFrame): DataFrame with data
@@ -53,16 +112,21 @@ def create_line_chart_with_threshold(df, x_column, y_column, title, threshold=No
     Returns:
         go.Figure: Plotly figure object
     """
+    if color is None:
+        color = THEME['line_colors']['primary']
+    
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=df[x_column],
         y=df[y_column],
         name=y_column,
-        line=dict(color=color)
+        line=dict(color=color, width=2)
     ))
     
     # Add threshold line if specified
     if threshold is not None:
+        threshold_color = THEME['line_colors']['warning']
+        
         fig.add_shape(
             type="line",
             x0=0,
@@ -72,7 +136,7 @@ def create_line_chart_with_threshold(df, x_column, y_column, title, threshold=No
             xref="paper",
             yref="y",
             line=dict(
-                color="red",
+                color=threshold_color,
                 width=1,
                 dash="dash",
             )
@@ -88,22 +152,26 @@ def create_line_chart_with_threshold(df, x_column, y_column, title, threshold=No
                 text=threshold_label,
                 showarrow=False,
                 font=dict(
-                    color="red",
+                    color=threshold_color,
                     size=10
                 ),
                 align="right"
             )
     
     fig.update_layout(
-        title=title,
+        title=dict(
+            text=title,
+            font=dict(size=14)
+        ),
         showlegend=show_legend
     )
-    return fig
+    
+    return apply_dark_theme(fig)
 
 
 def create_pmi_component_chart(component_data):
     """
-    Create a chart for PMI components.
+    Create a chart for PMI components with the dark finance theme.
     
     Args:
         component_data (dict): Dictionary with component data
@@ -124,7 +192,7 @@ def create_pmi_component_chart(component_data):
         y='Component', 
         x='Value', 
         color='Value',
-        color_continuous_scale=['red', 'yellow', 'green'],
+        color_continuous_scale=THEME['colorscale'],
         range_color=[40, 60],
         labels={'Value': 'Index Value', 'Component': ''},
         title='PMI Components',
@@ -139,7 +207,7 @@ def create_pmi_component_chart(component_data):
         x1=50,
         y1=len(df) - 0.5,
         line=dict(
-            color="black",
+            color=THEME['line_colors']['warning'],
             width=1,
             dash="dash",
         )
@@ -152,16 +220,17 @@ def create_pmi_component_chart(component_data):
             y=i,
             text=f"{row['Weight']:.0f}%",
             showarrow=False,
-            font=dict(color="black"),
+            font=dict(color=THEME['font_color']),
             xshift=15
         )
     
     fig.update_layout(
         xaxis=dict(range=[40, 60]),
-        showlegend=False
+        showlegend=False,
+        title=dict(
+            text='PMI Components',
+            font=dict(size=14)
+        )
     )
     
-    return fig
-
-
-# Warning indicator function moved to visualization/warning_signals.py
+    return apply_dark_theme(fig)
