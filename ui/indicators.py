@@ -8,7 +8,8 @@ from visualization.indicators import (
     create_initial_claims_chart,
     create_pce_chart,
     create_pmi_chart,
-    create_pmi_components_table
+    create_pmi_components_table,
+    create_usd_liquidity_chart
 )
 from visualization.warning_signals import (
     generate_hours_worked_warning,
@@ -16,6 +17,7 @@ from visualization.warning_signals import (
     generate_initial_claims_warning,
     generate_pce_warning,
     generate_pmi_warning,
+    generate_usd_liquidity_warning,
     create_warning_indicator
 )
 
@@ -301,6 +303,70 @@ def display_defensive_playbook_card():
             st.markdown("- Make gradual moves")
         
         st.caption("*Then return to growth when trends improve.*")
+
+
+def display_usd_liquidity_card(usd_liquidity_data):
+    """
+    Display the USD Liquidity as a card.
+    
+    Args:
+        usd_liquidity_data (dict): Dictionary with USD Liquidity data
+    """
+    # Calculate current value and status
+    current_liquidity = usd_liquidity_data['current_liquidity']
+    liquidity_increasing = usd_liquidity_data['liquidity_increasing']
+    liquidity_decreasing = usd_liquidity_data['liquidity_decreasing']
+    
+    # Determine status based on trend
+    # For USD Liquidity, increasing is generally bullish for markets
+    if liquidity_increasing:
+        status = "Bullish"
+        delta_color = "normal"
+    elif liquidity_decreasing:
+        status = "Bearish"
+        delta_color = "inverse"
+    else:
+        status = "Neutral"
+        delta_color = "off"
+    
+    with st.container():
+        # Title at the top
+        st.subheader("💵 USD Liquidity")
+        
+        # Status below the title
+        if status == "Bearish":
+            st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
+        elif status == "Bullish":
+            st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
+        
+        # Current value below the status in black text
+        # Format large number with commas and B for billions or T for trillions
+        if current_liquidity >= 1000000:
+            formatted_value = f"{current_liquidity/1000000:.2f}T"  # Trillions
+        elif current_liquidity >= 1000:
+            formatted_value = f"{current_liquidity/1000:.2f}B"  # Billions
+        else:
+            formatted_value = f"{current_liquidity:,.0f}M"  # Millions
+        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{formatted_value}</div>", unsafe_allow_html=True)
+        
+        # Create and display the chart
+        fig_liquidity = create_usd_liquidity_chart(usd_liquidity_data)
+        st.plotly_chart(fig_liquidity, use_container_width=True, height=250)
+        
+        # Expandable details section
+        with st.expander("View Details"):
+            st.write("USD Liquidity is calculated as: M2 Money Stock + Fed Balance Sheet - Reverse Repo - Treasury General Account + Reserve Balances")
+            st.markdown(generate_usd_liquidity_warning(usd_liquidity_data))
+            st.markdown("""
+            FRED Data Sources:
+            [M2SL](https://fred.stlouisfed.org/series/M2SL) - M2 Money Stock (billions),
+            [WALCL](https://fred.stlouisfed.org/series/WALCL) - Fed Balance Sheet (millions),
+            [RRPONTSYD](https://fred.stlouisfed.org/series/RRPONTSYD) - Reverse Repo (billions),
+            [WTREGEN](https://fred.stlouisfed.org/series/WTREGEN) - Treasury General Account (billions),
+            [WRESBAL](https://fred.stlouisfed.org/series/WRESBAL) - Reserve Balances with Federal Reserve Banks (billions)
+            """)
 
 
 def display_core_principles_card():

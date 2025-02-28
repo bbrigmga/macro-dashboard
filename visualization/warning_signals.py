@@ -331,6 +331,71 @@ Current PCE MoM: {current_pce_mom:.2f}%
     return format_warning_message(status, message, details)
 
 
+def generate_usd_liquidity_warning(usd_liquidity_data):
+    """
+    Generate warning signals for USD Liquidity data with modern styling.
+    
+    Args:
+        usd_liquidity_data (dict): Dictionary with USD Liquidity data
+        
+    Returns:
+        str: Formatted warning message
+    """
+    current_liquidity = usd_liquidity_data['current_liquidity']
+    liquidity_increasing = usd_liquidity_data['liquidity_increasing']
+    liquidity_decreasing = usd_liquidity_data['liquidity_decreasing']
+    
+    # For USD Liquidity, increasing is generally bullish for markets
+    if liquidity_increasing:
+        status = create_warning_indicator(False, 0.5)  # Green indicator
+        message = "Bullish"
+    elif liquidity_decreasing:
+        status = create_warning_indicator(True, 0.5)  # Red indicator
+        message = "Bearish"
+    else:
+        status = create_warning_indicator(False, 0.5, neutral=True)  # Grey indicator
+        message = "No Trend"
+    
+    # Format the current liquidity value for display in trillions
+    formatted_value = f"{current_liquidity/1000000:.2f}T"  # Convert from millions to trillions
+    
+    # Add details
+    details = f"""
+<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
+Current USD Liquidity: {formatted_value}
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Key Signals to Watch:</strong>
+<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
+    <li>Three consecutive months of increasing liquidity (Bullish)</li>
+    <li>Three consecutive months of decreasing liquidity (Bearish)</li>
+</ul>
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Key Framework:</strong>
+<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
+    <li>Rising liquidity + Stable inflation = Bullish for risk assets</li>
+    <li>Falling liquidity + Rising inflation = Bearish for risk assets</li>
+</ul>
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Formula:</strong>
+<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
+    <li>USD Liquidity = M2SL + WALCL - RRPONTSYD - WTREGEN + WRESBAL</li>
+</ul>
+</div>
+
+<div style='font-style: italic; margin-top: 0.5rem;'>
+"Liquidity drives markets in the short term, fundamentals matter in the long term."
+</div>
+"""
+    
+    return format_warning_message(status, message, details)
+
+
 def generate_pmi_warning(pmi_data):
     """
     Generate warning signals for PMI data with modern styling.
