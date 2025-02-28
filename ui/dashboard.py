@@ -3,7 +3,7 @@ Functions for creating the main dashboard layout with a modern finance-based UI.
 """
 import streamlit as st
 import datetime
-from ui.indicators import (
+from .indicators import (
     display_hours_worked_card,
     display_core_cpi_card,
     display_initial_claims_card,
