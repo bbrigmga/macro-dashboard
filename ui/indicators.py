@@ -102,7 +102,7 @@ def display_hours_worked_card(hours_data):
     # Expandable details section
     with st.expander("View Details"):
         st.markdown(generate_hours_worked_warning(hours_data), unsafe_allow_html=True)
-        st.markdown("<div class='data-source'>[FRED Data: AWHAETP - Average Weekly Hours](https://fred.stlouisfed.org/series/AWHAETP)</div>", 
+        st.markdown("<div class='data-source'><a href='https://fred.stlouisfed.org/series/AWHAETP' target='_blank'>FRED Data: AWHAETP - Average Weekly Hours</a></div>", 
                    unsafe_allow_html=True)
     
     # Close the card div
@@ -158,7 +158,7 @@ def display_core_cpi_card(core_cpi_data):
     # Expandable details section
     with st.expander("View Details"):
         st.markdown(generate_core_cpi_warning(core_cpi_data), unsafe_allow_html=True)
-        st.markdown("<div class='data-source'>[FRED Data: CPILFESL - Core Consumer Price Index](https://fred.stlouisfed.org/series/CPILFESL)</div>", 
+        st.markdown("<div class='data-source'><a href='https://fred.stlouisfed.org/series/CPILFESL' target='_blank'>FRED Data: CPILFESL - Core Consumer Price Index</a></div>", 
                    unsafe_allow_html=True)
     
     # Close the card div
@@ -211,7 +211,7 @@ def display_initial_claims_card(claims_data):
     # Expandable details section
     with st.expander("View Details"):
         st.markdown(generate_initial_claims_warning(claims_data), unsafe_allow_html=True)
-        st.markdown("<div class='data-source'>[FRED Data: ICSA - Initial Claims for Unemployment Insurance](https://fred.stlouisfed.org/series/ICSA)</div>", 
+        st.markdown("<div class='data-source'><a href='https://fred.stlouisfed.org/series/ICSA' target='_blank'>FRED Data: ICSA - Initial Claims for Unemployment Insurance</a></div>", 
                    unsafe_allow_html=True)
     
     # Close the card div
@@ -263,7 +263,7 @@ def display_pce_card(pce_data):
     # Expandable details section
     with st.expander("View Details"):
         st.markdown(generate_pce_warning(pce_data), unsafe_allow_html=True)
-        st.markdown("<div class='data-source'>[FRED Data: PCEPI - Personal Consumption Expenditures Price Index](https://fred.stlouisfed.org/series/PCEPI)</div>", 
+        st.markdown("<div class='data-source'><a href='https://fred.stlouisfed.org/series/PCEPI' target='_blank'>FRED Data: PCEPI - Personal Consumption Expenditures Price Index</a></div>", 
                    unsafe_allow_html=True)
     
     # Close the card div
@@ -319,11 +319,11 @@ def display_pmi_card(pmi_data):
         st.markdown("""
         <div class='data-source'>
         FRED Data Sources: 
-        <a href="https://fred.stlouisfed.org/series/DGORDER">DGORDER</a>,
-        <a href="https://fred.stlouisfed.org/series/INDPRO">INDPRO</a>,
-        <a href="https://fred.stlouisfed.org/series/MANEMP">MANEMP</a>,
-        <a href="https://fred.stlouisfed.org/series/AMTMUO">AMTMUO</a>,
-        <a href="https://fred.stlouisfed.org/series/BUSINV">BUSINV</a>
+        <a href="https://fred.stlouisfed.org/series/DGORDER" target="_blank">DGORDER</a>,
+        <a href="https://fred.stlouisfed.org/series/INDPRO" target="_blank">INDPRO</a>,
+        <a href="https://fred.stlouisfed.org/series/MANEMP" target="_blank">MANEMP</a>,
+        <a href="https://fred.stlouisfed.org/series/AMTMUO" target="_blank">AMTMUO</a>,
+        <a href="https://fred.stlouisfed.org/series/BUSINV" target="_blank">BUSINV</a>
         </div>
         """, unsafe_allow_html=True)
     
