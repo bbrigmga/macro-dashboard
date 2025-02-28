@@ -161,18 +161,18 @@ def generate_hours_worked_warning(hours_data):
     current_hours = hours_data['recent_hours'][-1]
     
     details = f"""
-    <div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
-    Current Avg Weekly Hours: {current_hours:.1f}
-    </div>
-    
-    <div style='margin-top: 0.5rem;'>
-    <strong>Key Signals to Watch:</strong>
-    <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-        <li>Three or more consecutive months of declining hours (Bearish)</li>
-        <li>Three or more consecutive months of increasing hours (Bullish)</li>
-    </ul>
-    </div>
-    """
+<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
+Current Avg Weekly Hours: {current_hours:.1f}
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Key Signals to Watch:</strong>
+<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
+    <li>Three or more consecutive months of declining hours (Bearish)</li>
+    <li>Three or more consecutive months of increasing hours (Bullish)</li>
+</ul>
+</div>
+"""
     
     return format_warning_message(status, message, details)
 
@@ -207,18 +207,18 @@ def generate_core_cpi_warning(core_cpi_data):
     
     # Add details
     details = f"""
-    <div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
-    Current Core CPI MoM: {current_cpi_mom:.2f}%
-    </div>
-    
-    <div style='margin-top: 0.5rem;'>
-    <strong>Key Signals to Watch:</strong>
-    <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-        <li>Three consecutive months of increasing MoM inflation (Bearish)</li>
-        <li>Three consecutive months of decreasing MoM inflation (Bullish)</li>
-    </ul>
-    </div>
-    """
+<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
+Current Core CPI MoM: {current_cpi_mom:.2f}%
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Key Signals to Watch:</strong>
+<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
+    <li>Three consecutive months of increasing MoM inflation (Bearish)</li>
+    <li>Three consecutive months of decreasing MoM inflation (Bullish)</li>
+</ul>
+</div>
+"""
     
     return format_warning_message(status, message, details)
 
@@ -249,28 +249,28 @@ def generate_initial_claims_warning(claims_data):
     
     # Add details
     details = f"""
-    <div style='margin-top: 0.5rem;'>
-    <strong>Key Warning Signals to Watch:</strong>
-    <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-        <li>Three consecutive weeks of rising claims</li>
-        <li>Claims rising while PCE is also rising</li>
-        <li>Sudden spike in claims (>10% week-over-week)</li>
-    </ul>
-    </div>
-    
-    <div style='margin-top: 0.5rem;'>
-    <strong>Playbook for Rising Claims:</strong>
-    <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-        <li>Scale back aggressive positions</li>
-        <li>Shift toward defensive sectors</li>
-        <li>Build cash reserves</li>
-    </ul>
-    </div>
-    
-    <div style='font-style: italic; margin-top: 0.5rem;'>
-    "Small moves early beat big moves late"
-    </div>
-    """
+<div style='margin-top: 0.5rem;'>
+<strong>Key Warning Signals to Watch:</strong>
+<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
+    <li>Three consecutive weeks of rising claims</li>
+    <li>Claims rising while PCE is also rising</li>
+    <li>Sudden spike in claims (>10% week-over-week)</li>
+</ul>
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Playbook for Rising Claims:</strong>
+<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
+    <li>Scale back aggressive positions</li>
+    <li>Shift toward defensive sectors</li>
+    <li>Build cash reserves</li>
+</ul>
+</div>
+
+<div style='font-style: italic; margin-top: 0.5rem;'>
+"Small moves early beat big moves late"
+</div>
+"""
     
     return format_warning_message(status, message, details)
 
@@ -303,30 +303,30 @@ def generate_pce_warning(pce_data):
     
     # Add details
     details = f"""
-    <div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
-    Current PCE MoM: {current_pce_mom:.2f}%
-    </div>
-    
-    <div style='margin-top: 0.5rem;'>
-    <strong>Key Signals to Watch:</strong>
-    <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-        <li>Three consecutive months of increasing MoM inflation (Bearish)</li>
-        <li>Three consecutive months of decreasing MoM inflation (Bullish)</li>
-    </ul>
-    </div>
-    
-    <div style='margin-top: 0.5rem;'>
-    <strong>Key Framework:</strong>
-    <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-        <li>PCE dropping + Stable jobs = Add risk</li>
-        <li>PCE rising + Rising claims = Get defensive</li>
-    </ul>
-    </div>
-    
-    <div style='font-style: italic; margin-top: 0.5rem;'>
-    "Everyone watches CPI, but PCE guides policy."
-    </div>
-    """
+<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
+Current PCE MoM: {current_pce_mom:.2f}%
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Key Signals to Watch:</strong>
+<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
+    <li>Three consecutive months of increasing MoM inflation (Bearish)</li>
+    <li>Three consecutive months of decreasing MoM inflation (Bullish)</li>
+</ul>
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Key Framework:</strong>
+<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
+    <li>PCE dropping + Stable jobs = Add risk</li>
+    <li>PCE rising + Rising claims = Get defensive</li>
+</ul>
+</div>
+
+<div style='font-style: italic; margin-top: 0.5rem;'>
+"Everyone watches CPI, but PCE guides policy."
+</div>
+"""
     
     return format_warning_message(status, message, details)
 
@@ -356,25 +356,25 @@ def generate_pmi_warning(pmi_data):
     sector_status = "Manufacturing sector contracting" if latest_pmi < 50 else "Manufacturing sector expanding"
     
     details = f"""
-    <div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
-    Current PMI Proxy Value: {latest_pmi:.1f}
-    </div>
-    
-    <div style='margin-bottom: 0.5rem;'>
-    {sector_status}
-    </div>
-    
-    <div style='margin-top: 0.5rem;'>
-    <strong>Key Warning Signals to Watch:</strong>
-    <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-        <li>PMI below 50 (indicating contraction)</li>
-        <li>Declining trend over multiple months</li>
-    </ul>
-    </div>
-    
-    <div style='font-style: italic; margin-top: 0.5rem;'>
-    "PMI is a leading indicator of manufacturing health."
-    </div>
-    """
+<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
+Current PMI Proxy Value: {latest_pmi:.1f}
+</div>
+
+<div style='margin-bottom: 0.5rem;'>
+{sector_status}
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Key Warning Signals to Watch:</strong>
+<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
+    <li>PMI below 50 (indicating contraction)</li>
+    <li>Declining trend over multiple months</li>
+</ul>
+</div>
+
+<div style='font-style: italic; margin-top: 0.5rem;'>
+"PMI is a leading indicator of manufacturing health."
+</div>
+"""
     
     return format_warning_message(status, message, details)
