@@ -101,7 +101,7 @@ def display_hours_worked_card(hours_data):
     
     # Expandable details section
     with st.expander("View Details"):
-        st.markdown(generate_hours_worked_warning(hours_data))
+        st.markdown(generate_hours_worked_warning(hours_data), unsafe_allow_html=True)
         st.markdown("<div class='data-source'>[FRED Data: AWHAETP - Average Weekly Hours](https://fred.stlouisfed.org/series/AWHAETP)</div>", 
                    unsafe_allow_html=True)
     
@@ -157,7 +157,7 @@ def display_core_cpi_card(core_cpi_data):
     
     # Expandable details section
     with st.expander("View Details"):
-        st.markdown(generate_core_cpi_warning(core_cpi_data))
+        st.markdown(generate_core_cpi_warning(core_cpi_data), unsafe_allow_html=True)
         st.markdown("<div class='data-source'>[FRED Data: CPILFESL - Core Consumer Price Index](https://fred.stlouisfed.org/series/CPILFESL)</div>", 
                    unsafe_allow_html=True)
     
@@ -210,7 +210,7 @@ def display_initial_claims_card(claims_data):
     
     # Expandable details section
     with st.expander("View Details"):
-        st.markdown(generate_initial_claims_warning(claims_data))
+        st.markdown(generate_initial_claims_warning(claims_data), unsafe_allow_html=True)
         st.markdown("<div class='data-source'>[FRED Data: ICSA - Initial Claims for Unemployment Insurance](https://fred.stlouisfed.org/series/ICSA)</div>", 
                    unsafe_allow_html=True)
     
@@ -262,7 +262,7 @@ def display_pce_card(pce_data):
     
     # Expandable details section
     with st.expander("View Details"):
-        st.markdown(generate_pce_warning(pce_data))
+        st.markdown(generate_pce_warning(pce_data), unsafe_allow_html=True)
         st.markdown("<div class='data-source'>[FRED Data: PCEPI - Personal Consumption Expenditures Price Index](https://fred.stlouisfed.org/series/PCEPI)</div>", 
                    unsafe_allow_html=True)
     
@@ -309,7 +309,7 @@ def display_pmi_card(pmi_data):
     
     # Expandable details section
     with st.expander("View Details"):
-        st.markdown(generate_pmi_warning(pmi_data))
+        st.markdown(generate_pmi_warning(pmi_data), unsafe_allow_html=True)
         
         # Display PMI components in a compact table
         st.subheader("PMI Components")
