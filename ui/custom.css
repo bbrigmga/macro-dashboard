@@ -297,3 +297,9 @@ footer {
 .streamlit-expanderContent {
     color: var(--text-color) !important;
 }
+
+/* Improve contrast for headings in expandable details */
+.streamlit-expanderContent strong {
+    color: #ffffff; /* Bright white for better contrast */
+    font-weight: 600;
+}

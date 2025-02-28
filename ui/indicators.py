@@ -87,20 +87,19 @@ def display_hours_worked_card(hours_data):
     # Create card with status and value in header
     create_card_container("Average Weekly Hours", "🕒", current_value, status_emoji, status_text, status_class)
     
-    # Brief description
-    st.markdown("""
-    <p class='description' style='margin-bottom: 0.5rem;'>
-    Average weekly hours of all employees in the private sector. 
-    Declining trend signals reduced economic activity.
-    </p>
-    """, unsafe_allow_html=True)
-    
     # Create and display the chart
     fig_hours = create_hours_worked_chart(hours_data)
     st.plotly_chart(fig_hours, use_container_width=True, height=250)
     
     # Expandable details section
     with st.expander("View Details"):
+        # Description moved to details section
+        st.markdown("""
+        <p class='description' style='margin-bottom: 0.5rem;'>
+        Average weekly hours of all employees in the private sector. 
+        Declining trend signals reduced economic activity.
+        </p>
+        """, unsafe_allow_html=True)
         st.markdown(generate_hours_worked_warning(hours_data), unsafe_allow_html=True)
         st.markdown("<div class='data-source'><a href='https://fred.stlouisfed.org/series/AWHAETP' target='_blank'>FRED Data: AWHAETP - Average Weekly Hours</a></div>", 
                    unsafe_allow_html=True)
@@ -143,20 +142,19 @@ def display_core_cpi_card(core_cpi_data):
     # Create card with status and value in header
     create_card_container("Core CPI", "📊", current_value, status_emoji, status_text, status_class)
     
-    # Brief description
-    st.markdown("""
-    <p class='description' style='margin-bottom: 0.5rem;'>
-    Core CPI measures inflation excluding volatile food and energy prices,
-    providing a clearer picture of underlying inflation trends.
-    </p>
-    """, unsafe_allow_html=True)
-    
     # Create and display the chart
     fig_cpi = create_core_cpi_chart(core_cpi_data)
     st.plotly_chart(fig_cpi, use_container_width=True, height=250)
     
     # Expandable details section
     with st.expander("View Details"):
+        # Description moved to details section
+        st.markdown("""
+        <p class='description' style='margin-bottom: 0.5rem;'>
+        Core CPI measures inflation excluding volatile food and energy prices,
+        providing a clearer picture of underlying inflation trends.
+        </p>
+        """, unsafe_allow_html=True)
         st.markdown(generate_core_cpi_warning(core_cpi_data), unsafe_allow_html=True)
         st.markdown("<div class='data-source'><a href='https://fred.stlouisfed.org/series/CPILFESL' target='_blank'>FRED Data: CPILFESL - Core Consumer Price Index</a></div>", 
                    unsafe_allow_html=True)
@@ -196,20 +194,19 @@ def display_initial_claims_card(claims_data):
     # Create card with status and value in header
     create_card_container("Initial Jobless Claims", "📈", current_value, status_emoji, status_text, status_class)
     
-    # Brief description
-    st.markdown("""
-    <p class='description' style='margin-bottom: 0.5rem;'>
-    Initial Jobless Claims show how many people filed for unemployment for the first time in a given week.
-    Released every Thursday by the Department of Labor.
-    </p>
-    """, unsafe_allow_html=True)
-    
     # Create and display the chart
     fig_claims = create_initial_claims_chart(claims_data)
     st.plotly_chart(fig_claims, use_container_width=True, height=250)
     
     # Expandable details section
     with st.expander("View Details"):
+        # Description moved to details section
+        st.markdown("""
+        <p class='description' style='margin-bottom: 0.5rem;'>
+        Initial Jobless Claims show how many people filed for unemployment for the first time in a given week.
+        Released every Thursday by the Department of Labor.
+        </p>
+        """, unsafe_allow_html=True)
         st.markdown(generate_initial_claims_warning(claims_data), unsafe_allow_html=True)
         st.markdown("<div class='data-source'><a href='https://fred.stlouisfed.org/series/ICSA' target='_blank'>FRED Data: ICSA - Initial Claims for Unemployment Insurance</a></div>", 
                    unsafe_allow_html=True)
@@ -247,14 +244,7 @@ def display_pce_card(pce_data):
     current_value = f"{current_pce_mom:.2f}%"
     
     # Create card with status and value in header
-    create_card_container("Personal Consumption Expenditures", "💵", current_value, status_emoji, status_text, status_class)
-    
-    # Brief description
-    st.markdown("""
-    <p class='description' style='margin-bottom: 0.5rem;'>
-    PCE is the Fed's preferred measure of inflation, tracking all spending across consumer, business, and government sectors.
-    </p>
-    """, unsafe_allow_html=True)
+    create_card_container("PCE", "💵", current_value, status_emoji, status_text, status_class)
     
     # Create and display the chart
     fig_pce = create_pce_chart(pce_data)
@@ -262,6 +252,12 @@ def display_pce_card(pce_data):
     
     # Expandable details section
     with st.expander("View Details"):
+        # Description moved to details section
+        st.markdown("""
+        <p class='description' style='margin-bottom: 0.5rem;'>
+        PCE is the Fed's preferred measure of inflation, tracking all spending across consumer, business, and government sectors.
+        </p>
+        """, unsafe_allow_html=True)
         st.markdown(generate_pce_warning(pce_data), unsafe_allow_html=True)
         st.markdown("<div class='data-source'><a href='https://fred.stlouisfed.org/series/PCEPI' target='_blank'>FRED Data: PCEPI - Personal Consumption Expenditures Price Index</a></div>", 
                    unsafe_allow_html=True)
@@ -295,20 +291,19 @@ def display_pmi_card(pmi_data):
     # Create card with status and value in header
     create_card_container("Manufacturing PMI Proxy", "🏭", current_value, status_emoji, status_text, status_class)
     
-    # Brief description
-    st.markdown("""
-    <p class='description' style='margin-bottom: 0.5rem;'>
-    A proxy for the ISM Manufacturing PMI using FRED data.
-    PMI values above 50 indicate expansion, below 50 indicate contraction.
-    </p>
-    """, unsafe_allow_html=True)
-    
     # Create and display the chart
     fig_pmi = create_pmi_chart(pmi_data)
     st.plotly_chart(fig_pmi, use_container_width=True, height=250)
     
     # Expandable details section
     with st.expander("View Details"):
+        # Description moved to details section
+        st.markdown("""
+        <p class='description' style='margin-bottom: 0.5rem;'>
+        A proxy for the ISM Manufacturing PMI using FRED data.
+        PMI values above 50 indicate expansion, below 50 indicate contraction.
+        </p>
+        """, unsafe_allow_html=True)
         st.markdown(generate_pmi_warning(pmi_data), unsafe_allow_html=True)
         
         # Display PMI components in a compact table
