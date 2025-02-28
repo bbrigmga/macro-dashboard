@@ -8,10 +8,10 @@ import pandas as pd
 
 # Define theme colors
 THEME = {
-    'background': '#0f1924',
-    'paper_bgcolor': '#162231',
-    'font_color': '#e6e9ed',
-    'grid_color': 'rgba(255, 255, 255, 0.1)',
+    'background': '#f5f7fa',  # Light gray-blue background
+    'paper_bgcolor': '#ffffff',  # White paper background
+    'font_color': '#333333',  # Dark text for contrast on light background
+    'grid_color': 'rgba(0, 0, 0, 0.1)',  # Subtle dark grid lines
     'line_colors': {
         'primary': '#1a7fe0',
         'success': '#00c853',

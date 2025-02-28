@@ -132,13 +132,16 @@ def create_initial_claims_chart(claims_data, periods=26):
     claims_plot_data = claims_data['data'].tail(periods).copy()
     claims_plot_data = prepare_date_for_display(claims_plot_data)
     
-    # Create the chart with our custom function instead of px.line
-    fig = create_line_chart(
+    # Use create_line_chart_with_threshold for consistency with other charts
+    # Using 300,000 as a threshold which is a common benchmark for jobless claims
+    fig = create_line_chart_with_threshold(
         claims_plot_data,
         'Date_Str',
         'Claims',
         'Weekly Initial Jobless Claims',
-        color=THEME['line_colors']['warning'],
+        threshold=300000,
+        threshold_label='300K benchmark',
+        color=THEME['line_colors']['primary'],  # Changed to primary color for consistency
         show_legend=False
     )
     

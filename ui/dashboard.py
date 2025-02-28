@@ -24,10 +24,6 @@ def setup_page_config():
         layout="wide",
         initial_sidebar_state="collapsed"
     )
-    
-    # Load custom CSS
-    with open('ui/custom.css') as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 
 def display_header():
@@ -37,41 +33,23 @@ def display_header():
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        st.markdown("<h1 style='margin-bottom: 0px;'>📊 Macro Economic Indicators</h1>", unsafe_allow_html=True)
+        st.title("📊 Macro Economic Indicators")
     
     with col2:
         current_date = datetime.datetime.now().strftime("%b %d, %Y")
-        st.markdown(f"<p style='text-align: right; color: var(--neutral-color);'>Last updated: {current_date}</p>", 
-                   unsafe_allow_html=True)
+        st.caption(f"Last updated: {current_date}")
     
-    # Add tweet link button with custom styling
-    st.markdown(
-        """
-        <div style='margin-bottom: 1rem;'>
-            <a href='https://x.com/a_vroenne/status/1867241557658829130' 
-               style='color: var(--primary-color); text-decoration: none; font-size: 0.9rem;' 
-               target='_blank'>
-                View Original Tweet Thread by @a_vroenne
-            </a>
-        </div>
-        """, 
-        unsafe_allow_html=True
-    )
-
+    # Add tweet link
+    st.markdown("[View Original Tweet Thread by @a_vroenne](https://x.com/a_vroenne/status/1867241557658829130)")
+    st.divider()
 
 
 def display_footer():
     """
     Display the dashboard footer with modern styling.
     """
-    st.markdown(
-        """
-        <footer>
-            Data sourced from FRED (Federal Reserve Economic Data). Updated automatically with each release.
-        </footer>
-        """, 
-        unsafe_allow_html=True
-    )
+    st.divider()
+    st.caption("Data sourced from FRED (Federal Reserve Economic Data). Updated automatically with each release.")
 
 
 def create_dashboard(indicators):
@@ -99,8 +77,8 @@ def create_dashboard(indicators):
     with col3:
         display_initial_claims_card(indicators['claims'])
     
-    # Second row - 2 indicators and defensive playbook
-    col1, col2, col3 = st.columns(3)
+    # Second row - 2 indicators
+    col1, col2 = st.columns(2)
     
     with col1:
         display_pce_card(indicators['pce'])
@@ -108,8 +86,13 @@ def create_dashboard(indicators):
     with col2:
         display_pmi_card(indicators['pmi'])
     
-    with col3:
+    # Third row - Defensive playbook and core principles
+    col1, col2 = st.columns(2)
+    
+    with col1:
         display_defensive_playbook_card()
+    
+    with col2:
         display_core_principles_card()
     
     # Display footer
