@@ -66,7 +66,7 @@ def display_hours_worked_card(hours_data):
         # Expandable details section
         with st.expander("View Details"):
             st.write("Average weekly hours of all employees in the private sector. Declining trend signals reduced economic activity.")
-            st.markdown(generate_hours_worked_warning(hours_data))
+            st.markdown(generate_hours_worked_warning(hours_data), unsafe_allow_html=True)
             st.markdown("[FRED Data: AWHAETP - Average Weekly Hours](https://fred.stlouisfed.org/series/AWHAETP)")
 
 
@@ -117,7 +117,7 @@ def display_core_cpi_card(core_cpi_data):
         # Expandable details section
         with st.expander("View Details"):
             st.write("Core CPI measures inflation excluding volatile food and energy prices, providing a clearer picture of underlying inflation trends.")
-            st.markdown(generate_core_cpi_warning(core_cpi_data))
+            st.markdown(generate_core_cpi_warning(core_cpi_data), unsafe_allow_html=True)
             st.markdown("[FRED Data: CPILFESL - Core Consumer Price Index](https://fred.stlouisfed.org/series/CPILFESL)")
 
 
@@ -165,7 +165,7 @@ def display_initial_claims_card(claims_data):
         # Expandable details section
         with st.expander("View Details"):
             st.write("Initial Jobless Claims show how many people filed for unemployment for the first time in a given week. Released every Thursday by the Department of Labor.")
-            st.markdown(generate_initial_claims_warning(claims_data))
+            st.markdown(generate_initial_claims_warning(claims_data), unsafe_allow_html=True)
             st.markdown("[FRED Data: ICSA - Initial Claims for Unemployment Insurance](https://fred.stlouisfed.org/series/ICSA)")
 
 
@@ -213,7 +213,7 @@ def display_pce_card(pce_data):
         # Expandable details section
         with st.expander("View Details"):
             st.write("PCE is the Fed's preferred measure of inflation, tracking all spending across consumer, business, and government sectors.")
-            st.markdown(generate_pce_warning(pce_data))
+            st.markdown(generate_pce_warning(pce_data), unsafe_allow_html=True)
             st.markdown("[FRED Data: PCEPI - Personal Consumption Expenditures Price Index](https://fred.stlouisfed.org/series/PCEPI)")
 
 
@@ -256,7 +256,7 @@ def display_pmi_card(pmi_data):
         # Expandable details section
         with st.expander("View Details"):
             st.write("A proxy for the ISM Manufacturing PMI using FRED data. PMI values above 50 indicate expansion, below 50 indicate contraction.")
-            st.markdown(generate_pmi_warning(pmi_data))
+            st.markdown(generate_pmi_warning(pmi_data), unsafe_allow_html=True)
             
             # Display PMI components in a compact table
             st.subheader("PMI Components")
@@ -358,15 +358,18 @@ def display_usd_liquidity_card(usd_liquidity_data):
         # Expandable details section
         with st.expander("View Details"):
             st.write("USD Liquidity is calculated as: M2 Money Stock + Fed Balance Sheet - Reverse Repo - Treasury General Account + Reserve Balances")
-            st.markdown(generate_usd_liquidity_warning(usd_liquidity_data))
+            st.markdown(generate_usd_liquidity_warning(usd_liquidity_data), unsafe_allow_html=True)
             st.markdown("""
             FRED Data Sources:
             [M2SL](https://fred.stlouisfed.org/series/M2SL) - M2 Money Stock (billions),
             [WALCL](https://fred.stlouisfed.org/series/WALCL) - Fed Balance Sheet (millions),
             [RRPONTSYD](https://fred.stlouisfed.org/series/RRPONTSYD) - Reverse Repo (billions),
             [WTREGEN](https://fred.stlouisfed.org/series/WTREGEN) - Treasury General Account (billions),
-            [WRESBAL](https://fred.stlouisfed.org/series/WRESBAL) - Reserve Balances with Federal Reserve Banks (billions)
+            [WRESBAL](https://fred.stlouisfed.org/series/WRESBAL) - Reserve Balances with Federal Reserve Banks (billions),
+            [SP500](https://fred.stlouisfed.org/series/SP500) - S&P 500 Index
             """)
+            
+            st.write("The chart displays USD Liquidity (left axis) alongside the S&P 500 Index (right axis) to visualize the relationship between market liquidity and equity market performance.")
 
 
 def display_core_principles_card():

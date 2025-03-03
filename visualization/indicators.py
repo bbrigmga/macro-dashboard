@@ -2,7 +2,7 @@
 Functions for creating visualizations for specific indicators with a modern finance-based theme.
 """
 import pandas as pd
-import plotly.graph_objects as go
+import plotly.graph_objects as go  # This is imported as go
 import plotly.express as px
 from visualization.charts import (
     create_line_chart, 
@@ -11,6 +11,7 @@ from visualization.charts import (
     THEME,
     apply_dark_theme
 )
+from visualization.warning_signals import create_warning_indicator
 
 
 def prepare_date_for_display(df, date_column='Date'):
@@ -257,6 +258,107 @@ def create_pmi_chart(pmi_data, periods=18):
     return fig
 
 
+def create_usd_liquidity_chart(usd_liquidity_data, periods=36):  # Changed from 18 to 36 months (3 years)
+    """
+    Create a chart for USD Liquidity data with modern styling.
+    Also includes S&P 500 data on a secondary y-axis for comparison.
+    
+    Args:
+        usd_liquidity_data (dict): Dictionary with USD Liquidity data
+        periods (int, optional): Number of periods to display
+        
+    Returns:
+        go.Figure: Plotly figure object
+    """
+    # Get the data and prepare for display
+    if 'data' in usd_liquidity_data and 'Date' in usd_liquidity_data['data'].columns and 'USD_Liquidity' in usd_liquidity_data['data'].columns:
+        liquidity_plot_data = usd_liquidity_data['data'].tail(periods).copy()
+        liquidity_plot_data = prepare_date_for_display(liquidity_plot_data)
+        
+        # Convert to trillions before creating the chart
+        liquidity_plot_data['USD_Liquidity_T'] = liquidity_plot_data['USD_Liquidity'] / 1000000
+        
+        # Create a figure with two y-axes
+        import plotly.graph_objects as go  # Ensure go is available in this scope
+        fig = go.Figure()
+        
+        # Add USD Liquidity trace
+        fig.add_trace(go.Scatter(
+            x=liquidity_plot_data['Date_Str'],
+            y=liquidity_plot_data['USD_Liquidity_T'],
+            name='USD Liquidity',
+            line=dict(color=THEME['line_colors']['success'], width=2)  # Green color
+        ))
+        
+        # Add S&P 500 trace on secondary y-axis if available
+        if 'SP500' in liquidity_plot_data.columns:
+            fig.add_trace(go.Scatter(
+                x=liquidity_plot_data['Date_Str'],
+                y=liquidity_plot_data['SP500'],
+                name='S&P 500',
+                line=dict(color=THEME['line_colors']['primary'], width=2),  # Blue color
+                yaxis='y2'
+            ))
+        
+        # Update layout for dual y-axes
+        fig.update_layout(
+            title=dict(
+                text='USD Liquidity & S&P 500',
+                font=dict(size=14)
+            ),
+            yaxis=dict(
+                title=dict(
+                    text="Trillions USD",
+                    font=dict(size=10, color=THEME['line_colors']['success'])
+                ),
+                tickfont=dict(size=9),
+                tickformat='.2f'  # Format to 2 decimal places
+            ),
+            xaxis=dict(
+                tickangle=45,
+                tickfont=dict(size=9)
+            ),
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
+        )
+        
+        # Add secondary y-axis for S&P 500 if available
+        if 'SP500' in liquidity_plot_data.columns:
+            fig.update_layout(
+                yaxis2=dict(
+                    title=dict(
+                        text="S&P 500",
+                        font=dict(size=10, color=THEME['line_colors']['primary'])
+                    ),
+                    tickfont=dict(size=9),
+                    overlaying='y',
+                    side='right'
+                )
+            )
+        
+        # Apply dark theme
+        fig = apply_dark_theme(fig)
+        
+        return fig
+    else:
+        # Create an empty figure if data is not available
+        # Import is already at the top, but adding here for clarity and consistency
+        import plotly.graph_objects as go
+        fig = go.Figure()
+        fig.update_layout(
+            title="USD Liquidity Data Not Available",
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+        )
+        return apply_dark_theme(fig)
+
+
 def create_pmi_components_table(pmi_data):
     """
     Create a DataFrame for PMI components with modern styling.
@@ -267,8 +369,6 @@ def create_pmi_components_table(pmi_data):
     Returns:
         pd.DataFrame: DataFrame with PMI component data
     """
-    from visualization.warning_signals import create_warning_indicator
-    
     component_data = {
         'Component': list(pmi_data['component_values'].keys()),
         'Weight': [f"{pmi_data['component_weights'][comp]*100:.0f}%" for comp in pmi_data['component_values'].keys()],

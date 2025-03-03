@@ -433,7 +433,8 @@ class IndicatorData:
             # RRPONTSYD (billions)
             # WTREGEN (billions)
             # WRESBAL (billions)
-            series_ids = ['M2SL', 'WALCL', 'RRPONTSYD', 'WTREGEN', 'WRESBAL']
+            # SP500 (S&P 500 Index)
+            series_ids = ['M2SL', 'WALCL', 'RRPONTSYD', 'WTREGEN', 'WRESBAL', 'SP500']
             
             print(f"Fetching USD Liquidity data for series: {series_ids}")
             
