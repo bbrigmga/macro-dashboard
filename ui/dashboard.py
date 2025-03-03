@@ -9,6 +9,7 @@ from .indicators import (
     display_initial_claims_card,
     display_pce_card,
     display_pmi_card,
+    display_usd_liquidity_card,
     display_defensive_playbook_card,
     display_core_principles_card
 )
@@ -77,14 +78,17 @@ def create_dashboard(indicators):
     with col3:
         display_initial_claims_card(indicators['claims'])
     
-    # Second row - 2 indicators
-    col1, col2 = st.columns(2)
+    # Second row - 3 indicators
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         display_pce_card(indicators['pce'])
     
     with col2:
         display_pmi_card(indicators['pmi'])
+    
+    with col3:
+        display_usd_liquidity_card(indicators['usd_liquidity'])
     
     # Third row - Defensive playbook and core principles
     col1, col2 = st.columns(2)
