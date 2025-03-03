@@ -261,7 +261,7 @@ def display_pmi_card(pmi_data):
             # Display PMI components in a compact table
             st.subheader("PMI Components")
             component_df = create_pmi_components_table(pmi_data)
-            st.dataframe(component_df, hide_index=True, height=200)
+            st.write(component_df)
             
             st.markdown("""
             FRED Data Sources: 

@@ -386,4 +386,27 @@ def create_pmi_components_table(pmi_data):
                 for comp in pmi_data['component_values'].keys()]
     }
     
-    return pd.DataFrame(component_data)
+    df = pd.DataFrame(component_data)
+    
+    # Custom styling to remove scrollbars and make it more compact
+    styled_df = df.style.set_table_styles([
+        {'selector': 'table', 'props': [
+            ('border-collapse', 'collapse'),
+            ('width', '100%'),
+            ('font-size', '0.9em')
+        ]},
+        {'selector': 'th', 'props': [
+            ('background-color', '#f2f2f2'),
+            ('text-align', 'left'),
+            ('padding', '8px')
+        ]},
+        {'selector': 'td', 'props': [
+            ('text-align', 'left'),
+            ('padding', '8px')
+        ]}
+    ]).format(
+        # Ensure all columns are displayed as-is without additional formatting
+        subset=['Component', 'Weight', 'Value', 'Status']
+    )
+    
+    return styled_df

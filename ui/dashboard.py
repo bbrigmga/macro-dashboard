@@ -1,8 +1,10 @@
 """
 Functions for creating the main dashboard layout with a modern finance-based UI.
 """
-import streamlit as st
+import os
 import datetime
+import streamlit as st
+import pandas as pd
 from .indicators import (
     display_hours_worked_card,
     display_core_cpi_card,
@@ -61,6 +63,42 @@ def create_dashboard(indicators):
     """
     # Display header
     display_header()
+    
+    # Status table for key indicators
+    st.markdown("### 📊 Indicator Status")
+    
+    # Determine status for each indicator
+    def get_indicator_status(data, key_func):
+        if key_func(data):
+            return "Bullish"
+        elif key_func(data, inverse=True):
+            return "Bearish"
+        else:
+            return "Neutral"
+    
+    status_data = [
+        ["Manufacturing PMI", 
+         "Bullish" if indicators['pmi']['latest_pmi'] >= 50 else "Bearish"],
+        ["Initial Claims", get_indicator_status(indicators['claims'], 
+            lambda d, inverse=False: d.get('claims_decreasing', False) if not inverse else d.get('claims_increasing', False))],
+        ["Hours Worked", get_indicator_status(indicators['hours_worked'], 
+            lambda d, inverse=False: d.get('consecutive_increases', 0) >= 3 if not inverse else d.get('consecutive_declines', 0) >= 3)]
+    ]
+    
+    # Use Streamlit's native table rendering
+    status_df = pd.DataFrame(status_data, columns=['Indicator', 'Status'])
+    
+    # Custom styling for status
+    def color_status(val):
+        color = {
+            'Bullish': 'green',
+            'Bearish': 'red',
+            'Neutral': 'gray'
+        }.get(val, 'black')
+        return f'color: {color}'
+    
+    styled_status_df = status_df.style.applymap(color_status, subset=['Status'])
+    st.dataframe(styled_status_df, use_container_width=True, height=150, hide_index=True)
     
     # First row - 3 indicators
     col1, col2, col3 = st.columns(3)
