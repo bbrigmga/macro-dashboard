@@ -325,15 +325,13 @@ def display_usd_liquidity_card(usd_liquidity_data):
         
         # Expandable details section
         with st.expander("View Details"):
-            st.write("USD Liquidity is calculated as: M2 Money Stock + Fed Balance Sheet - Reverse Repo - Treasury General Account")
+            st.write("USD Liquidity is calculated as: Fed Balance Sheet - Reverse Repo - Treasury General Account")
             st.markdown(generate_usd_liquidity_warning(usd_liquidity_data), unsafe_allow_html=True)
             st.markdown("""
             FRED Data Sources:
-            [M2SL](https://fred.stlouisfed.org/series/M2SL) - M2 Money Stock (billions),
             [WALCL](https://fred.stlouisfed.org/series/WALCL) - Fed Balance Sheet (millions),
-            [RRPONTSYD](https://fred.stlouisfed.org/series/RRPONTSYD) - Reverse Repo (billions),
+            [RRPONTTLD](https://fred.stlouisfed.org/series/RRPONTTLD) - Reverse Repo (billions),
             [WTREGEN](https://fred.stlouisfed.org/series/WTREGEN) - Treasury General Account (billions),
-            [WRESBAL](https://fred.stlouisfed.org/series/WRESBAL) - Reserve Balances with Federal Reserve Banks (billions),
             [SP500](https://fred.stlouisfed.org/series/SP500) - S&P 500 Index
             """)
             

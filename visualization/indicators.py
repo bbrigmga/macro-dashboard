@@ -14,37 +14,28 @@ from visualization.charts import (
 from visualization.warning_signals import create_warning_indicator
 
 
-def prepare_date_for_display(df, date_column='Date'):
+def prepare_date_for_display(df, date_column='Date', frequency='M'):
     """
     Prepare date column for display by converting to string format.
     
     Args:
         df (pd.DataFrame): DataFrame with date column
         date_column (str, optional): Name of date column
+        frequency (str, optional): Frequency of data ('D' for daily, 'W' for weekly, 'M' for monthly)
         
     Returns:
         pd.DataFrame: DataFrame with added string date column
     """
     df = df.copy()
-    df['Date_Str'] = pd.to_datetime(df[date_column]).dt.strftime('%b %Y')  # More compact date format
-    return df
-
-
-def prepare_weekly_date_for_display(df, date_column='Date'):
-    """
-    Prepare date column for display with shorter date format.
-    
-    Args:
-        df (pd.DataFrame): DataFrame with date column
-        date_column (str, optional): Name of date column
-        
-    Returns:
-        pd.DataFrame: DataFrame with added string date column showing date in MM/DD/YY format
-    """
-    df = df.copy()
-    # Convert to datetime and format as MM/DD/YY (e.g., '01/12/23')
     dates = pd.to_datetime(df[date_column])
-    df['Date_Str'] = dates.dt.strftime('%m/%d/%y')  # Format as MM/DD/YY
+    
+    if frequency == 'W':
+        # Weekly format: MM/DD/YY (e.g., '01/12/23')
+        df['Date_Str'] = dates.dt.strftime('%m/%d/%y')
+    else:
+        # Monthly format: MMM YYYY (e.g., 'Jan 2023')
+        df['Date_Str'] = dates.dt.strftime('%b %Y')
+    
     return df
 
 
@@ -149,7 +140,7 @@ def create_initial_claims_chart(claims_data, periods=26):
     """
     # Get the data and prepare for display
     claims_plot_data = claims_data['data'].tail(periods).copy()
-    claims_plot_data = prepare_weekly_date_for_display(claims_plot_data)
+    claims_plot_data = prepare_date_for_display(claims_plot_data, frequency='W')
     
     # Use create_line_chart_with_threshold for consistency with other charts
     # Using 300,000 as a threshold which is a common benchmark for jobless claims

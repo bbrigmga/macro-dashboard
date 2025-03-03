@@ -4,8 +4,177 @@ Functions for fetching and processing economic indicators.
 import pandas as pd
 import numpy as np
 import datetime
+import logging
 from data.fred_client import FredClient
 from data.processing import calculate_pct_change, check_consecutive_increase, check_consecutive_decrease, count_consecutive_changes
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def generate_sample_dates(periods, frequency='M'):
+    """
+    Generate sample dates for fallback data.
+    
+    Args:
+        periods (int): Number of periods to generate
+        frequency (str, optional): Frequency of dates ('D' for daily, 'W' for weekly, 'M' for monthly)
+        
+    Returns:
+        list: List of datetime objects
+    """
+    end_date = datetime.datetime.now()
+    
+    if frequency == 'D':
+        return [end_date - datetime.timedelta(days=i) for i in range(periods)][::-1]
+    elif frequency == 'W':
+        return [end_date - datetime.timedelta(weeks=i) for i in range(periods)][::-1]
+    else:  # Monthly
+        return [end_date - datetime.timedelta(days=30*i) for i in range(periods)][::-1]
+
+
+def generate_sample_data(indicator_type, periods, frequency='M'):
+    """
+    Generate sample data for when API calls fail.
+    
+    Args:
+        indicator_type (str): Type of indicator ('claims', 'pce', 'cpi', 'hours', 'liquidity')
+        periods (int): Number of periods to generate
+        frequency (str, optional): Frequency of data ('D' for daily, 'W' for weekly, 'M' for monthly)
+        
+    Returns:
+        dict: Dictionary with sample data and analysis
+    """
+    dates = generate_sample_dates(periods, frequency)
+    
+    if indicator_type == 'claims':
+        # Create sample claims data (random values around 200-250k)
+        values = np.random.randint(200000, 250000, size=periods)
+        df = pd.DataFrame({
+            'Date': dates,
+            'Claims': values
+        })
+        
+        return {
+            'data': df,
+            'recent_claims': df['Claims'].tail(4).values,
+            'claims_increasing': False,
+            'claims_decreasing': False,
+            'current_value': df['Claims'].iloc[-1]
+        }
+        
+    elif indicator_type == 'pce':
+        # Create sample PCE data
+        base_value = 100.0
+        pce_values = []
+        for i in range(periods):
+            base_value *= (1 + np.random.uniform(0.001, 0.003))
+            pce_values.append(base_value)
+            
+        df = pd.DataFrame({
+            'Date': dates,
+            'PCE': pce_values,
+            'PCE_YoY': 2.5 + np.random.uniform(-0.5, 0.5, size=periods),  # Around 2-3%
+            'PCE_MoM': 0.2 + np.random.uniform(-0.1, 0.1, size=periods)   # Around 0.1-0.3%
+        })
+        
+        return {
+            'data': df,
+            'recent_pce_mom': df['PCE_MoM'].tail(4).values,
+            'pce_increasing': False,
+            'pce_decreasing': False,
+            'current_pce': df['PCE_YoY'].iloc[-1],
+            'current_pce_mom': df['PCE_MoM'].iloc[-1]
+        }
+        
+    elif indicator_type == 'cpi':
+        # Create sample CPI data
+        base_value = 300.0
+        cpi_values = []
+        for i in range(periods):
+            base_value *= (1 + np.random.uniform(0.002, 0.004))
+            cpi_values.append(base_value)
+            
+        df = pd.DataFrame({
+            'Date': dates,
+            'CPI': cpi_values,
+            'CPI_YoY': 3.5 + np.random.uniform(-0.5, 0.5, size=periods),  # Around 3-4%
+            'CPI_MoM': 0.3 + np.random.uniform(-0.1, 0.1, size=periods)   # Around 0.2-0.4%
+        })
+        
+        return {
+            'data': df,
+            'recent_cpi_mom': df['CPI_MoM'].tail(4).values,
+            'cpi_accelerating': False,
+            'current_cpi': df['CPI_YoY'].iloc[-1],
+            'current_cpi_mom': df['CPI_MoM'].iloc[-1]
+        }
+        
+    elif indicator_type == 'hours':
+        # Create sample hours data (random values around 34-35 hours)
+        hours = 34.5 + np.random.uniform(-0.5, 0.5, size=periods)
+        df = pd.DataFrame({
+            'Date': dates,
+            'Hours': hours
+        })
+        
+        return {
+            'data': df,
+            'recent_hours': df['Hours'].tail(4).values,
+            'consecutive_declines': 1,  # For demonstration
+            'consecutive_increases': 2   # For demonstration
+        }
+        
+    elif indicator_type == 'liquidity':
+        # Create sample liquidity data
+        base_value = 5000000  # 5 trillion in millions
+        liquidity_values = []
+        for i in range(periods):
+            base_value += np.random.uniform(-100000, 100000)
+            liquidity_values.append(base_value)
+            
+        df = pd.DataFrame({
+            'Date': dates,
+            'USD_Liquidity': liquidity_values,
+            'USD_Liquidity_MoM': 0.5 + np.random.uniform(-1.0, 1.0, size=periods)
+        })
+        
+        return {
+            'data': df,
+            'recent_liquidity': df['USD_Liquidity'].tail(4).values,
+            'recent_liquidity_mom': df['USD_Liquidity_MoM'].tail(4).values,
+            'liquidity_increasing': False,
+            'liquidity_decreasing': False,
+            'current_liquidity': df['USD_Liquidity'].iloc[-1],
+            'current_liquidity_mom': df['USD_Liquidity_MoM'].iloc[-1]
+        }
+    
+    elif indicator_type == 'pmi':
+        # Return default PMI values
+        return {
+            'latest_pmi': 50.0,  # Neutral value
+            'pmi_series': pd.Series([50.0]),  # Single neutral value
+            'component_values': {
+                'new_orders': 50.0,
+                'production': 50.0,
+                'employment': 50.0,
+                'supplier_deliveries': 50.0,
+                'inventories': 50.0
+            },
+            'component_weights': {
+                'new_orders': 0.30,
+                'production': 0.25,
+                'employment': 0.20,
+                'supplier_deliveries': 0.15,
+                'inventories': 0.10
+            },
+            'pmi_below_50': False
+        }
+    
+    else:
+        logger.error(f"Unknown indicator type: {indicator_type}")
+        return None
 
 
 class IndicatorData:
@@ -48,33 +217,8 @@ class IndicatorData:
                 'current_value': claims_data['Claims'].iloc[-1]
             }
         except Exception as e:
-            print(f"Error fetching initial claims data: {str(e)}")
-            # Create a default DataFrame with some sample data
-            import pandas as pd
-            import numpy as np
-            from datetime import datetime, timedelta
-            
-            # Create sample dates (weekly for the past year)
-            end_date = datetime.now()
-            dates = [end_date - timedelta(weeks=i) for i in range(periods)]
-            dates.reverse()
-            
-            # Create sample claims data (random values around 200-250k)
-            claims = np.random.randint(200000, 250000, size=periods)
-            
-            # Create DataFrame
-            df = pd.DataFrame({
-                'Date': dates,
-                'Claims': claims
-            })
-            
-            return {
-                'data': df,
-                'recent_claims': df['Claims'].tail(4).values,
-                'claims_increasing': False,
-                'claims_decreasing': False,
-                'current_value': df['Claims'].iloc[-1]
-            }
+            logger.error(f"Error fetching initial claims data: {str(e)}")
+            return generate_sample_data('claims', periods, frequency='W')
     
     def get_pce(self, periods=24):
         """
@@ -115,43 +259,8 @@ class IndicatorData:
                 'current_pce_mom': current_pce_mom
             }
         except Exception as e:
-            print(f"Error fetching PCE data: {str(e)}")
-            # Create a default DataFrame with some sample data
-            import pandas as pd
-            import numpy as np
-            from datetime import datetime, timedelta
-            
-            # Create sample dates (monthly for the past 2 years)
-            end_date = datetime.now()
-            dates = [end_date - timedelta(days=30*i) for i in range(periods)]
-            dates.reverse()
-            
-            # Create sample PCE data (random values around 2-3%)
-            base_value = 100.0
-            pce_values = []
-            for i in range(periods):
-                # Slight random increase each month
-                base_value *= (1 + np.random.uniform(0.001, 0.003))
-                pce_values.append(base_value)
-            
-            # Create DataFrame
-            df = pd.DataFrame({
-                'Date': dates,
-                'PCE': pce_values
-            })
-            
-            # Calculate YoY and MoM changes
-            df['PCE_YoY'] = 2.5 + np.random.uniform(-0.5, 0.5, size=periods)  # Around 2-3%
-            df['PCE_MoM'] = 0.2 + np.random.uniform(-0.1, 0.1, size=periods)  # Around 0.1-0.3%
-            
-            return {
-                'data': df,
-                'recent_pce_mom': df['PCE_MoM'].tail(4).values,
-                'pce_increasing': False,
-                'pce_decreasing': False,
-                'current_pce': df['PCE_YoY'].iloc[-1],
-                'current_pce_mom': df['PCE_MoM'].iloc[-1]
-            }
+            logger.error(f"Error fetching PCE data: {str(e)}")
+            return generate_sample_data('pce', periods, frequency='M')
     
     def get_core_cpi(self, periods=24):
         """
@@ -186,45 +295,8 @@ class IndicatorData:
                 'current_cpi_mom': core_cpi_data['CPI_MoM'].iloc[-1]
             }
         except Exception as e:
-            print(f"Error fetching Core CPI data: {str(e)}")
-            # Create a default DataFrame with some sample data
-            import pandas as pd
-            import numpy as np
-            from datetime import datetime, timedelta
-            
-            # Create sample dates (monthly for the past 2 years)
-            end_date = datetime.now()
-            dates = [end_date - timedelta(days=30*i) for i in range(periods)]
-            dates.reverse()
-            
-            # Create sample CPI data (random values around 3-4%)
-            base_value = 300.0
-            cpi_values = []
-            for i in range(periods):
-                # Slight random increase each month
-                base_value *= (1 + np.random.uniform(0.002, 0.004))
-                cpi_values.append(base_value)
-            
-            # Create DataFrame
-            df = pd.DataFrame({
-                'Date': dates,
-                'CPI': cpi_values
-            })
-            
-            # Calculate YoY and MoM changes
-            df['CPI_YoY'] = 3.5 + np.random.uniform(-0.5, 0.5, size=periods)  # Around 3-4%
-            df['CPI_MoM'] = 0.3 + np.random.uniform(-0.1, 0.1, size=periods)  # Around 0.2-0.4%
-            
-            # Create sample recent MoM values
-            recent_mom = df['CPI_MoM'].tail(4).values
-            
-            return {
-                'data': df,
-                'recent_cpi_mom': recent_mom,
-                'cpi_accelerating': False,
-                'current_cpi': df['CPI_YoY'].iloc[-1],
-                'current_cpi_mom': df['CPI_MoM'].iloc[-1]
-            }
+            logger.error(f"Error fetching Core CPI data: {str(e)}")
+            return generate_sample_data('cpi', periods, frequency='M')
     
     def get_hours_worked(self, periods=24):
         """
@@ -255,40 +327,8 @@ class IndicatorData:
                 'consecutive_increases': consecutive_increases
             }
         except Exception as e:
-            print(f"Error fetching hours worked data: {str(e)}")
-            # Create a default DataFrame with some sample data
-            import pandas as pd
-            import numpy as np
-            from datetime import datetime, timedelta
-            
-            # Create sample dates (monthly for the past 2 years)
-            end_date = datetime.now()
-            dates = [end_date - timedelta(days=30*i) for i in range(periods)]
-            dates.reverse()
-            
-            # Create sample hours data (random values around 34-35 hours)
-            hours = 34.5 + np.random.uniform(-0.5, 0.5, size=periods)
-            
-            # Create DataFrame
-            df = pd.DataFrame({
-                'Date': dates,
-                'Hours': hours
-            })
-            
-            # Create sample recent hours
-            recent_hours = df['Hours'].tail(4).values
-            
-            # For demonstration, let's create a scenario with 2 consecutive increases
-            # This will show the "No Trend" status with grey dot
-            consecutive_declines = 1
-            consecutive_increases = 2
-            
-            return {
-                'data': df,
-                'recent_hours': recent_hours,
-                'consecutive_declines': consecutive_declines,
-                'consecutive_increases': consecutive_increases
-            }
+            logger.error(f"Error fetching hours worked data: {str(e)}")
+            return generate_sample_data('hours', periods, frequency='M')
     
     def calculate_pmi_proxy(self, periods=36, start_date=None):
         """
@@ -346,7 +386,7 @@ class IndicatorData:
                     missing_components.append(component)
             
             if missing_components:
-                print(f"Warning: Missing PMI components: {', '.join(missing_components)}")
+                logger.warning(f"Missing PMI components: {', '.join(missing_components)}")
                 
             if not available_components:
                 raise ValueError("No PMI components available in the data")
@@ -394,15 +434,8 @@ class IndicatorData:
             df.reset_index(inplace=True)
             
         except Exception as e:
-            print(f"Error calculating PMI proxy: {str(e)}")
-            # Return default values if calculation fails
-            return {
-                'latest_pmi': 50.0,  # Neutral value
-                'pmi_series': pd.Series([50.0]),  # Single neutral value
-                'component_values': {component: 50.0 for component in series_ids.keys()},
-                'component_weights': weights,
-                'pmi_below_50': False
-            }
+            logger.error(f"Error calculating PMI proxy: {str(e)}")
+            return generate_sample_data('pmi', periods, frequency='M')
         
         return {
             'latest_pmi': current_pmi,
@@ -423,20 +456,14 @@ class IndicatorData:
             dict: Dictionary with USD Liquidity data and analysis
         """
         try:
-            import pandas as pd
-            import numpy as np
-            import datetime
+            # Fetch required series with monthly frequency based on the simplified formula: WALCL-RRPONTTLD-WTREGEN
+            # WALCL (millions) - Fed Balance Sheet
+            # RRPONTTLD (billions) - Reverse Repo
+            # WTREGEN (billions) - Treasury General Account
+            # SP500 (S&P 500 Index) - for comparison
+            series_ids = ['WALCL', 'RRPONTTLD', 'WTREGEN', 'SP500']
             
-            # Fetch required series with monthly frequency
-            # M2SL (billions)
-            # WALCL (millions)
-            # RRPONTSYD (billions)
-            # WTREGEN (billions)
-            # WRESBAL (billions)
-            # SP500 (S&P 500 Index)
-            series_ids = ['M2SL', 'WALCL', 'RRPONTSYD', 'WTREGEN', 'WRESBAL', 'SP500']
-            
-            print(f"Fetching USD Liquidity data for series: {series_ids}")
+            logger.info(f"Fetching USD Liquidity data for series: {series_ids}")
             
             # Try fetching each series individually with detailed error handling
             individual_series = {}
@@ -444,9 +471,9 @@ class IndicatorData:
                 try:
                     series_data = self.fred_client.get_series(series_id, periods=periods, frequency='M')
                     individual_series[series_id] = series_data
-                    print(f"Successfully fetched {series_id}: {series_data.shape[0]} rows")
+                    logger.info(f"Successfully fetched {series_id}: {series_data.shape[0]} rows")
                 except Exception as e:
-                    print(f"Error fetching {series_id}: {str(e)}")
+                    logger.error(f"Error fetching {series_id}: {str(e)}")
             
             # Merge all successfully fetched series
             all_series = None
@@ -470,64 +497,39 @@ class IndicatorData:
                 else:
                     all_series = pd.merge(all_series, series_data_copy, on='Date', how='outer')
             
-            # If no series were fetched, create a dummy DataFrame
+            # If no series were fetched, return sample data
             if all_series is None:
-                print("No series were successfully fetched. Creating dummy data.")
-                # Create sample dates (monthly for the past 3 years)
-                end_date = datetime.datetime.now()
-                dates = [end_date - datetime.timedelta(days=30*i) for i in range(periods)]
-                dates.reverse()
-                all_series = pd.DataFrame({'Date': dates})
-            
-            # Print the columns and first few rows to debug
-            print(f"Columns in all_series: {all_series.columns}")
-            print(f"First few rows of all_series:\n{all_series.head()}")
+                logger.error("No series were successfully fetched.")
+                return generate_sample_data('liquidity', periods, frequency='M')
             
             # Check which series are available
             available_series = [s for s in series_ids if s in all_series.columns]
             missing_series = [s for s in series_ids if s not in all_series.columns]
-            print(f"Available series: {available_series}")
-            print(f"Missing series: {missing_series}")
+            logger.info(f"Available series: {available_series}")
+            logger.info(f"Missing series: {missing_series}")
             
-            # Calculate USD Liquidity based on available data
-            if len(available_series) > 0:
-                print(f"Calculating USD Liquidity with available series: {available_series}")
+            # Calculate USD Liquidity based on simplified formula: WALCL-RRPONTTLD-WTREGEN
+            # Where:
+            # WALCL (millions) - Fed Balance Sheet
+            # RRPONTTLD (billions) - Reverse Repo
+            # WTREGEN (billions) - Treasury General Account
+            if 'WALCL' in all_series.columns:
+                # Initialize USD_Liquidity with WALCL
+                all_series['USD_Liquidity'] = all_series['WALCL']
                 
-                # Initialize USD_Liquidity with zeros
-                all_series['USD_Liquidity'] = 0
+                # Subtract RRPONTTLD * 1000 (convert billions to millions) if available
+                if 'RRPONTTLD' in all_series.columns:
+                    all_series['USD_Liquidity'] -= (all_series['RRPONTTLD'] * 1000)
                 
-                # Add each component based on availability
-                if 'M2SL' in all_series.columns:
-                    all_series['USD_Liquidity'] += (all_series['M2SL'] * 1000)  # Convert billions to millions
-                    print("Added M2SL component")
-                
-                if 'WALCL' in all_series.columns:
-                    all_series['USD_Liquidity'] += all_series['WALCL']
-                    print("Added WALCL component")
-                
-                if 'RRPONTSYD' in all_series.columns:
-                    all_series['USD_Liquidity'] -= (all_series['RRPONTSYD'] * 1000)  # Convert billions to millions
-                    print("Subtracted RRPONTSYD component")
-                
+                # Subtract WTREGEN * 1000 (convert billions to millions) if available
                 if 'WTREGEN' in all_series.columns:
-                    all_series['USD_Liquidity'] -= (all_series['WTREGEN'] * 1000)  # Convert billions to millions
-                    print("Subtracted WTREGEN component")
+                    all_series['USD_Liquidity'] -= (all_series['WTREGEN'] * 1000)
                 
-                # WRESBAL is now excluded from the calculation as requested
-                # if 'WRESBAL' in all_series.columns:
-                #     all_series['USD_Liquidity'] += (all_series['WRESBAL'] * 1000)  # Convert billions to millions
-                #     print("Added WRESBAL component")
-                
-                print(f"USD Liquidity calculated with {len(available_series)}/{len(series_ids)} components")
                 # Fill NaN values in USD_Liquidity
-                all_series['USD_Liquidity'] = all_series['USD_Liquidity'].fillna(method='ffill')
-                
-                # Print a sample of the calculated values
-                print(f"Sample USD Liquidity values:\n{all_series[['Date', 'USD_Liquidity']].head()}")
+                all_series['USD_Liquidity'] = all_series['USD_Liquidity'].ffill()
             else:
-                print(f"Error: Cannot calculate USD Liquidity due to missing series")
-                # Create a dummy USD_Liquidity column with sample data
-                all_series['USD_Liquidity'] = 5000000  # 5 trillion in millions
+                logger.error("Cannot calculate USD Liquidity: WALCL is required but not available")
+                return generate_sample_data('liquidity', periods, frequency='M')
             
             # Calculate month-over-month percentage changes
             all_series['USD_Liquidity_MoM'] = calculate_pct_change(all_series, 'USD_Liquidity', periods=1)
@@ -554,43 +556,8 @@ class IndicatorData:
                 'current_liquidity_mom': current_liquidity_mom
             }
         except Exception as e:
-            print(f"Error fetching USD Liquidity data: {str(e)}")
-            # Create a default DataFrame with some sample data
-            import pandas as pd
-            import numpy as np
-            from datetime import datetime, timedelta
-            
-            # Create sample dates (monthly for the past 2 years)
-            end_date = datetime.now()
-            dates = [end_date - timedelta(days=30*i) for i in range(periods)]
-            dates.reverse()
-            
-            # Create sample liquidity data
-            base_value = 5000000  # 5 trillion in millions
-            liquidity_values = []
-            for i in range(periods):
-                # Random fluctuation
-                base_value += np.random.uniform(-100000, 100000)
-                liquidity_values.append(base_value)
-            
-            # Create DataFrame
-            df = pd.DataFrame({
-                'Date': dates,
-                'USD_Liquidity': liquidity_values
-            })
-            
-            # Calculate MoM changes
-            df['USD_Liquidity_MoM'] = 0.5 + np.random.uniform(-1.0, 1.0, size=periods)
-            
-            return {
-                'data': df,
-                'recent_liquidity': df['USD_Liquidity'].tail(4).values,
-                'recent_liquidity_mom': df['USD_Liquidity_MoM'].tail(4).values,
-                'liquidity_increasing': False,
-                'liquidity_decreasing': False,
-                'current_liquidity': df['USD_Liquidity'].iloc[-1],
-                'current_liquidity_mom': df['USD_Liquidity_MoM'].iloc[-1]
-            }
+            logger.error(f"Error fetching USD Liquidity data: {str(e)}")
+            return generate_sample_data('liquidity', periods, frequency='M')
     
     def get_all_indicators(self):
         """
@@ -599,6 +566,7 @@ class IndicatorData:
         Returns:
             dict: Dictionary with all indicator data and analysis
         """
+        # Fetch all indicators
         claims_data = self.get_initial_claims()
         pce_data = self.get_pce()
         core_cpi_data = self.get_core_cpi()

@@ -384,7 +384,10 @@ Current USD Liquidity: {formatted_value}
 <div style='margin-top: 0.5rem;'>
 <strong>Formula:</strong>
 <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>USD Liquidity = M2SL + WALCL - RRPONTSYD - WTREGEN</li>
+    <li>USD Liquidity = WALCL - (RRPONTTLD × 1000) - (WTREGEN × 1000)</li>
+    <li><small>WALCL (millions) - Fed Balance Sheet</small></li>
+    <li><small>RRPONTTLD (billions, converted to millions) - Reverse Repo</small></li>
+    <li><small>WTREGEN (billions, converted to millions) - Treasury General Account</small></li>
 </ul>
 </div>
 

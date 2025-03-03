@@ -59,9 +59,6 @@ def create_dashboard(indicators):
     Args:
         indicators (dict): Dictionary with all indicator data
     """
-    # Setup page configuration
-    setup_page_config()
-    
     # Display header
     display_header()
     
