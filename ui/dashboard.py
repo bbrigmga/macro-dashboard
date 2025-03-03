@@ -10,7 +10,6 @@ from .indicators import (
     display_pce_card,
     display_pmi_card,
     display_usd_liquidity_card,
-    display_defensive_playbook_card,
     display_core_principles_card
 )
 
@@ -90,14 +89,8 @@ def create_dashboard(indicators):
     with col3:
         display_usd_liquidity_card(indicators['usd_liquidity'])
     
-    # Third row - Defensive playbook and core principles
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        display_defensive_playbook_card()
-    
-    with col2:
-        display_core_principles_card()
+    # Third row - Core principles
+    display_core_principles_card()
     
     # Display footer
     display_footer()

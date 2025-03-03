@@ -273,38 +273,6 @@ def display_pmi_card(pmi_data):
             """)
 
 
-def display_defensive_playbook_card():
-    """
-    Display the Defensive Playbook as a card.
-    """
-    with st.container():
-        st.subheader("🛡️ Defensive Playbook")
-        
-        st.write("When warning signals align, consider this defensive strategy:")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**1. Review Tech Holdings**")
-            st.markdown("- Evaluate position sizes")
-            st.markdown("- Consider trimming high-beta names")
-            
-            st.markdown("**2. Shift to Quality Stocks**")
-            st.markdown("- Focus on strong balance sheets")
-            st.markdown("- Prefer profitable companies")
-        
-        with col2:
-            st.markdown("**3. Keep Dry Powder Ready**")
-            st.markdown("- Build cash reserves")
-            st.markdown("- Wait for signals to clear")
-            
-            st.markdown("**4. Risk Management**")
-            st.markdown("- Scale back aggressive positions")
-            st.markdown("- Make gradual moves")
-        
-        st.caption("*Then return to growth when trends improve.*")
-
-
 def display_usd_liquidity_card(usd_liquidity_data):
     """
     Display the USD Liquidity as a card.
@@ -357,7 +325,7 @@ def display_usd_liquidity_card(usd_liquidity_data):
         
         # Expandable details section
         with st.expander("View Details"):
-            st.write("USD Liquidity is calculated as: M2 Money Stock + Fed Balance Sheet - Reverse Repo - Treasury General Account + Reserve Balances")
+            st.write("USD Liquidity is calculated as: M2 Money Stock + Fed Balance Sheet - Reverse Repo - Treasury General Account")
             st.markdown(generate_usd_liquidity_warning(usd_liquidity_data), unsafe_allow_html=True)
             st.markdown("""
             FRED Data Sources:
