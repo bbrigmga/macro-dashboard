@@ -80,7 +80,9 @@ def create_line_chart(df, x_column, y_column, title, color=None, show_legend=Fal
         x=df[x_column],
         y=df[y_column],
         name=y_column,
-        line=dict(color=color, width=2)
+        mode='lines+markers',  # Add markers to the line
+        line=dict(color=color, width=2),
+        marker=dict(color=color, size=6)  # Add marker styling
     ))
     
     fig.update_layout(
@@ -120,7 +122,9 @@ def create_line_chart_with_threshold(df, x_column, y_column, title, threshold=No
         x=df[x_column],
         y=df[y_column],
         name=y_column,
-        line=dict(color=color, width=2)
+        mode='lines+markers',  # Add markers to the line
+        line=dict(color=color, width=2),
+        marker=dict(color=color, size=6)  # Add marker styling
     ))
     
     # Add threshold line if specified

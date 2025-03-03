@@ -384,7 +384,7 @@ Current USD Liquidity: {formatted_value}
 <div style='margin-top: 0.5rem;'>
 <strong>Formula:</strong>
 <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>USD Liquidity = M2SL + WALCL - RRPONTSYD - WTREGEN + WRESBAL</li>
+    <li>USD Liquidity = M2SL + WALCL - RRPONTSYD - WTREGEN</li>
 </ul>
 </div>
 

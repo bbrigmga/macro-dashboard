@@ -25,7 +25,7 @@ class IndicatorData:
         Get initial jobless claims data.
         
         Args:
-            periods (int, optional): Number of periods to fetch
+            periods (int, optional): Number of periods to fetch (52 weeks = 1 year)
             
         Returns:
             dict: Dictionary with claims data and analysis
@@ -513,9 +513,10 @@ class IndicatorData:
                     all_series['USD_Liquidity'] -= (all_series['WTREGEN'] * 1000)  # Convert billions to millions
                     print("Subtracted WTREGEN component")
                 
-                if 'WRESBAL' in all_series.columns:
-                    all_series['USD_Liquidity'] += (all_series['WRESBAL'] * 1000)  # Convert billions to millions
-                    print("Added WRESBAL component")
+                # WRESBAL is now excluded from the calculation as requested
+                # if 'WRESBAL' in all_series.columns:
+                #     all_series['USD_Liquidity'] += (all_series['WRESBAL'] * 1000)  # Convert billions to millions
+                #     print("Added WRESBAL component")
                 
                 print(f"USD Liquidity calculated with {len(available_series)}/{len(series_ids)} components")
                 # Fill NaN values in USD_Liquidity

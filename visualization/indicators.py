@@ -30,6 +30,24 @@ def prepare_date_for_display(df, date_column='Date'):
     return df
 
 
+def prepare_weekly_date_for_display(df, date_column='Date'):
+    """
+    Prepare date column for display with shorter date format.
+    
+    Args:
+        df (pd.DataFrame): DataFrame with date column
+        date_column (str, optional): Name of date column
+        
+    Returns:
+        pd.DataFrame: DataFrame with added string date column showing date in MM/DD/YY format
+    """
+    df = df.copy()
+    # Convert to datetime and format as MM/DD/YY (e.g., '01/12/23')
+    dates = pd.to_datetime(df[date_column])
+    df['Date_Str'] = dates.dt.strftime('%m/%d/%y')  # Format as MM/DD/YY
+    return df
+
+
 def create_hours_worked_chart(hours_data, periods=18):
     """
     Create a chart for Average Weekly Hours data with modern styling.
@@ -124,14 +142,14 @@ def create_initial_claims_chart(claims_data, periods=26):
     
     Args:
         claims_data (dict): Dictionary with claims data
-        periods (int, optional): Number of periods to display
+        periods (int, optional): Number of periods to display (26 weeks = 6 months)
         
     Returns:
         go.Figure: Plotly figure object
     """
     # Get the data and prepare for display
     claims_plot_data = claims_data['data'].tail(periods).copy()
-    claims_plot_data = prepare_date_for_display(claims_plot_data)
+    claims_plot_data = prepare_weekly_date_for_display(claims_plot_data)
     
     # Use create_line_chart_with_threshold for consistency with other charts
     # Using 300,000 as a threshold which is a common benchmark for jobless claims

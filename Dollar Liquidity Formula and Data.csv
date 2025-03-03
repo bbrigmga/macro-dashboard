@@ -1,0 +1,8 @@
+formula variable ,Fred API Data Descriptor,Units 
+a,WALCL,millions
+b,RRPONTTLD,billions
+c,WDTGAL,millions
+d,RRPONTSYD,billions
+,,
+,,
+Liquidity Formula,a-(b*1000)-(c+d) ,
