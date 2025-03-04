@@ -401,48 +401,60 @@ Current USD Liquidity: {formatted_value}
 
 def generate_pmi_warning(pmi_data):
     """
-    Generate warning signals for PMI data with modern styling.
+    Generate a warning or description for the Manufacturing PMI.
     
     Args:
         pmi_data (dict): Dictionary with PMI data
         
     Returns:
-        str: Formatted warning message
+        str: Formatted warning or description text
     """
     latest_pmi = pmi_data['latest_pmi']
-    
-    # Determine warning status - this will give green for PMI >= 50
     status = create_warning_indicator(latest_pmi < 50, 0.5)
     
-    # Create message based on PMI value
+    # Detailed explanation of the new PMI calculation methodology
+    methodology_description = """
+    **PMI Calculation Methodology:**
+    - **Data Sources:** Uses 5 key manufacturing indicators from FRED
+      1. New Orders (30% weight)
+      2. Production (25% weight)
+      3. Employment (20% weight)
+      4. Supplier Deliveries (15% weight)
+      5. Inventories (10% weight)
+    
+    - **Calculation Steps:**
+      1. Calculate month-over-month percentage changes
+      2. Compute standard deviation over a 10-year historical period
+      3. Transform to Diffusion Indices using: 50 + (Percentage Change / Standard Deviation * 10)
+      4. Cap index values between 0 and 100
+      5. Compute weighted average of component indices
+    """
+    
     if latest_pmi < 50:
-        message = "Bearish"
-    else:  # This includes PMI == 50
-        message = "Bullish"
+        warning_text = f"""
+        **Manufacturing Sector Alert** {status}
+        
+        The Manufacturing PMI Proxy is currently **{latest_pmi:.1f}**, indicating the manufacturing sector is **contracting**.
+        
+        {methodology_description}
+        
+        **Interpretation:** 
+        - PMI below 50 suggests economic contraction in the manufacturing sector
+        - Potential indicators of economic slowdown
+        - May signal reduced industrial activity and economic challenges
+        """
+    else:
+        description_text = f"""
+        **Manufacturing Sector Overview** {status}
+        
+        The Manufacturing PMI Proxy is currently **{latest_pmi:.1f}**, indicating the manufacturing sector is **expanding**.
+        
+        {methodology_description}
+        
+        **Interpretation:**
+        - PMI above 50 suggests economic expansion in the manufacturing sector
+        - Indicates positive industrial activity and economic growth
+        - Potential signs of increasing production and demand
+        """
     
-    # Add details
-    sector_status = "Manufacturing sector contracting" if latest_pmi < 50 else "Manufacturing sector expanding"
-    
-    details = f"""
-<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
-Current PMI Proxy Value: {latest_pmi:.1f}
-</div>
-
-<div style='margin-bottom: 0.5rem;'>
-{sector_status}
-</div>
-
-<div style='margin-top: 0.5rem;'>
-<strong>Key Warning Signals to Watch:</strong>
-<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>PMI below 50 (indicating contraction)</li>
-    <li>Declining trend over multiple months</li>
-</ul>
-</div>
-
-<div style='font-style: italic; margin-top: 0.5rem;'>
-"PMI is a leading indicator of manufacturing health."
-</div>
-"""
-    
-    return format_warning_message(status, message, details)
+    return description_text if latest_pmi >= 50 else warning_text

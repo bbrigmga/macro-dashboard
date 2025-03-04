@@ -9,7 +9,7 @@ from data.fred_client import FredClient
 from data.processing import calculate_pct_change, check_consecutive_increase, check_consecutive_decrease, count_consecutive_changes
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -341,13 +341,17 @@ class IndicatorData:
         Returns:
             dict: Dictionary with PMI proxy data and analysis
         """
-        # Define FRED series IDs for proxy variables
+        logger.info("\n" + "="*80)
+        logger.info("Starting PMI Proxy Calculation")
+        logger.info("="*80)
+        
+        # Define FRED series IDs for proxy variables with additional validation
         series_ids = {
-            'new_orders': 'DGORDER',      # Manufacturers' New Orders: Durable Goods
-            'production': 'INDPRO',       # Industrial Production Index
-            'employment': 'MANEMP',       # All Employees: Manufacturing
-            'supplier_deliveries': 'AMTMUO',  # Manufacturers: Unfilled Orders for All Manufacturing Industries
-            'inventories': 'BUSINV'       # Total Business Inventories
+            'new_orders': 'AMTMNO',      # Manufacturing: New Orders
+            'production': 'IPMAN',       # Industrial Production: Manufacturing
+            'employment': 'MANEMP',      # Manufacturing Employment
+            'supplier_deliveries': 'AMDMUS',  # Manufacturing: Supplier Deliveries
+            'inventories': 'MNFCTRIMSA'  # Manufacturing Inventories (Seasonally Adjusted)
         }
         
         # Define PMI component weights
@@ -359,12 +363,27 @@ class IndicatorData:
             'inventories': 0.10
         }
         
-        # Function to calculate diffusion-like index from percentage change
-        def to_diffusion_index(pct_change, scale=10):
-            return 50 + (pct_change * scale)
-        
         try:
+            # Log the series IDs being requested
+            logger.info("\nRequesting PMI proxy series:")
+            logger.info(f"Series IDs: {list(series_ids.values())}")
+            logger.info(f"Periods: {periods}")
+            logger.info(f"Start Date: {start_date}")
+            
+            # Validate FRED series before fetching
+            logger.info("\nValidating FRED series:")
+            for component, series_id in series_ids.items():
+                try:
+                    # Check if series exists and has recent data
+                    series_info = self.fred_client.fred.get_series_info(series_id)
+                    logger.info(f"\nSeries {series_id} ({component}) info:")
+                    for key, value in series_info.items():
+                        logger.info(f"  {key}: {value}")
+                except Exception as series_check_error:
+                    logger.error(f"Error checking series {series_id} ({component}): {str(series_check_error)}")
+            
             # Get all series in one batch request
+            logger.info("\nFetching all series data...")
             all_series = self.fred_client.get_multiple_series(
                 list(series_ids.values()),
                 start_date=start_date,
@@ -382,11 +401,14 @@ class IndicatorData:
             for component in series_ids.keys():
                 if component in all_series.columns:
                     available_components.append(component)
+                    # Log first few rows of each available component
+                    logger.info(f"\n{component} first 5 rows:")
+                    logger.info(all_series[component].head().to_string())
                 else:
                     missing_components.append(component)
             
             if missing_components:
-                logger.warning(f"Missing PMI components: {', '.join(missing_components)}")
+                logger.warning(f"\nMissing PMI components: {', '.join(missing_components)}")
                 
             if not available_components:
                 raise ValueError("No PMI components available in the data")
@@ -397,6 +419,11 @@ class IndicatorData:
             for component in available_components:
                 adjusted_weights[component] = weights[component] / weight_sum
             
+            # Log adjusted weights
+            logger.info("\nAdjusted weights:")
+            for component, weight in adjusted_weights.items():
+                logger.info(f"  {component}: {weight:.3f}")
+            
             # Keep only the available component columns and Date
             df = all_series[['Date'] + available_components].copy()
             
@@ -405,19 +432,96 @@ class IndicatorData:
             df = df.resample('M').last()
             
             # Calculate month-over-month percentage change
-            # Only calculate pct_change on the component columns, not the DatetimeIndex
             df_pct_change = df[available_components].ffill().pct_change() * 100  # Convert to percentage
             
-            # Transform to diffusion-like indices
-            df_diffusion = df_pct_change.apply(lambda x: to_diffusion_index(x))
+            # Log percentage changes
+            logger.info("\nPercentage changes first 5 rows:")
+            logger.info(df_pct_change.head().to_string())
+            
+            # Calculate standard deviation for each series over 10 years (120 months)
+            # Use a more robust method to handle limited data
+            def robust_rolling_std(series, window=120, min_periods=24):
+                """
+                Calculate rolling standard deviation with fallback to shorter windows
+                
+                Args:
+                    series (pd.Series): Input series
+                    window (int): Preferred rolling window
+                    min_periods (int): Minimum periods required for calculation
+                
+                Returns:
+                    pd.Series: Rolling standard deviation with fallback
+                """
+                # First try the full window
+                std_series = series.rolling(window=window, min_periods=min_periods).std()
+                
+                # If all values are NaN, use a shorter window
+                if std_series.isna().all():
+                    logger.warning(f"Could not calculate std dev for {window}-month window. Falling back to shorter window.")
+                    std_series = series.rolling(window=min_periods, min_periods=min_periods).std()
+                
+                # If still NaN, use the overall standard deviation
+                if std_series.isna().all():
+                    logger.warning(f"Could not calculate rolling std dev. Using overall standard deviation.")
+                    overall_std = series.std()
+                    std_series = pd.Series([overall_std] * len(series), index=series.index)
+                
+                # Fill NaNs with the last valid value
+                std_series = std_series.fillna(method='ffill')
+                
+                return std_series
+
+            # Calculate standard deviation using the robust method
+            std_dev = pd.DataFrame(index=df_pct_change.index, columns=available_components)
+            for component in available_components:
+                std_dev[component] = robust_rolling_std(df_pct_change[component])
+            
+            # Log standard deviations
+            logger.info("\nStandard deviations first 5 rows:")
+            logger.info(std_dev.head().to_string())
+            
+            # Update to_diffusion_index function to handle more edge cases
+            def to_diffusion_index(pct_change, std_dev):
+                # More robust handling of standard deviation
+                if pd.isna(std_dev) or std_dev <= 0:
+                    logger.warning(f"Invalid standard deviation: {std_dev}. Using default.")
+                    return 50.0
+                
+                # Prevent extreme values by capping the scaling factor
+                scaled_change = max(min(pct_change / std_dev, 3), -3)
+                result = 50 + (scaled_change * 10)
+                return max(0, min(100, result))
+            
+            # Transform to Diffusion Indices
+            df_diffusion = pd.DataFrame(index=df.index, columns=available_components)
+            for component in available_components:
+                component_std = std_dev[component].iloc[-1]
+                logger.info(f"\nProcessing {component}:")
+                logger.info(f"  Using standard deviation: {component_std}")
+                df_diffusion[component] = df_pct_change[component].apply(
+                    lambda x, sd=component_std: to_diffusion_index(x, sd)
+                )
+            
+            # Log diffusion indices
+            logger.info("\nDiffusion indices first 5 rows:")
+            logger.info(df_diffusion.head().to_string())
             
             # Calculate the approximated PMI as a weighted average
             df['approximated_pmi'] = (df_diffusion * pd.Series(adjusted_weights)).sum(axis=1)
+            
+            # Log final PMI values
+            logger.info("\nApproximated PMI first 5 rows:")
+            logger.info(df['approximated_pmi'].head().to_string())
             
             # Store component values for the latest month
             component_values = {}
             for component in available_components:
                 component_values[component] = df_diffusion[component].iloc[-1]
+            
+            # Log component values
+            logger.info("\nFinal component values:")
+            for component, value in component_values.items():
+                logger.info(f"  {component}: {value:.2f}")
             
             # For missing components, use a neutral value of 50
             for component in missing_components:
@@ -427,6 +531,12 @@ class IndicatorData:
             current_pmi = df['approximated_pmi'].iloc[-1]
             pmi_below_50 = current_pmi < 50
             
+            # Log final PMI details
+            logger.info("\nFinal PMI Results:")
+            logger.info(f"  Current PMI: {current_pmi:.2f}")
+            logger.info(f"  PMI Below 50: {pmi_below_50}")
+            logger.info("="*80 + "\n")
+            
             # Extract the PMI series with DatetimeIndex before resetting index
             pmi_series = df['approximated_pmi'].copy()
             
@@ -434,7 +544,11 @@ class IndicatorData:
             df.reset_index(inplace=True)
             
         except Exception as e:
-            logger.error(f"Error calculating PMI proxy: {str(e)}")
+            logger.error("\nComprehensive error calculating PMI proxy:")
+            logger.error(str(e))
+            # Include full traceback for debugging
+            import traceback
+            logger.error(traceback.format_exc())
             return generate_sample_data('pmi', periods, frequency='M')
         
         return {
@@ -469,6 +583,7 @@ class IndicatorData:
             individual_series = {}
             for series_id in series_ids:
                 try:
+                    # Check if series exists and has recent data
                     series_data = self.fred_client.get_series(series_id, periods=periods, frequency='M')
                     individual_series[series_id] = series_data
                     logger.info(f"Successfully fetched {series_id}: {series_data.shape[0]} rows")

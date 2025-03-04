@@ -265,11 +265,11 @@ def display_pmi_card(pmi_data):
             
             st.markdown("""
             FRED Data Sources: 
-            [DGORDER](https://fred.stlouisfed.org/series/DGORDER),
-            [INDPRO](https://fred.stlouisfed.org/series/INDPRO),
-            [MANEMP](https://fred.stlouisfed.org/series/MANEMP),
-            [AMTMUO](https://fred.stlouisfed.org/series/AMTMUO),
-            [BUSINV](https://fred.stlouisfed.org/series/BUSINV)
+            - [AMTMNO - Manufacturing: New Orders](https://fred.stlouisfed.org/series/AMTMNO)
+            - [IPMAN - Industrial Production: Manufacturing](https://fred.stlouisfed.org/series/IPMAN)
+            - [MANEMP - Manufacturing Employment](https://fred.stlouisfed.org/series/MANEMP)
+            - [AMDMUS - Manufacturing: Supplier Deliveries](https://fred.stlouisfed.org/series/AMDMUS)
+            - [MNFCTRIMSA - Manufacturing Inventories (Seasonally Adjusted)](https://fred.stlouisfed.org/series/MNFCTRIMSA)
             """)
 
 

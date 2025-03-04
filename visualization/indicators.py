@@ -370,43 +370,28 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):  # Changed from 
 
 def create_pmi_components_table(pmi_data):
     """
-    Create a DataFrame for PMI components with modern styling.
+    Create a table of PMI components with their values and weights.
     
     Args:
         pmi_data (dict): Dictionary with PMI data
         
     Returns:
-        pd.DataFrame: DataFrame with PMI component data
+        pd.DataFrame: Table of PMI components
     """
-    component_data = {
+    # Define FRED series IDs for the components
+    component_tickers = {
+        'new_orders': 'AMTMNO',
+        'production': 'IPMAN',
+        'employment': 'MANEMP',
+        'supplier_deliveries': 'AMDMUS',
+        'inventories': 'MNFCTRIMSA'
+    }
+    
+    return pd.DataFrame({
         'Component': list(pmi_data['component_values'].keys()),
+        'Ticker': [component_tickers.get(comp, 'N/A') for comp in pmi_data['component_values'].keys()],
         'Weight': [f"{pmi_data['component_weights'][comp]*100:.0f}%" for comp in pmi_data['component_values'].keys()],
         'Value': [f"{pmi_data['component_values'][comp]:.1f}" for comp in pmi_data['component_values'].keys()],
         'Status': [create_warning_indicator(pmi_data['component_values'][comp] < 50, 0.5, higher_is_bad=True) 
                 for comp in pmi_data['component_values'].keys()]
-    }
-    
-    df = pd.DataFrame(component_data)
-    
-    # Custom styling to remove scrollbars and make it more compact
-    styled_df = df.style.set_table_styles([
-        {'selector': 'table', 'props': [
-            ('border-collapse', 'collapse'),
-            ('width', '100%'),
-            ('font-size', '0.9em')
-        ]},
-        {'selector': 'th', 'props': [
-            ('background-color', '#f2f2f2'),
-            ('text-align', 'left'),
-            ('padding', '8px')
-        ]},
-        {'selector': 'td', 'props': [
-            ('text-align', 'left'),
-            ('padding', '8px')
-        ]}
-    ]).format(
-        # Ensure all columns are displayed as-is without additional formatting
-        subset=['Component', 'Weight', 'Value', 'Status']
-    )
-    
-    return styled_df
+    })

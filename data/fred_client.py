@@ -60,13 +60,13 @@ def retry_with_backoff(max_retries: int = 3, initial_backoff: int = 1, backoff_f
 class FredClient:
     """Client for interacting with the FRED API with enhanced type hints and cache management."""
     
-    def __init__(self, api_key: Optional[str] = None, cache_enabled: bool = True, max_cache_size: int = 100):
+    def __init__(self, api_key: Optional[str] = None, cache_enabled: bool = False, max_cache_size: int = 100):
         """
         Initialize the FRED client.
         
         Args:
             api_key (str, optional): FRED API key. If None, will use FRED_API_KEY from environment.
-            cache_enabled (bool): Whether to cache API responses
+            cache_enabled (bool): Whether to cache API responses (default: False)
             max_cache_size (int): Maximum number of entries to keep in cache
         """
         if api_key is None:
@@ -75,10 +75,13 @@ class FredClient:
                 raise ValueError("FRED_API_KEY environment variable not set")
         
         self.fred = Fred(api_key=api_key)
-        self.cache_enabled = cache_enabled
+        self.cache_enabled = cache_enabled  # Explicitly set to False by default
         self.cache: dict = {}
         self.max_cache_size = max_cache_size
-    
+        
+        # Add logging for API key validation
+        logger.info("FRED API Client initialized with cache_enabled: %s", cache_enabled)
+
     def _manage_cache(self, cache_key: str, df: pd.DataFrame) -> None:
         """Manage cache size by removing oldest entries when limit is reached."""
         if len(self.cache) >= self.max_cache_size:
@@ -96,7 +99,7 @@ class FredClient:
                    end_date: Optional[str] = None, periods: Optional[int] = None, 
                    frequency: str = 'M') -> pd.DataFrame:
         """
-        Get a time series from FRED with retry logic.
+        Get a time series from FRED with enhanced error handling and logging.
         
         Args:
             series_id (str): FRED series ID
@@ -108,6 +111,10 @@ class FredClient:
         Returns:
             pd.DataFrame: DataFrame with date index and value column
         """
+        # Validate series_id
+        if not series_id or not isinstance(series_id, str):
+            raise ValueError(f"Invalid series_id: {series_id}")
+        
         # Calculate start_date based on periods if not provided
         if start_date is None and periods is not None:
             end = datetime.now() if end_date is None else datetime.strptime(end_date, '%Y-%m-%d')
@@ -122,19 +129,33 @@ class FredClient:
             start_date = start.strftime('%Y-%m-%d')
             logger.info(f"Calculated start_date {start_date} for {periods} {frequency} periods")
         
-        # Check cache first if enabled
-        cache_key = f"{series_id}_{start_date}_{end_date}"
-        if self.cache_enabled and cache_key in self.cache:
-            logger.info(f"Using cached data for {series_id}")
-            return self.cache[cache_key]['data']
-        
         try:
-            logger.info(f"Fetching series {series_id} from FRED API (start_date: {start_date})")
-            series = self.fred.get_series(
-                series_id, 
-                observation_start=start_date,
-                observation_end=end_date
-            )
+            logger.info(f"Attempting to fetch series {series_id} from FRED API")
+            logger.info(f"Parameters - start_date: {start_date}, end_date: {end_date}")
+            
+            # Fetch series with detailed error handling
+            try:
+                series = self.fred.get_series(
+                    series_id, 
+                    observation_start=start_date,
+                    observation_end=end_date
+                )
+            except Exception as e:
+                logger.error(f"FRED API Error for series {series_id}: {str(e)}")
+                # Additional diagnostic information
+                try:
+                    # Check series information
+                    series_info = self.fred.get_series_info(series_id)
+                    logger.info(f"Series Info for {series_id}: {series_info}")
+                except Exception as info_error:
+                    logger.error(f"Could not retrieve series info: {str(info_error)}")
+                
+                raise
+            
+            # Validate series data
+            if series is None or len(series) == 0:
+                logger.warning(f"No data found for series {series_id}")
+                raise ValueError(f"No data found for series {series_id}")
             
             # Convert to DataFrame
             df = pd.DataFrame(series, columns=['Value']).reset_index()
@@ -143,14 +164,16 @@ class FredClient:
             # Convert Date to numpy datetime64 to avoid FutureWarning
             df['Date'] = pd.to_datetime(df['Date']).to_numpy()
             
-            # Cache the result if enabled
-            if self.cache_enabled:
-                self._manage_cache(cache_key, df)
+            # Log series details
+            logger.info(f"Successfully fetched {series_id}")
+            logger.info(f"Date range: {df['Date'].min()} to {df['Date'].max()}")
+            logger.info(f"Number of rows: {len(df)}")
+            logger.info(f"First 5 rows:\n{df.head()}")
             
             return df
             
         except Exception as e:
-            logger.error(f"Error fetching {series_id}: {str(e)}")
+            logger.error(f"Comprehensive error fetching {series_id}: {str(e)}")
             raise
     
     def get_multiple_series(self, series_ids: List[str], start_date: Optional[str] = None, 
@@ -170,7 +193,12 @@ class FredClient:
         Returns:
             pd.DataFrame: DataFrame with date index and columns for each series
         """
+        # Log input parameters for debugging
+        logger.info(f"Fetching multiple series: {series_ids}")
+        logger.info(f"Start Date: {start_date}, End Date: {end_date}, Periods: {periods}, Frequency: {frequency}")
+        
         result = None
+        series_fetch_results = {}
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all series fetch tasks
@@ -190,15 +218,32 @@ class FredClient:
                 try:
                     df = future.result()
                     
+                    # Log details about each fetched series
+                    logger.info(f"Series {series_id} fetched successfully:")
+                    logger.info(f"  Rows: {len(df)}")
+                    logger.info(f"  Date Range: {df['Date'].min()} to {df['Date'].max()}")
+                    logger.info(f"  First 5 rows:\n{df.head()}")
+                    
+                    series_fetch_results[series_id] = df
+                    
                     if result is None:
                         result = df
                     else:
                         result = pd.merge(result, df, on='Date', how='outer')
                 except Exception as e:
                     logger.error(f"Error in get_multiple_series for {series_id}: {str(e)}")
+                    series_fetch_results[series_id] = None
                     continue
         
-        if result is None:
+        # Detailed logging of merge result
+        if result is not None:
+            logger.info(f"Merged result shape: {result.shape}")
+            logger.info(f"Merged result columns: {result.columns}")
+            logger.info(f"Date range of merged result: {result['Date'].min()} to {result['Date'].max()}")
+        
+        # Raise error if no series were successfully fetched
+        if result is None or len(result) == 0:
+            logger.error("Failed to fetch any of the requested series")
             raise ValueError("Failed to fetch any of the requested series")
-            
+        
         return result
