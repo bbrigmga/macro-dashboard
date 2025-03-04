@@ -97,7 +97,7 @@ def create_dashboard(indicators):
         }.get(val, 'black')
         return f'color: {color}'
     
-    styled_status_df = status_df.style.applymap(color_status, subset=['Status'])
+    styled_status_df = status_df.style.map(color_status, subset=['Status'])
     st.dataframe(styled_status_df, use_container_width=True, height=150, hide_index=True)
     
     # First row - 3 indicators
