@@ -122,6 +122,37 @@ This dashboard can be deployed for free on Streamlit Cloud:
    - Expansion/contraction threshold at 50
    - Part of the danger combination when below 50
 
+### Manufacturing PMI Proxy Calculation
+
+The Manufacturing PMI Proxy is a sophisticated calculation using five key FRED economic series:
+
+1. **Data Series Used**:
+   - `AMTMNO`: New Orders
+   - `IPMAN`: Production
+   - `MANEMP`: Employment
+   - `AMDMUS`: Supplier Deliveries
+   - `MNFCTRIMSA`: Inventories
+
+2. **Calculation Methodology**:
+   - Calculate month-over-month percentage changes for each component
+   - Transform to a diffusion index using the formula: 
+     ```
+     Diffusion Index = 50 + (pct_change / rolling_std_dev * 10)
+     ```
+   - Cap the index between 0 and 100
+
+3. **Component Weights**:
+   - New Orders: 30%
+   - Production: 25%
+   - Employment: 20%
+   - Supplier Deliveries: 15%
+   - Inventories: 10%
+
+4. **Interpretation**:
+   - Index above 50 indicates economic expansion
+   - Index below 50 indicates economic contraction
+   - Provides a proxy for the ISM Manufacturing Purchasing Managers' Index (PMI)
+
 ## Key Concepts
 
 ### Danger Combination
