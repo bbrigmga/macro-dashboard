@@ -64,8 +64,29 @@ def create_dashboard(indicators):
     # Display header
     display_header()
     
-    # Status table for key indicators
-    st.markdown("### 📊 Indicator Status")
+    # Add CSS to remove scrollbars from all dataframes
+    st.markdown("""
+    <style>
+    [data-testid="stDataFrame"] div[data-testid="stVerticalBlock"] {
+        overflow: visible !important;
+    }
+    [data-testid="stDataFrame"] [data-testid="stVerticalBlock"] > div:nth-child(3) {
+        overflow: visible !important;
+    }
+    [data-testid="stDataFrame"] [data-testid="stVerticalBlock"] > div:nth-child(3) > div {
+        overflow: visible !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Create two columns for the tables with headers
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 📊 Indicator Status")
+    
+    with col2:
+        st.markdown("### 📈 Positioning")
     
     # Determine status for each indicator
     def get_indicator_status(data, key_func):
@@ -85,20 +106,70 @@ def create_dashboard(indicators):
             lambda d, inverse=False: d.get('consecutive_increases', 0) >= 3 if not inverse else d.get('consecutive_declines', 0) >= 3)]
     ]
     
-    # Use Streamlit's native table rendering
-    status_df = pd.DataFrame(status_data, columns=['Indicator', 'Status'])
+    # Get PCE and Initial Claims status
+    pce_status = "Bullish" if indicators['pce'].get('pce_decreasing', False) else (
+        "Bearish" if indicators['pce'].get('pce_increasing', False) else "Neutral"
+    )
     
-    # Custom styling for status
-    def color_status(val):
-        color = {
-            'Bullish': 'green',
-            'Bearish': 'red',
-            'Neutral': 'gray'
-        }.get(val, 'black')
-        return f'color: {color}'
+    initial_claims_status = get_indicator_status(indicators['claims'], 
+        lambda d, inverse=False: d.get('claims_decreasing', False) if not inverse else d.get('claims_increasing', False))
     
-    styled_status_df = status_df.style.map(color_status, subset=['Status'])
-    st.dataframe(styled_status_df, use_container_width=True, height=150, hide_index=True)
+    # Determine positioning based on PCE and Initial Claims
+    if pce_status == "Bullish" and (initial_claims_status == "Bullish" or initial_claims_status == "Neutral"):
+        positioning = "Risk On"
+    elif pce_status == "Bearish" and initial_claims_status == "Bearish":
+        positioning = "Risk Off"
+    else:
+        positioning = "Risk Neutral"
+    
+    # Create two columns for the tables content (same as above)
+    table_col1, table_col2 = st.columns(2)
+    
+    with table_col1:
+        # Use Streamlit's native table rendering for indicator status
+        status_df = pd.DataFrame(status_data, columns=['Indicator', 'Status'])
+        
+        # Custom styling for status
+        def color_status(val):
+            color = {
+                'Bullish': 'green',
+                'Bearish': 'red',
+                'Neutral': 'gray'
+            }.get(val, 'black')
+            return f'color: {color}'
+        
+        styled_status_df = status_df.style.map(color_status, subset=['Status'])
+        
+        # Set a taller height to ensure all content is visible without scrolling
+        st.dataframe(styled_status_df, use_container_width=True, height=150, hide_index=True)
+    
+    with table_col2:
+        # Create a DataFrame with just the data we need - no empty rows
+        positioning_data = {
+            'PCE': [pce_status],
+            'Initial Claims': [initial_claims_status],
+            'Positioning': [positioning]
+        }
+        
+        positioning_df = pd.DataFrame(positioning_data)
+        
+        # Custom styling for positioning
+        def color_positioning(val):
+            color = {
+                'Bullish': 'green',
+                'Bearish': 'red',
+                'Neutral': 'gray',
+                'Risk On': 'green',
+                'Risk Off': 'red',
+                'Risk Neutral': 'gray'
+            }.get(val, 'black')
+            return f'color: {color}'
+        
+        # Apply styling to all columns
+        styled_positioning_df = positioning_df.style.applymap(color_positioning)
+        
+        # Match height with the indicator status table
+        st.dataframe(styled_positioning_df, use_container_width=True, height=150, hide_index=True)
     
     # First row - 3 indicators
     col1, col2, col3 = st.columns(3)
