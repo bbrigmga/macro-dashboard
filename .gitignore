@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.env
 
 # Python
 __pycache__/
@@ -41,3 +42,8 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+
+#Files
+.csv
+.xlsx

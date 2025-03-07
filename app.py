@@ -63,7 +63,7 @@ if not os.getenv('FRED_API_KEY'):
     1. Get a free API key from [FRED API](https://fred.stlouisfed.org/docs/api/api_key.html)
     2. Create a `.env` file in the project root with:
        ```
-       FRED_API_KEY=your_api_key_here
+       FRED_API_KEY=
        ```
     3. Restart the application
     
