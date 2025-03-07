@@ -54,6 +54,12 @@ def create_hours_worked_chart(hours_data, periods=18):
     hours_plot_data = hours_data['data'].tail(periods).copy()
     hours_plot_data = prepare_date_for_display(hours_plot_data)
     
+    # Ensure data is sorted properly
+    hours_plot_data = hours_plot_data.sort_values('Date')
+    
+    # Fill any null values
+    hours_plot_data['Hours'] = hours_plot_data['Hours'].fillna(0)
+    
     # Create the chart
     fig = create_line_chart(
         hours_plot_data,
@@ -75,7 +81,8 @@ def create_hours_worked_chart(hours_data, periods=18):
         ),
         xaxis=dict(
             tickangle=45,
-            tickfont=dict(size=9)
+            tickfont=dict(size=9),
+            type='category'  # Set type to category for proper ordering
         )
     )
     
@@ -96,6 +103,12 @@ def create_core_cpi_chart(core_cpi_data, periods=18):
     # Get the data and prepare for display
     cpi_plot_data = core_cpi_data['data'].tail(periods).copy()
     cpi_plot_data = prepare_date_for_display(cpi_plot_data)
+    
+    # Ensure data is sorted properly
+    cpi_plot_data = cpi_plot_data.sort_values('Date')
+    
+    # Fill any null values
+    cpi_plot_data['CPI_MoM'] = cpi_plot_data['CPI_MoM'].fillna(0)
     
     # Create a figure with MoM as the main axis
     fig = create_line_chart_with_threshold(
@@ -120,7 +133,8 @@ def create_core_cpi_chart(core_cpi_data, periods=18):
         ),
         xaxis=dict(
             tickangle=45,
-            tickfont=dict(size=9)
+            tickfont=dict(size=9),
+            type='category'  # Set type to category for proper ordering
         )
     )
     
@@ -141,6 +155,12 @@ def create_initial_claims_chart(claims_data, periods=26):
     # Get the data and prepare for display
     claims_plot_data = claims_data['data'].tail(periods).copy()
     claims_plot_data = prepare_date_for_display(claims_plot_data, frequency='W')
+    
+    # Ensure data is sorted properly
+    claims_plot_data = claims_plot_data.sort_values('Date')
+    
+    # Fill any null values
+    claims_plot_data['Claims'] = claims_plot_data['Claims'].fillna(0)
     
     # Use create_line_chart_with_threshold for consistency with other charts
     # Using 300,000 as a threshold which is a common benchmark for jobless claims
@@ -166,7 +186,8 @@ def create_initial_claims_chart(claims_data, periods=26):
         ),
         xaxis=dict(
             tickangle=45,
-            tickfont=dict(size=9)
+            tickfont=dict(size=9),
+            type='category'  # Set type to category for proper ordering
         )
     )
     
@@ -187,6 +208,12 @@ def create_pce_chart(pce_data, periods=18):
     # Get the data and prepare for display
     pce_plot_data = pce_data['data'].tail(periods).copy()
     pce_plot_data = prepare_date_for_display(pce_plot_data)
+    
+    # Ensure data is sorted properly
+    pce_plot_data = pce_plot_data.sort_values('Date')
+    
+    # Fill any null values
+    pce_plot_data['PCE_MoM'] = pce_plot_data['PCE_MoM'].fillna(0)
     
     # Create the chart with our custom function instead of px.line
     fig = create_line_chart(
@@ -209,7 +236,8 @@ def create_pce_chart(pce_data, periods=18):
         ),
         xaxis=dict(
             tickangle=45,
-            tickfont=dict(size=9)
+            tickfont=dict(size=9),
+            type='category'  # Set type to category for proper ordering
         )
     )
     
@@ -237,6 +265,12 @@ def create_pmi_chart(pmi_data, periods=18):
     pmi_plot_data = pmi_df.tail(periods).copy()
     pmi_plot_data = prepare_date_for_display(pmi_plot_data)
     
+    # Ensure data is sorted properly
+    pmi_plot_data = pmi_plot_data.sort_values('Date')
+    
+    # Fill any null values
+    pmi_plot_data['PMI'] = pmi_plot_data['PMI'].fillna(0)
+    
     # Create the chart
     fig = create_line_chart_with_threshold(
         pmi_plot_data,
@@ -260,7 +294,8 @@ def create_pmi_chart(pmi_data, periods=18):
         ),
         xaxis=dict(
             tickangle=45,
-            tickfont=dict(size=9)
+            tickfont=dict(size=9),
+            type='category'  # Set type to category for proper ordering
         )
     )
     
@@ -284,6 +319,14 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):  # Changed from 
         liquidity_plot_data = usd_liquidity_data['data'].tail(periods).copy()
         liquidity_plot_data = prepare_date_for_display(liquidity_plot_data)
         
+        # Ensure data is sorted properly
+        liquidity_plot_data = liquidity_plot_data.sort_values('Date')
+        
+        # Fill any null values
+        liquidity_plot_data['USD_Liquidity'] = liquidity_plot_data['USD_Liquidity'].fillna(0)
+        if 'SP500' in liquidity_plot_data.columns:
+            liquidity_plot_data['SP500'] = liquidity_plot_data['SP500'].fillna(0)
+        
         # Convert to trillions before creating the chart
         liquidity_plot_data['USD_Liquidity_T'] = liquidity_plot_data['USD_Liquidity'] / 1000000
         
@@ -293,8 +336,8 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):  # Changed from 
         
         # Add USD Liquidity trace
         fig.add_trace(go.Scatter(
-            x=liquidity_plot_data['Date_Str'],
-            y=liquidity_plot_data['USD_Liquidity_T'],
+            x=liquidity_plot_data['Date_Str'].tolist(),  # Convert to list explicitly
+            y=liquidity_plot_data['USD_Liquidity_T'].tolist(),  # Convert to list explicitly
             name='USD Liquidity',
             line=dict(color=THEME['line_colors']['success'], width=2)  # Green color
         ))
@@ -302,8 +345,8 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):  # Changed from 
         # Add S&P 500 trace on secondary y-axis if available
         if 'SP500' in liquidity_plot_data.columns:
             fig.add_trace(go.Scatter(
-                x=liquidity_plot_data['Date_Str'],
-                y=liquidity_plot_data['SP500'],
+                x=liquidity_plot_data['Date_Str'].tolist(),  # Convert to list explicitly
+                y=liquidity_plot_data['SP500'].tolist(),  # Convert to list explicitly
                 name='S&P 500',
                 line=dict(color=THEME['line_colors']['primary'], width=2),  # Blue color
                 yaxis='y2'
@@ -325,7 +368,8 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):  # Changed from 
             ),
             xaxis=dict(
                 tickangle=45,
-                tickfont=dict(size=9)
+                tickfont=dict(size=9),
+                type='category'  # Set type to category for proper ordering
             ),
             showlegend=True,
             legend=dict(

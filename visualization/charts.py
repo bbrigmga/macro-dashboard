@@ -77,8 +77,8 @@ def create_line_chart(df, x_column, y_column, title, color=None, show_legend=Fal
     
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=df[x_column],
-        y=df[y_column],
+        x=df[x_column].tolist(),  # Convert to list explicitly
+        y=df[y_column].tolist(),  # Convert to list explicitly
         name=y_column,
         mode='lines+markers',  # Add markers to the line
         line=dict(color=color, width=2),
@@ -90,7 +90,8 @@ def create_line_chart(df, x_column, y_column, title, color=None, show_legend=Fal
             text=title,
             font=dict(size=14)
         ),
-        showlegend=show_legend
+        showlegend=show_legend,
+        xaxis=dict(type='category')  # Set type to category for proper ordering
     )
     
     return apply_dark_theme(fig)
@@ -119,8 +120,8 @@ def create_line_chart_with_threshold(df, x_column, y_column, title, threshold=No
     
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=df[x_column],
-        y=df[y_column],
+        x=df[x_column].tolist(),  # Convert to list explicitly
+        y=df[y_column].tolist(),  # Convert to list explicitly
         name=y_column,
         mode='lines+markers',  # Add markers to the line
         line=dict(color=color, width=2),
@@ -167,7 +168,8 @@ def create_line_chart_with_threshold(df, x_column, y_column, title, threshold=No
             text=title,
             font=dict(size=14)
         ),
-        showlegend=show_legend
+        showlegend=show_legend,
+        xaxis=dict(type='category')  # Set type to category for proper ordering
     )
     
     return apply_dark_theme(fig)
