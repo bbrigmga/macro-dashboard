@@ -140,6 +140,11 @@ def generate_sample_data(indicator_type, periods, frequency='M'):
             'USD_Liquidity_MoM': 0.5 + np.random.uniform(-1.0, 1.0, size=periods)
         })
         
+        # Create sample component values for the latest data point
+        walcl_value = 8500000  # 8.5 trillion in millions
+        rrponttld_value = 2000  # 2 trillion in billions
+        wtregen_value = 700  # 700 billion
+        
         return {
             'data': df,
             'recent_liquidity': df['USD_Liquidity'].tail(4).values,
@@ -147,7 +152,12 @@ def generate_sample_data(indicator_type, periods, frequency='M'):
             'liquidity_increasing': False,
             'liquidity_decreasing': False,
             'current_liquidity': df['USD_Liquidity'].iloc[-1],
-            'current_liquidity_mom': df['USD_Liquidity_MoM'].iloc[-1]
+            'current_liquidity_mom': df['USD_Liquidity_MoM'].iloc[-1],
+            'details': {
+                'WALCL': walcl_value,
+                'RRPONTTLD': rrponttld_value,
+                'WTREGEN': wtregen_value
+            }
         }
     
     elif indicator_type == 'pmi':
@@ -232,7 +242,7 @@ class IndicatorData:
         """
         try:
             # Fetch PCE data with monthly frequency
-            pce_data = self.fred_client.get_series('PCEPI', periods=periods, frequency='M')
+            pce_data = self.fred_client.get_series('PCE', periods=periods, frequency='M')
             pce_data.columns = ['Date', 'PCE']
             
             # Calculate year-over-year and month-over-month percentage changes
@@ -578,15 +588,34 @@ class IndicatorData:
             series_ids = ['WALCL', 'RRPONTTLD', 'WTREGEN', 'SP500']
             
             logger.info(f"Fetching USD Liquidity data for series: {series_ids}")
+            logger.info(f"Current date: {datetime.datetime.now().strftime('%Y-%m-%d')}")
             
             # Try fetching each series individually with detailed error handling
             individual_series = {}
             for series_id in series_ids:
                 try:
-                    # Check if series exists and has recent data
-                    series_data = self.fred_client.get_series(series_id, periods=periods, frequency='M')
+                    # Use 'd' (daily) frequency to get the most recent data available
+                    # and then we'll convert to monthly in the processing step
+                    series_data = self.fred_client.get_series(series_id, periods=periods*30, frequency='d')
+                    
+                    # Log the raw data received from FRED API
+                    logger.info(f"Raw data for {series_id}:")
+                    if not series_data.empty:
+                        logger.info(f"Date range: {series_data['Date'].min()} to {series_data['Date'].max()}")
+                        logger.info(f"Number of data points: {len(series_data)}")
+                        # Log the last 5 data points to see the most recent values
+                        logger.info(f"Last 5 data points for {series_id}:")
+                        for idx, row in series_data.tail(5).iterrows():
+                            logger.info(f"  {row['Date']}: {row[series_id]}")
+                    
                     individual_series[series_id] = series_data
                     logger.info(f"Successfully fetched {series_id}: {series_data.shape[0]} rows")
+                    
+                    # Log the most recent value for each series
+                    if not series_data.empty:
+                        latest_date = series_data['Date'].iloc[-1]
+                        latest_value = series_data[series_id].iloc[-1]
+                        logger.info(f"Latest {series_id} value ({latest_date}): {latest_value}")
                 except Exception as e:
                     logger.error(f"Error fetching {series_id}: {str(e)}")
             
@@ -599,6 +628,7 @@ class IndicatorData:
                 series_data_copy.set_index('Date', inplace=True)
                 
                 # Resample to monthly frequency (end of month)
+                # Use 'last' to get the most recent value in each month
                 series_data_copy = series_data_copy.resample('M').last()
                 
                 # Forward fill missing values
@@ -606,6 +636,16 @@ class IndicatorData:
                 
                 # Reset index to get Date as a column
                 series_data_copy.reset_index(inplace=True)
+                
+                # Log the resampled data
+                logger.info(f"Resampled monthly data for {series_id}:")
+                if not series_data_copy.empty:
+                    logger.info(f"Date range: {series_data_copy['Date'].min()} to {series_data_copy['Date'].max()}")
+                    logger.info(f"Number of data points: {len(series_data_copy)}")
+                    # Log the last 5 data points to see the most recent values
+                    logger.info(f"Last 5 monthly data points for {series_id}:")
+                    for idx, row in series_data_copy.tail(5).iterrows():
+                        logger.info(f"  {row['Date'].strftime('%Y-%m-%d')}: {row[series_id]}")
                 
                 if all_series is None:
                     all_series = series_data_copy
@@ -617,11 +657,24 @@ class IndicatorData:
                 logger.error("No series were successfully fetched.")
                 return generate_sample_data('liquidity', periods, frequency='M')
             
+            # Sort by date to ensure the latest data is at the end
+            all_series = all_series.sort_values('Date')
+            
             # Check which series are available
             available_series = [s for s in series_ids if s in all_series.columns]
             missing_series = [s for s in series_ids if s not in all_series.columns]
             logger.info(f"Available series: {available_series}")
             logger.info(f"Missing series: {missing_series}")
+            
+            # Log the latest date in the merged dataset
+            if not all_series.empty:
+                latest_date = all_series['Date'].iloc[-1]
+                logger.info(f"Latest date in merged dataset: {latest_date}")
+                
+                # Log the latest values for each series in the merged dataset
+                for series_id in available_series:
+                    latest_value = all_series[series_id].iloc[-1]
+                    logger.info(f"Latest {series_id} value in merged dataset: {latest_value}")
             
             # Calculate USD Liquidity based on simplified formula: WALCL-RRPONTTLD-WTREGEN
             # Where:
@@ -631,17 +684,27 @@ class IndicatorData:
             if 'WALCL' in all_series.columns:
                 # Initialize USD_Liquidity with WALCL
                 all_series['USD_Liquidity'] = all_series['WALCL']
+                logger.info(f"Initial USD_Liquidity (WALCL): {all_series['USD_Liquidity'].iloc[-1]}")
                 
                 # Subtract RRPONTTLD * 1000 (convert billions to millions) if available
                 if 'RRPONTTLD' in all_series.columns:
-                    all_series['USD_Liquidity'] -= (all_series['RRPONTTLD'] * 1000)
+                    rrponttld_millions = all_series['RRPONTTLD'] * 1000
+                    all_series['USD_Liquidity'] -= rrponttld_millions
+                    logger.info(f"RRPONTTLD: {all_series['RRPONTTLD'].iloc[-1]} billion")
+                    logger.info(f"RRPONTTLD in millions: {rrponttld_millions.iloc[-1]}")
+                    logger.info(f"USD_Liquidity after subtracting RRPONTTLD: {all_series['USD_Liquidity'].iloc[-1]}")
                 
                 # Subtract WTREGEN * 1000 (convert billions to millions) if available
                 if 'WTREGEN' in all_series.columns:
-                    all_series['USD_Liquidity'] -= (all_series['WTREGEN'] * 1000)
+                    wtregen_millions = all_series['WTREGEN'] * 1000
+                    all_series['USD_Liquidity'] -= wtregen_millions
+                    logger.info(f"WTREGEN: {all_series['WTREGEN'].iloc[-1]} billion")
+                    logger.info(f"WTREGEN in millions: {wtregen_millions.iloc[-1]}")
+                    logger.info(f"USD_Liquidity after subtracting WTREGEN: {all_series['USD_Liquidity'].iloc[-1]}")
                 
                 # Fill NaN values in USD_Liquidity
                 all_series['USD_Liquidity'] = all_series['USD_Liquidity'].ffill()
+                logger.info(f"Final USD_Liquidity: {all_series['USD_Liquidity'].iloc[-1]}")
             else:
                 logger.error("Cannot calculate USD Liquidity: WALCL is required but not available")
                 return generate_sample_data('liquidity', periods, frequency='M')
@@ -661,6 +724,26 @@ class IndicatorData:
             current_liquidity = all_series['USD_Liquidity'].iloc[-1]
             current_liquidity_mom = all_series['USD_Liquidity_MoM'].iloc[-1]
             
+            # Extract actual values for the latest data point
+            walcl = all_series['WALCL'].iloc[-1]  # Latest WALCL
+            rrponttld = all_series['RRPONTTLD'].iloc[-1] if 'RRPONTTLD' in all_series.columns else 0  # Latest RRPONTTLD
+            wtregen = all_series['WTREGEN'].iloc[-1] if 'WTREGEN' in all_series.columns else 0  # Latest WTREGEN
+            
+            # Log the final component values and calculation
+            logger.info(f"Final component values for USD Liquidity calculation:")
+            logger.info(f"WALCL: {walcl} million")
+            logger.info(f"RRPONTTLD: {rrponttld} billion")
+            logger.info(f"WTREGEN: {wtregen} billion")
+            logger.info(f"USD_Liquidity = {walcl} - ({rrponttld} * 1000) - ({wtregen} * 1000) = {current_liquidity}")
+
+            # Prepare details for the USD liquidity charts
+            details = {
+                'WALCL': walcl,
+                'RRPONTTLD': rrponttld,
+                'WTREGEN': wtregen
+            }
+
+            # Include details in the return value or chart data
             return {
                 'data': all_series,
                 'recent_liquidity': recent_liquidity,
@@ -668,7 +751,8 @@ class IndicatorData:
                 'liquidity_increasing': liquidity_increasing,
                 'liquidity_decreasing': liquidity_decreasing,
                 'current_liquidity': current_liquidity,
-                'current_liquidity_mom': current_liquidity_mom
+                'current_liquidity_mom': current_liquidity_mom,
+                'details': details
             }
         except Exception as e:
             logger.error(f"Error fetching USD Liquidity data: {str(e)}")

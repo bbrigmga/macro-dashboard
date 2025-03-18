@@ -364,7 +364,8 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):  # Changed from 
                     font=dict(size=10, color=THEME['line_colors']['success'])
                 ),
                 tickfont=dict(size=9),
-                tickformat='.2f'  # Format to 2 decimal places
+                tickformat='.2f',  # Format to 2 decimal places
+                range=[5.7, max(liquidity_plot_data['USD_Liquidity_T']) * 1.05]  # Set minimum to 5.7 trillion
             ),
             xaxis=dict(
                 tickangle=45,
@@ -391,7 +392,8 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):  # Changed from 
                     ),
                     tickfont=dict(size=9),
                     overlaying='y',
-                    side='right'
+                    side='right',
+                    range=[3200, max(liquidity_plot_data['SP500']) * 1.05]  # Set minimum to 3200
                 )
             )
         

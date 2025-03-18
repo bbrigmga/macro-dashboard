@@ -45,5 +45,5 @@ Thumbs.db
 
 
 #Files
-.csv
-.xlsx
+*.csv
+*.xlsx

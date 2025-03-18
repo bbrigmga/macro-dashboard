@@ -214,7 +214,7 @@ def display_pce_card(pce_data):
         with st.expander("View Details"):
             st.write("PCE is the Fed's preferred measure of inflation, tracking all spending across consumer, business, and government sectors.")
             st.markdown(generate_pce_warning(pce_data), unsafe_allow_html=True)
-            st.markdown("[FRED Data: PCEPI - Personal Consumption Expenditures Price Index](https://fred.stlouisfed.org/series/PCEPI)")
+            st.markdown("[FRED Data: PCE - Personal Consumption Expenditures](https://fred.stlouisfed.org/series/PCE)")
 
 
 def display_pmi_card(pmi_data):
@@ -326,6 +326,54 @@ def display_usd_liquidity_card(usd_liquidity_data):
         # Expandable details section
         with st.expander("View Details"):
             st.write("USD Liquidity is calculated as: Fed Balance Sheet - Reverse Repo - Treasury General Account")
+            
+            # Display the actual values used in the calculation
+            if 'details' in usd_liquidity_data:
+                # Get the values from the details dictionary
+                walcl = usd_liquidity_data['details'].get('WALCL', 0)
+                rrponttld = usd_liquidity_data['details'].get('RRPONTTLD', 0)
+                wtregen = usd_liquidity_data['details'].get('WTREGEN', 0)
+                
+                # Check for NaN values and replace with zeros
+                import numpy as np
+                walcl = 0 if np.isnan(walcl) else walcl
+                rrponttld = 0 if np.isnan(rrponttld) else rrponttld
+                wtregen = 0 if np.isnan(wtregen) else wtregen
+                
+                # Format the values for display
+                if walcl >= 1000000:
+                    walcl_formatted = f"{walcl/1000000:.2f}T"  # Trillions
+                elif walcl >= 1000:
+                    walcl_formatted = f"{walcl/1000:.2f}B"  # Billions
+                else:
+                    walcl_formatted = f"{walcl:,.0f}M"  # Millions
+                
+                # RRPONTTLD and WTREGEN are already in billions, but we'll convert to display format
+                rrponttld_formatted = f"{rrponttld:.2f}B"  # Billions
+                wtregen_formatted = f"{wtregen:.2f}B"  # Billions
+                
+                # Calculate the result (should match current_liquidity)
+                # Convert RRPONTTLD and WTREGEN from billions to millions for calculation
+                result = walcl - (rrponttld * 1000) - (wtregen * 1000)
+                if result >= 1000000:
+                    result_formatted = f"{result/1000000:.2f}T"  # Trillions
+                elif result >= 1000:
+                    result_formatted = f"{result/1000:.2f}B"  # Billions
+                else:
+                    result_formatted = f"{result:,.0f}M"  # Millions
+                
+                # Display the calculation with actual values
+                st.markdown("""
+                <div style='background-color: #f5f5f5; padding: 10px; border-radius: 5px;'>
+                <b>Latest Data Point Calculation:</b><br>
+                Fed Balance Sheet: {} <br>
+                - Reverse Repo: {} <br>
+                - Treasury General Account: {} <br>
+                = USD Liquidity: {}
+                </div>
+                """.format(walcl_formatted, rrponttld_formatted, wtregen_formatted, result_formatted), 
+                unsafe_allow_html=True)
+            
             st.markdown(generate_usd_liquidity_warning(usd_liquidity_data), unsafe_allow_html=True)
             st.markdown("""
             FRED Data Sources:
