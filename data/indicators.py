@@ -758,20 +758,173 @@ class IndicatorData:
             logger.error(f"Error fetching USD Liquidity data: {str(e)}")
             return generate_sample_data('liquidity', periods, frequency='M')
     
+    def get_new_orders(self, periods=24):
+        """
+        Get Non-Defense Durable Goods Orders data from FRED.
+        
+        Args:
+            periods (int, optional): Number of periods to fetch
+            
+        Returns:
+            dict: Dictionary with New Orders data and analysis
+        """
+        try:
+            # Fetch New Orders data with monthly frequency
+            new_orders_data = self.fred_client.get_series('NEWORDER', periods=periods, frequency='M')
+            new_orders_data.columns = ['Date', 'NEWORDER']
+            
+            # Calculate month-over-month percentage change
+            new_orders_data['NEWORDER_MoM'] = calculate_pct_change(new_orders_data, 'NEWORDER', periods=1)
+            
+            # Get the most recent values for analysis
+            recent_values = new_orders_data['NEWORDER'].tail(4).values
+            recent_mom_values = new_orders_data['NEWORDER_MoM'].tail(4).values
+            
+            # Check if MoM values have been increasing or decreasing consistently
+            mom_increasing = check_consecutive_increase(recent_mom_values, 3)
+            mom_decreasing = check_consecutive_decrease(recent_mom_values, 3)
+            
+            # Check if latest value is positive or negative
+            latest_value = new_orders_data['NEWORDER_MoM'].iloc[-1]
+            is_positive = latest_value > 0
+            
+            return {
+                'data': new_orders_data,
+                'recent_values': recent_values,
+                'recent_mom_values': recent_mom_values,
+                'mom_increasing': mom_increasing, 
+                'mom_decreasing': mom_decreasing,
+                'is_positive': is_positive,
+                'latest_value': latest_value
+            }
+        except Exception as e:
+            logger.error(f"Error fetching Non-Defense Durable Goods Orders data: {str(e)}")
+            # Generate sample data as a fallback
+            sample_dates = generate_sample_dates(periods, frequency='M')
+            
+            # Create sample orders data (random values)
+            orders_values = np.random.normal(loc=60000, scale=2000, size=periods)
+            
+            # Create sample MoM % changes that roughly correlate with orders_values
+            mom_values = np.diff(orders_values) / orders_values[:-1] * 100
+            mom_values = np.insert(mom_values, 0, 0.0)  # Add a 0 for the first month
+            
+            sample_df = pd.DataFrame({
+                'Date': sample_dates,
+                'NEWORDER': orders_values,
+                'NEWORDER_MoM': mom_values
+            })
+            
+            return {
+                'data': sample_df,
+                'recent_values': orders_values[-4:],
+                'recent_mom_values': mom_values[-4:],
+                'mom_increasing': False,
+                'mom_decreasing': False,
+                'is_positive': mom_values[-1] > 0,
+                'latest_value': mom_values[-1]
+            }
+            
+    def get_yield_curve(self, periods=36, frequency='M'):
+        """
+        Get the 10Y-2Y Treasury Yield Spread data from FRED.
+        
+        Args:
+            periods (int, optional): Number of periods to fetch
+            frequency (str, optional): Frequency of data - 'D' for daily, 'M' for monthly
+            
+        Returns:
+            dict: Dictionary with yield curve data and analysis
+        """
+        try:
+            # Fetch yield curve spread data with specified frequency
+            # For monthly data, we need more periods to get the same time span
+            observation_period = periods
+            if frequency == 'D':
+                # For daily data, fetch ~3 years (756 trading days)
+                observation_period = 756
+            
+            yield_curve_data = self.fred_client.get_series('T10Y2Y', periods=observation_period, frequency=frequency)
+            yield_curve_data.columns = ['Date', 'T10Y2Y']
+            
+            # If daily data but we want monthly for display, aggregate to monthly
+            if frequency == 'D' and periods <= 60:  # Only aggregate if we're looking at a reasonable timeframe
+                # Convert Date to datetime
+                yield_curve_data['Date'] = pd.to_datetime(yield_curve_data['Date'])
+                
+                # Create a year-month column for grouping
+                yield_curve_data['YearMonth'] = yield_curve_data['Date'].dt.to_period('M')
+                
+                # Group by year-month and get last day of each month (or avg)
+                monthly_data = yield_curve_data.groupby('YearMonth').agg({
+                    'Date': 'last',  # Last day of month
+                    'T10Y2Y': 'mean'  # Average for the month
+                }).reset_index()
+                
+                # Drop the YearMonth column
+                monthly_data = monthly_data.drop('YearMonth', axis=1)
+                
+                # Limit to the specified number of periods
+                yield_curve_data = monthly_data.tail(periods)
+            
+            # Get the most recent values for analysis
+            recent_values = yield_curve_data['T10Y2Y'].tail(4).values
+            
+            # Check if values have been consistently changing
+            spread_increasing = check_consecutive_increase(recent_values, 3)
+            spread_decreasing = check_consecutive_decrease(recent_values, 3)
+            
+            # Get latest value
+            latest_value = yield_curve_data['T10Y2Y'].iloc[-1]
+            is_inverted = latest_value < 0
+            
+            return {
+                'data': yield_curve_data,
+                'recent_values': recent_values,
+                'spread_increasing': spread_increasing,
+                'spread_decreasing': spread_decreasing,
+                'is_inverted': is_inverted,
+                'latest_value': latest_value
+            }
+        except Exception as e:
+            logger.error(f"Error fetching Yield Curve Spread data: {str(e)}")
+            # Generate sample data as a fallback
+            sample_dates = generate_sample_dates(periods, frequency=frequency)
+            
+            # Create slightly descending sample values hovering around 0
+            base = np.linspace(1.5, -0.5, periods)  # Start positive, end slightly negative
+            noise = np.random.normal(0, 0.2, periods)  # Add some noise
+            spread_values = base + noise
+            
+            sample_df = pd.DataFrame({
+                'Date': sample_dates,
+                'T10Y2Y': spread_values
+            })
+            
+            return {
+                'data': sample_df,
+                'recent_values': spread_values[-4:],
+                'spread_increasing': False,
+                'spread_decreasing': True,
+                'is_inverted': spread_values[-1] < 0,
+                'latest_value': spread_values[-1]
+            }
+    
     def get_all_indicators(self):
         """
         Get all economic indicators and their analysis.
         
         Returns:
-            dict: Dictionary with all indicator data and analysis
+            dict: Dictionary with all indicators
         """
-        # Fetch all indicators
         claims_data = self.get_initial_claims()
         pce_data = self.get_pce()
         core_cpi_data = self.get_core_cpi()
         hours_data = self.get_hours_worked()
         pmi_data = self.calculate_pmi_proxy(periods=36)
         usd_liquidity_data = self.get_usd_liquidity()
+        new_orders_data = self.get_new_orders()
+        yield_curve_data = self.get_yield_curve()
         
         return {
             'claims': claims_data,
@@ -779,5 +932,7 @@ class IndicatorData:
             'core_cpi': core_cpi_data,
             'hours_worked': hours_data,
             'pmi': pmi_data,
-            'usd_liquidity': usd_liquidity_data
+            'usd_liquidity': usd_liquidity_data,
+            'new_orders': new_orders_data,
+            'yield_curve': yield_curve_data
         }

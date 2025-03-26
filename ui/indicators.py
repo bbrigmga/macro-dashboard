@@ -9,7 +9,9 @@ from visualization.indicators import (
     create_pce_chart,
     create_pmi_chart,
     create_pmi_components_table,
-    create_usd_liquidity_chart
+    create_usd_liquidity_chart,
+    create_new_orders_chart,
+    create_yield_curve_chart
 )
 from visualization.warning_signals import (
     generate_hours_worked_warning,
@@ -403,3 +405,105 @@ def display_core_principles_card():
         st.markdown("- Markets are driven by simple forces: Jobs, Spending, Business activity")
         st.markdown("- Like weather forecasting, you can't predict every storm")
         st.markdown("- But you can spot conditions that make storms likely")
+
+
+def display_new_orders_card(new_orders_data):
+    """
+    Display a card with Non-Defense Durable Goods Orders data and chart.
+    
+    Args:
+        new_orders_data (dict): Dictionary with New Orders data
+    """
+    st.subheader("📦 Non-Defense Durable Goods Orders")
+    
+    # Get latest value and determine status
+    latest_value = new_orders_data['latest_value']
+    previous_period = new_orders_data['recent_mom_values'][-2] if len(new_orders_data['recent_mom_values']) > 1 else 0
+    delta = latest_value - previous_period
+    
+    # Determine status based on latest value and trend
+    if latest_value > 0 and new_orders_data.get('mom_increasing', False):
+        status = "Bullish"
+        delta_color = "normal"
+    elif latest_value < 0 and new_orders_data.get('mom_decreasing', False):
+        status = "Bearish"
+        delta_color = "inverse"
+    else:
+        status = "Neutral"
+        delta_color = "off"
+    
+    # Display status
+    if status == "Bearish":
+        st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
+    elif status == "Bullish":
+        st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
+    
+    # Display metric with delta
+    st.metric(
+        label="MoM % Change",
+        value=f"{latest_value:.1f}%",
+        delta=f"{delta:.1f}%",
+        delta_color=delta_color
+    )
+    
+    # Add chart
+    fig = create_new_orders_chart(new_orders_data)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Expandable details section
+    with st.expander("View Details"):
+        st.write("Non-Defense Durable Goods Orders represents new orders placed with domestic manufacturers for delivery of non-defense capital goods. It's a leading indicator of manufacturing activity and business investment.")
+        st.markdown("[FRED Data: NEWORDER - Manufacturers' New Orders: Durable Goods](https://fred.stlouisfed.org/series/NEWORDER)")
+
+
+def display_yield_curve_card(yield_curve_data):
+    """
+    Display a card with 10Y-2Y Treasury Yield Spread data and chart.
+    
+    Args:
+        yield_curve_data (dict): Dictionary with yield curve data
+    """
+    st.subheader("📊 10Y-2Y Treasury Yield Spread")
+    
+    # Get latest value and determine status
+    latest_value = yield_curve_data['latest_value']
+    previous_value = yield_curve_data['recent_values'][-2] if len(yield_curve_data['recent_values']) > 1 else 0
+    delta = latest_value - previous_value
+    
+    # Determine status based on inversion (negative spread is bearish)
+    if latest_value < 0:
+        status = "Bearish"
+        delta_color = "inverse"
+    elif latest_value > 0.5:  # Healthy spread
+        status = "Bullish"
+        delta_color = "normal"
+    else:  # Low but positive spread
+        status = "Neutral"
+        delta_color = "off"
+    
+    # Display status
+    if status == "Bearish":
+        st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
+    elif status == "Bullish":
+        st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
+    
+    # Display metric with delta
+    st.metric(
+        label="Spread (%)",
+        value=f"{latest_value:.2f}%",
+        delta=f"{delta:.2f}%",
+        delta_color=delta_color
+    )
+    
+    # Add chart
+    fig = create_yield_curve_chart(yield_curve_data)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Expandable details section
+    with st.expander("View Details"):
+        st.write("The 10Y-2Y Treasury Yield Spread is the difference between 10-year and 2-year Treasury yields. A negative spread (yield curve inversion) has historically preceded recessions.")
+        st.markdown("[FRED Data: T10Y2Y - 10-Year Treasury Minus 2-Year Treasury](https://fred.stlouisfed.org/series/T10Y2Y)")

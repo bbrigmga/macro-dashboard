@@ -12,7 +12,9 @@ from .indicators import (
     display_pce_card,
     display_pmi_card,
     display_usd_liquidity_card,
-    display_core_principles_card
+    display_core_principles_card,
+    display_new_orders_card,
+    display_yield_curve_card
 )
 
 
@@ -195,8 +197,14 @@ def create_dashboard(indicators):
     with col3:
         display_usd_liquidity_card(indicators['usd_liquidity'])
     
-    # Third row - Core principles
-    display_core_principles_card()
+    # Third row - New Orders and Yield Curve
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        display_new_orders_card(indicators['new_orders'])
+    
+    with col2:
+        display_yield_curve_card(indicators['yield_curve'])
     
     # Display footer
     display_footer()

@@ -441,3 +441,195 @@ def create_pmi_components_table(pmi_data):
         'Status': [create_warning_indicator(pmi_data['component_values'][comp] < 50, 0.5, higher_is_bad=True) 
                 for comp in pmi_data['component_values'].keys()]
     })
+
+
+def create_new_orders_chart(new_orders_data, periods=18):
+    """
+    Create a chart for Non-Defense Durable Goods Orders month-over-month % change.
+    
+    Args:
+        new_orders_data (dict): Dictionary with New Orders data
+        periods (int, optional): Number of periods to display
+        
+    Returns:
+        go.Figure: Plotly figure object
+    """
+    # Get the data and prepare for display
+    orders_plot_data = new_orders_data['data'].tail(periods).copy()
+    orders_plot_data = prepare_date_for_display(orders_plot_data)
+    
+    # Ensure data is sorted properly
+    orders_plot_data = orders_plot_data.sort_values('Date')
+    
+    # Fill any null values
+    orders_plot_data['NEWORDER_MoM'] = orders_plot_data['NEWORDER_MoM'].fillna(0)
+    
+    # Create the chart - using 0 as threshold for growth vs contraction
+    fig = create_line_chart_with_threshold(
+        orders_plot_data,
+        'Date_Str',
+        'NEWORDER_MoM',
+        'Non-Defense Durable Goods Orders',
+        threshold=0,
+        threshold_label='Growth/Contraction',
+        color=THEME['line_colors']['primary'],
+        show_legend=False
+    )
+    
+    # Update layout
+    fig.update_layout(
+        yaxis=dict(
+            title=dict(
+                text="MoM % Change",
+                font=dict(size=10)
+            ),
+            tickfont=dict(size=9)
+        ),
+        xaxis=dict(
+            tickangle=45,
+            tickfont=dict(size=9),
+            type='category'  # Set type to category for proper ordering
+        )
+    )
+    
+    return fig
+
+
+def create_yield_curve_chart(yield_curve_data, periods=36):
+    """
+    Create a chart for the 10Y-2Y Treasury Yield Spread (yield curve).
+    
+    Args:
+        yield_curve_data (dict): Dictionary with yield curve data
+        periods (int, optional): Number of periods to display
+        
+    Returns:
+        go.Figure: Plotly figure object
+    """
+    # Get the data
+    curve_plot_data = yield_curve_data['data'].copy()
+    
+    # Convert dates explicitly to datetime objects
+    curve_plot_data['Date'] = pd.to_datetime(curve_plot_data['Date'])
+    
+    # Sort by date to ensure chronological order
+    curve_plot_data = curve_plot_data.sort_values('Date')
+    
+    # Create display dates based on frequency (daily or monthly)
+    is_daily = len(curve_plot_data) > 50  # Heuristic to determine if data is daily
+    
+    if is_daily:
+        # For daily data, use more detailed formatting
+        curve_plot_data['Date_Str'] = curve_plot_data['Date'].dt.strftime('%Y-%m-%d')
+        
+        # For daily data, select a subset of dates for cleaner x-axis
+        total_points = len(curve_plot_data)
+        
+        # For 3 years of data, show more ticks (one per quarter)
+        display_ticks = min(18, total_points)  # Display at most 18 ticks for 3 years (6 per year)
+        tick_indices = [int(i * (total_points - 1) / (display_ticks - 1)) for i in range(display_ticks)]
+        
+        # For x-axis labels, use month-year format for better readability
+        curve_plot_data['Month_Year'] = curve_plot_data['Date'].dt.strftime('%b %Y')
+    else:
+        # For monthly data, use simpler formatting
+        curve_plot_data['Date_Str'] = curve_plot_data['Date'].dt.strftime('%b %Y')
+    
+    # Fill any null values to avoid rendering issues
+    curve_plot_data['T10Y2Y'] = curve_plot_data['T10Y2Y'].fillna(0)
+    
+    # Create a figure directly using go.Figure
+    import plotly.graph_objects as go
+    fig = go.Figure()
+    
+    # Add the yield curve line
+    fig.add_trace(go.Scatter(
+        x=curve_plot_data['Date_Str'].tolist(),  # Convert to list explicitly
+        y=curve_plot_data['T10Y2Y'].tolist(),    # Convert to list explicitly
+        name='Yield Spread',
+        line=dict(color=THEME['line_colors']['warning'], width=2)
+    ))
+    
+    # Add a horizontal line at zero (inversion threshold)
+    fig.add_shape(
+        type="line",
+        x0=0,
+        y0=0,
+        x1=1,
+        y1=0,
+        xref="paper",
+        yref="y",
+        line=dict(
+            color=THEME['line_colors']['warning'],
+            width=1,
+            dash="dash",
+        )
+    )
+    
+    # Add an annotation for the inversion line
+    fig.add_annotation(
+        x=0.95,
+        y=0,
+        xref="paper",
+        yref="y",
+        text="Inversion Line",
+        showarrow=False,
+        font=dict(
+            size=10,
+            color=THEME['line_colors']['warning']
+        ),
+        bgcolor="rgba(0,0,0,0.5)",
+        bordercolor=THEME['line_colors']['warning'],
+        borderwidth=1,
+        borderpad=4,
+        yshift=10
+    )
+    
+    # Update layout
+    fig.update_layout(
+        title=dict(
+            text='10Y-2Y Treasury Yield Spread (3-Year History)',
+            font=dict(size=14)
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Spread (%)",
+                font=dict(size=10)
+            ),
+            tickfont=dict(size=9),
+            tickformat='.2f'  # Format to 2 decimal places
+        ),
+        margin=dict(l=40, r=40, t=40, b=80),  # Add more margin at bottom for date labels
+        showlegend=False
+    )
+    
+    # Customize x-axis based on data frequency
+    if is_daily:
+        # For daily data, we need to be selective about which ticks to show
+        tick_vals = [curve_plot_data['Date_Str'].iloc[i] for i in tick_indices]
+        tick_text = [curve_plot_data['Month_Year'].iloc[i] for i in tick_indices]
+        
+        fig.update_layout(
+            xaxis=dict(
+                tickangle=45,
+                tickfont=dict(size=9),
+                type='category',
+                tickmode='array',
+                tickvals=tick_vals,
+                ticktext=tick_text
+            )
+        )
+    else:
+        # For monthly data, we can show all ticks
+        fig.update_layout(
+            xaxis=dict(
+                tickangle=45,
+                tickfont=dict(size=9),
+                type='category'
+            )
+        )
+    
+    # Apply dark theme
+    fig = apply_dark_theme(fig)
+    
+    return fig
