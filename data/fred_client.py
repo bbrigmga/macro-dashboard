@@ -11,6 +11,7 @@ import urllib.error
 from datetime import datetime, timedelta
 from functools import wraps
 import concurrent.futures
+import requests
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -70,9 +71,12 @@ class FredClient:
             max_cache_size (int): Maximum number of entries to keep in cache
         """
         if api_key is None:
+            logger.info("Attempting to get FRED_API_KEY from environment")
             api_key = os.getenv('FRED_API_KEY')
             if api_key is None:
                 raise ValueError("FRED_API_KEY environment variable not set")
+            else:
+                logger.info("Successfully retrieved FRED_API_KEY from environment")
         
         self.fred = Fred(api_key=api_key)
         self.cache_enabled = cache_enabled  # Explicitly set to False by default
@@ -247,3 +251,150 @@ class FredClient:
             raise ValueError("Failed to fetch any of the requested series")
         
         return result
+
+    @retry_with_backoff()
+    def get_series_release_id(self, series_id: str) -> Optional[int]:
+        """
+        Get the release ID for a FRED series.
+        
+        Args:
+            series_id (str): FRED series ID
+            
+        Returns:
+            int: Release ID if available, None otherwise
+        """
+        try:
+            logger.info(f"Getting release info for series {series_id}")
+            # Get series release info
+            response = requests.get(f"https://api.stlouisfed.org/fred/series/release?series_id={series_id}&api_key={self.fred.api_key}&file_type=json")
+            response.raise_for_status()
+            release_info = response.json()
+            if release_info and 'releases' in release_info and release_info['releases']:
+                release_id = release_info['releases'][0]['id']
+                logger.info(f"Found release ID {release_id} for series {series_id}")
+                return release_id
+            else:
+                logger.warning(f"No release ID found for series {series_id}")
+            return None
+        except Exception as e:
+            logger.warning(f"Failed to get release ID for series {series_id}: {str(e)}")
+            return None
+
+    @retry_with_backoff()
+    def get_next_release_date_from_release(self, release_id: int) -> Optional[datetime]:
+        """
+        Get the next release date for a specific FRED release.
+        
+        Args:
+            release_id (int): FRED release ID
+            
+        Returns:
+            datetime: Next release date if available, None otherwise
+        """
+        try:
+            logger.info(f"Getting release dates for release ID {release_id}")
+            
+            # First try the release/dates endpoint
+            params = {
+                'release_id': release_id,
+                'realtime_start': (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'),
+                'realtime_end': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d'),
+                'include_release_dates_with_no_data': 'true',
+                'api_key': self.fred.api_key,
+                'file_type': 'json'
+            }
+            response = requests.get("https://api.stlouisfed.org/fred/release/dates", params=params)
+            response.raise_for_status()
+            release_dates = response.json()
+            
+            if release_dates and 'release_dates' in release_dates:
+                release_dates = release_dates['release_dates']
+                current_time = datetime.now()
+                future_releases = [date['date'] for date in release_dates if pd.to_datetime(date['date']) > current_time]
+                if future_releases:
+                    next_date = pd.to_datetime(min(future_releases))
+                    logger.info(f"Found next release date: {next_date}")
+                    return next_date
+                
+            logger.warning(f"No future release dates found for release ID {release_id}")
+            return None
+            
+        except Exception as e:
+            logger.warning(f"Failed to get release dates for release {release_id}: {str(e)}")
+            return None
+
+    @retry_with_backoff()
+    def get_series_release_date(self, series_id: str) -> Optional[datetime]:
+        """
+        Get the next release date for a FRED series.
+        
+        Args:
+            series_id (str): FRED series ID
+            
+        Returns:
+            datetime: Next release date if available, None otherwise
+        """
+        try:
+            logger.info(f"Getting release date for series {series_id}")
+            # First try to get the release ID for the series
+            release_id = self.get_series_release_id(series_id)
+            if release_id:
+                logger.info(f"Using release ID {release_id} for series {series_id}")
+                # Get next release date from the release schedule
+                next_date = self.get_next_release_date_from_release(release_id)
+                if next_date:
+                    return next_date
+            
+            logger.info(f"Falling back to vintage dates for series {series_id}")
+            # If that fails, try the vintage dates approach as fallback
+            response = requests.get(f"https://api.stlouisfed.org/fred/series/vintagedates?series_id={series_id}&api_key={self.fred.api_key}&file_type=json")
+            response.raise_for_status()
+            vintage_dates = response.json()
+            
+            if vintage_dates and 'vintage_dates' in vintage_dates:
+                vintage_dates = vintage_dates['vintage_dates']
+                current_time = datetime.now()
+                future_releases = [date for date in vintage_dates if pd.to_datetime(date) > current_time]
+                if future_releases:
+                    next_date = pd.to_datetime(min(future_releases))
+                    logger.info(f"Found next release date from vintage dates: {next_date}")
+                    return next_date
+                else:
+                    logger.warning(f"No future vintage dates found for series {series_id}")
+            else:
+                logger.warning(f"No vintage dates found for series {series_id}")
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"Failed to get release date for series {series_id}: {str(e)}")
+            return None
+
+    @retry_with_backoff()
+    def get_multiple_release_dates(self, series_ids: List[str], max_workers: int = 5) -> dict:
+        """
+        Get release dates for multiple series concurrently.
+        
+        Args:
+            series_ids (list): List of FRED series IDs
+            max_workers (int): Maximum number of concurrent API calls
+            
+        Returns:
+            dict: Dictionary mapping series IDs to their next release dates
+        """
+        release_dates = {}
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_series = {executor.submit(self.get_series_release_date, series_id): series_id 
+                              for series_id in series_ids}
+            
+            for future in concurrent.futures.as_completed(future_to_series):
+                series_id = future_to_series[future]
+                try:
+                    release_date = future.result()
+                    if release_date:
+                        release_dates[series_id] = release_date
+                except Exception as e:
+                    logger.error(f"Error getting release date for {series_id}: {str(e)}")
+        
+        return release_dates

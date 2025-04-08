@@ -22,14 +22,17 @@ from visualization.warning_signals import (
     generate_usd_liquidity_warning,
     create_warning_indicator
 )
+from data.release_schedule import get_next_release_date, format_release_date
+from data.fred_client import FredClient
 
 
-def display_hours_worked_card(hours_data):
+def display_hours_worked_card(hours_data, fred_client=None):
     """
     Display the Average Weekly Hours as a card.
     
     Args:
         hours_data (dict): Dictionary with hours worked data
+        fred_client (FredClient, optional): FRED API client for getting release dates
     """
     # Calculate current value and status
     current_hours = hours_data['recent_hours'][-1]
@@ -49,6 +52,10 @@ def display_hours_worked_card(hours_data):
     with st.container():
         # Title at the top
         st.subheader("🕒 Average Weekly Hours")
+        
+        # Add release date info
+        next_release = get_next_release_date('hours', fred_client)
+        st.caption(format_release_date(next_release))
         
         # Status below the title
         if status == "Bearish":
@@ -72,12 +79,13 @@ def display_hours_worked_card(hours_data):
             st.markdown("[FRED Data: AWHAETP - Average Weekly Hours](https://fred.stlouisfed.org/series/AWHAETP)")
 
 
-def display_core_cpi_card(core_cpi_data):
+def display_core_cpi_card(core_cpi_data, fred_client=None):
     """
     Display the Core CPI as a card.
     
     Args:
         core_cpi_data (dict): Dictionary with Core CPI data
+        fred_client (FredClient, optional): FRED API client for getting release dates
     """
     # Calculate current value and status
     current_cpi_mom = core_cpi_data['current_cpi_mom']
@@ -101,6 +109,10 @@ def display_core_cpi_card(core_cpi_data):
         # Title at the top
         st.subheader("📊 Core CPI")
         
+        # Add release date info
+        next_release = get_next_release_date('core_cpi', fred_client)
+        st.caption(format_release_date(next_release))
+        
         # Status below the title
         if status == "Bearish":
             st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
@@ -123,12 +135,13 @@ def display_core_cpi_card(core_cpi_data):
             st.markdown("[FRED Data: CPILFESL - Core Consumer Price Index](https://fred.stlouisfed.org/series/CPILFESL)")
 
 
-def display_initial_claims_card(claims_data):
+def display_initial_claims_card(claims_data, fred_client=None):
     """
     Display the Initial Jobless Claims as a card.
     
     Args:
         claims_data (dict): Dictionary with claims data
+        fred_client (FredClient, optional): FRED API client for getting release dates
     """
     # Calculate current value and status
     current_claims = claims_data['data']['Claims'].iloc[-1]
@@ -148,6 +161,10 @@ def display_initial_claims_card(claims_data):
     with st.container():
         # Title at the top
         st.subheader("📈 Initial Jobless Claims")
+        
+        # Add release date info
+        next_release = get_next_release_date('claims', fred_client)
+        st.caption(format_release_date(next_release))
         
         # Status below the title
         if status == "Bearish":
@@ -171,12 +188,13 @@ def display_initial_claims_card(claims_data):
             st.markdown("[FRED Data: ICSA - Initial Claims for Unemployment Insurance](https://fred.stlouisfed.org/series/ICSA)")
 
 
-def display_pce_card(pce_data):
+def display_pce_card(pce_data, fred_client=None):
     """
     Display the PCE as a card.
     
     Args:
         pce_data (dict): Dictionary with PCE data
+        fred_client (FredClient, optional): FRED API client for getting release dates
     """
     # Calculate current value and status
     current_pce_mom = pce_data['current_pce_mom']
@@ -196,6 +214,10 @@ def display_pce_card(pce_data):
     with st.container():
         # Title at the top
         st.subheader("💵 PCE")
+        
+        # Add release date info
+        next_release = get_next_release_date('pce', fred_client)
+        st.caption(format_release_date(next_release))
         
         # Status below the title
         if status == "Bearish":
@@ -219,12 +241,13 @@ def display_pce_card(pce_data):
             st.markdown("[FRED Data: PCE - Personal Consumption Expenditures](https://fred.stlouisfed.org/series/PCE)")
 
 
-def display_pmi_card(pmi_data):
+def display_pmi_card(pmi_data, fred_client=None):
     """
     Display the Manufacturing PMI Proxy as a card.
     
     Args:
         pmi_data (dict): Dictionary with PMI data
+        fred_client (FredClient, optional): FRED API client for getting release dates
     """
     # Calculate current value and status
     latest_pmi = pmi_data['latest_pmi']
@@ -239,6 +262,10 @@ def display_pmi_card(pmi_data):
     with st.container():
         # Title at the top
         st.subheader("🏭 Manufacturing PMI Proxy")
+        
+        # Add release date info
+        next_release = get_next_release_date('pmi', fred_client)
+        st.caption(format_release_date(next_release))
         
         # Status below the title
         if status == "Bearish":
@@ -275,12 +302,13 @@ def display_pmi_card(pmi_data):
             """)
 
 
-def display_usd_liquidity_card(usd_liquidity_data):
+def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
     """
     Display the USD Liquidity as a card.
     
     Args:
         usd_liquidity_data (dict): Dictionary with USD Liquidity data
+        fred_client (FredClient, optional): FRED API client for getting release dates
     """
     # Calculate current value and status
     current_liquidity = usd_liquidity_data['current_liquidity']
@@ -302,6 +330,10 @@ def display_usd_liquidity_card(usd_liquidity_data):
     with st.container():
         # Title at the top
         st.subheader("💵 USD Liquidity")
+        
+        # Add release date info
+        next_release = get_next_release_date('liquidity', fred_client)
+        st.caption(format_release_date(next_release))
         
         # Status below the title
         if status == "Bearish":
@@ -344,7 +376,7 @@ def display_usd_liquidity_card(usd_liquidity_data):
                 
                 # Format the values for display
                 if walcl >= 1000000:
-                    walcl_formatted = f"{walcl/1000000:.2f}T"  # Trillions
+                    walcl_formatted = f"{walcl/1000000:.2f}T"  # Convert millions to trillions
                 elif walcl >= 1000:
                     walcl_formatted = f"{walcl/1000:.2f}B"  # Billions
                 else:
@@ -355,7 +387,7 @@ def display_usd_liquidity_card(usd_liquidity_data):
                 wtregen_formatted = f"{wtregen:.2f}B"  # Billions
                 
                 # Calculate the result (should match current_liquidity)
-                # Convert RRPONTTLD and WTREGEN from billions to millions for calculation
+                # WALCL is in millions, RRPONTTLD and WTREGEN are in billions
                 result = walcl - (rrponttld * 1000) - (wtregen * 1000)
                 if result >= 1000000:
                     result_formatted = f"{result/1000000:.2f}T"  # Trillions
@@ -363,6 +395,9 @@ def display_usd_liquidity_card(usd_liquidity_data):
                     result_formatted = f"{result/1000:.2f}B"  # Billions
                 else:
                     result_formatted = f"{result:,.0f}M"  # Millions
+                
+                # Format WALCL (which is in millions) to trillions for display
+                walcl_formatted = f"{walcl/1000000:.2f}T"  # Convert millions to trillions
                 
                 # Display the calculation with actual values
                 st.markdown("""
@@ -407,12 +442,13 @@ def display_core_principles_card():
         st.markdown("- But you can spot conditions that make storms likely")
 
 
-def display_new_orders_card(new_orders_data):
+def display_new_orders_card(new_orders_data, fred_client=None):
     """
     Display a card with Non-Defense Durable Goods Orders data and chart.
     
     Args:
         new_orders_data (dict): Dictionary with New Orders data
+        fred_client (FredClient, optional): FRED API client for getting release dates
     """
     st.subheader("📦 Non-Defense Durable Goods Orders")
     
@@ -448,6 +484,10 @@ def display_new_orders_card(new_orders_data):
         delta_color=delta_color
     )
     
+    # Add release date info
+    next_release = get_next_release_date('new_orders', fred_client)
+    st.caption(format_release_date(next_release))
+    
     # Add chart
     fig = create_new_orders_chart(new_orders_data)
     st.plotly_chart(fig, use_container_width=True)
@@ -458,16 +498,18 @@ def display_new_orders_card(new_orders_data):
         st.markdown("[FRED Data: NEWORDER - Manufacturers' New Orders: Durable Goods](https://fred.stlouisfed.org/series/NEWORDER)")
 
 
-def display_yield_curve_card(yield_curve_data):
+def display_yield_curve_card(yield_curve_data, fred_client=None):
     """
     Display a card with 10Y-2Y Treasury Yield Spread data and chart.
     
     Args:
         yield_curve_data (dict): Dictionary with yield curve data
+        fred_client (FredClient, optional): FRED API client for getting release dates
     """
-    st.subheader("📊 10Y-2Y Treasury Yield Spread")
+    # Title at the top
+    st.subheader("📈 2-10 Year Spread")
     
-    # Get latest value and determine status
+    # Calculate current value and status
     latest_value = yield_curve_data['latest_value']
     previous_value = yield_curve_data['recent_values'][-2] if len(yield_curve_data['recent_values']) > 1 else 0
     delta = latest_value - previous_value
@@ -499,9 +541,13 @@ def display_yield_curve_card(yield_curve_data):
         delta_color=delta_color
     )
     
+    # Add release date info
+    next_release = get_next_release_date('yield_curve', fred_client)
+    st.caption(format_release_date(next_release))
+    
     # Add chart
     fig = create_yield_curve_chart(yield_curve_data)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, height=300)  # Added explicit height
     
     # Expandable details section
     with st.expander("View Details"):

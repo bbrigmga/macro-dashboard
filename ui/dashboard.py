@@ -16,6 +16,7 @@ from .indicators import (
     display_new_orders_card,
     display_yield_curve_card
 )
+from data.fred_client import FredClient
 
 
 def setup_page_config():
@@ -63,6 +64,9 @@ def create_dashboard(indicators):
     Args:
         indicators (dict): Dictionary with all indicator data
     """
+    # Initialize FRED client for release dates
+    fred_client = FredClient()
+    
     # Display header
     display_header()
     
@@ -177,34 +181,34 @@ def create_dashboard(indicators):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        display_hours_worked_card(indicators['hours_worked'])
+        display_hours_worked_card(indicators['hours_worked'], fred_client)
     
     with col2:
-        display_core_cpi_card(indicators['core_cpi'])
+        display_core_cpi_card(indicators['core_cpi'], fred_client)
     
     with col3:
-        display_initial_claims_card(indicators['claims'])
+        display_initial_claims_card(indicators['claims'], fred_client)
     
     # Second row - 3 indicators
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        display_pce_card(indicators['pce'])
+        display_pce_card(indicators['pce'], fred_client)
     
     with col2:
-        display_pmi_card(indicators['pmi'])
+        display_pmi_card(indicators['pmi'], fred_client)
     
     with col3:
-        display_usd_liquidity_card(indicators['usd_liquidity'])
+        display_usd_liquidity_card(indicators['usd_liquidity'], fred_client)
     
     # Third row - New Orders and Yield Curve
     col1, col2 = st.columns(2)
     
     with col1:
-        display_new_orders_card(indicators['new_orders'])
+        display_new_orders_card(indicators['new_orders'], fred_client)
     
     with col2:
-        display_yield_curve_card(indicators['yield_curve'])
+        display_yield_curve_card(indicators['yield_curve'], fred_client)
     
     # Display footer
     display_footer()
