@@ -22,47 +22,6 @@ setup_page_config()
 # Load environment variables
 load_dotenv()
 
-# Define caching functions
-@st.cache_data(ttl=3600)  # Cache for 1 hour
-def fetch_claims_data(_indicator_data):
-    logger.info("Fetching claims data (cached)")
-    return _indicator_data.get_initial_claims()
-    
-@st.cache_data(ttl=3600*24)  # Cache for 24 hours
-def fetch_pce_data(_indicator_data):
-    logger.info("Fetching PCE data (cached)")
-    return _indicator_data.get_pce()
-    
-@st.cache_data(ttl=3600*24)  # Cache for 24 hours
-def fetch_core_cpi_data(_indicator_data):
-    logger.info("Fetching Core CPI data (cached)")
-    return _indicator_data.get_core_cpi()
-    
-@st.cache_data(ttl=3600*24)  # Cache for 24 hours
-def fetch_hours_data(_indicator_data):
-    logger.info("Fetching hours worked data (cached)")
-    return _indicator_data.get_hours_worked()
-    
-@st.cache_data(ttl=3600*24)  # Cache for 24 hours
-def fetch_pmi_data(_indicator_data):
-    logger.info("Fetching PMI data (cached)")
-    return _indicator_data.calculate_pmi_proxy(periods=36)
-    
-@st.cache_data(ttl=3600*24)  # Cache for 24 hours
-def fetch_usd_liquidity_data(_indicator_data):
-    logger.info("Fetching USD liquidity data (cached)")
-    return _indicator_data.get_usd_liquidity()
-
-@st.cache_data(ttl=3600*24)  # Cache for 24 hours
-def fetch_new_orders_data(_indicator_data):
-    logger.info("Fetching manufacturers' new orders data (cached)")
-    return _indicator_data.get_new_orders()
-
-@st.cache_data(ttl=3600*24)  # Cache for 24 hours
-def fetch_yield_curve_data(_indicator_data):
-    logger.info("Fetching 10Y-2Y Treasury yield spread data (cached)")
-    return _indicator_data.get_yield_curve(periods=36, frequency='D')
-
 # Check if FRED API key is available
 if not os.getenv('FRED_API_KEY'):
     st.error("""
@@ -91,14 +50,14 @@ else:
         
         # Fetch all indicators with caching
         logger.info("Fetching all indicators with caching")
-        claims_data = fetch_claims_data(indicator_data)
-        pce_data = fetch_pce_data(indicator_data)
-        core_cpi_data = fetch_core_cpi_data(indicator_data)
-        hours_data = fetch_hours_data(indicator_data)
-        pmi_data = fetch_pmi_data(indicator_data)
-        usd_liquidity_data = fetch_usd_liquidity_data(indicator_data)
-        new_orders_data = fetch_new_orders_data(indicator_data)
-        yield_curve_data = fetch_yield_curve_data(indicator_data)
+        claims_data = indicator_data.get_initial_claims()
+        pce_data = indicator_data.get_pce()
+        core_cpi_data = indicator_data.get_core_cpi()
+        hours_data = indicator_data.get_hours_worked()
+        pmi_data = indicator_data.calculate_pmi_proxy(periods=36)
+        usd_liquidity_data = indicator_data.get_usd_liquidity()
+        new_orders_data = indicator_data.get_new_orders()
+        yield_curve_data = indicator_data.get_yield_curve(periods=36, frequency='D')
         
         # Combine all indicators
         indicators = {

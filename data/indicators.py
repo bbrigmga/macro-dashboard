@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import logging
+import streamlit as st
 from data.fred_client import FredClient
 from data.processing import calculate_pct_change, check_consecutive_increase, check_consecutive_decrease, count_consecutive_changes
 
@@ -199,7 +200,8 @@ class IndicatorData:
         """
         self.fred_client = fred_client if fred_client else FredClient()
     
-    def get_initial_claims(self, periods=52):
+    @st.cache_data(ttl=3600) # Cache for 1 hour
+    def get_initial_claims(_self, periods=52):
         """
         Get initial jobless claims data.
         
@@ -211,7 +213,7 @@ class IndicatorData:
         """
         try:
             # Fetch claims data with weekly frequency
-            claims_data = self.fred_client.get_series('ICSA', periods=periods, frequency='W')
+            claims_data = _self.fred_client.get_series('ICSA', periods=periods, frequency='W')
             claims_data.columns = ['Date', 'Claims']
             
             # Get recent claims for analysis
@@ -230,7 +232,8 @@ class IndicatorData:
             logger.error(f"Error fetching initial claims data: {str(e)}")
             return generate_sample_data('claims', periods, frequency='W')
     
-    def get_pce(self, periods=24):
+    @st.cache_data(ttl=3600*24) # Cache for 24 hours
+    def get_pce(_self, periods=24):
         """
         Get Personal Consumption Expenditures (PCE) data.
         
@@ -242,7 +245,7 @@ class IndicatorData:
         """
         try:
             # Fetch PCE data with monthly frequency
-            pce_data = self.fred_client.get_series('PCE', periods=periods, frequency='M')
+            pce_data = _self.fred_client.get_series('PCE', periods=periods, frequency='M')
             pce_data.columns = ['Date', 'PCE']
             
             # Calculate year-over-year and month-over-month percentage changes
@@ -272,7 +275,8 @@ class IndicatorData:
             logger.error(f"Error fetching PCE data: {str(e)}")
             return generate_sample_data('pce', periods, frequency='M')
     
-    def get_core_cpi(self, periods=24):
+    @st.cache_data(ttl=3600*24) # Cache for 24 hours
+    def get_core_cpi(_self, periods=24):
         """
         Get Core CPI (Consumer Price Index Less Food and Energy) data.
         
@@ -284,7 +288,7 @@ class IndicatorData:
         """
         try:
             # Fetch Core CPI data with monthly frequency
-            core_cpi_data = self.fred_client.get_series('CPILFESL', periods=periods, frequency='M')
+            core_cpi_data = _self.fred_client.get_series('CPILFESL', periods=periods, frequency='M')
             core_cpi_data.columns = ['Date', 'CPI']
             
             # Calculate year-over-year and month-over-month percentage changes
@@ -308,7 +312,8 @@ class IndicatorData:
             logger.error(f"Error fetching Core CPI data: {str(e)}")
             return generate_sample_data('cpi', periods, frequency='M')
     
-    def get_hours_worked(self, periods=24):
+    @st.cache_data(ttl=3600*24) # Cache for 24 hours
+    def get_hours_worked(_self, periods=24):
         """
         Get Average Weekly Hours data.
         
@@ -320,7 +325,7 @@ class IndicatorData:
         """
         try:
             # Fetch Hours Worked data with monthly frequency
-            hours_data = self.fred_client.get_series('AWHAETP', periods=periods, frequency='M')
+            hours_data = _self.fred_client.get_series('AWHAETP', periods=periods, frequency='M')
             hours_data.columns = ['Date', 'Hours']
             
             # Get recent hours for analysis
@@ -340,7 +345,8 @@ class IndicatorData:
             logger.error(f"Error fetching hours worked data: {str(e)}")
             return generate_sample_data('hours', periods, frequency='M')
     
-    def calculate_pmi_proxy(self, periods=36, start_date=None):
+    @st.cache_data(ttl=3600*24) # Cache for 24 hours
+    def calculate_pmi_proxy(_self, periods=36, start_date=None):
         """
         Calculate a proxy for the ISM Manufacturing PMI using FRED data.
         
@@ -385,7 +391,7 @@ class IndicatorData:
             for component, series_id in series_ids.items():
                 try:
                     # Check if series exists and has recent data
-                    series_info = self.fred_client.fred.get_series_info(series_id)
+                    series_info = _self.fred_client.fred.get_series_info(series_id)
                     logger.info(f"\nSeries {series_id} ({component}) info:")
                     for key, value in series_info.items():
                         logger.info(f"  {key}: {value}")
@@ -394,7 +400,7 @@ class IndicatorData:
             
             # Get all series in one batch request
             logger.info("\nFetching all series data...")
-            all_series = self.fred_client.get_multiple_series(
+            all_series = _self.fred_client.get_multiple_series(
                 list(series_ids.values()),
                 start_date=start_date,
                 periods=periods if start_date is None else None,
@@ -569,7 +575,8 @@ class IndicatorData:
             'pmi_below_50': pmi_below_50
         }
     
-    def get_usd_liquidity(self, periods=36):
+    @st.cache_data(ttl=3600*24) # Cache for 24 hours
+    def get_usd_liquidity(_self, periods=36):
         """
         Get USD Liquidity data calculated from FRED series.
         
@@ -596,7 +603,7 @@ class IndicatorData:
                 try:
                     # Use 'd' (daily) frequency to get the most recent data available
                     # and then we'll convert to monthly in the processing step
-                    series_data = self.fred_client.get_series(series_id, periods=periods*30, frequency='d')
+                    series_data = _self.fred_client.get_series(series_id, periods=periods*30, frequency='d')
                     
                     # Log the raw data received from FRED API
                     logger.info(f"Raw data for {series_id}:")
@@ -785,7 +792,8 @@ class IndicatorData:
             logger.error(f"Error fetching USD Liquidity data: {str(e)}")
             return generate_sample_data('liquidity', periods, frequency='M')
     
-    def get_new_orders(self, periods=24):
+    @st.cache_data(ttl=3600*24) # Cache for 24 hours
+    def get_new_orders(_self, periods=24):
         """
         Get Non-Defense Durable Goods Orders data from FRED.
         
@@ -797,7 +805,7 @@ class IndicatorData:
         """
         try:
             # Fetch New Orders data with monthly frequency
-            new_orders_data = self.fred_client.get_series('NEWORDER', periods=periods, frequency='M')
+            new_orders_data = _self.fred_client.get_series('NEWORDER', periods=periods, frequency='M')
             new_orders_data.columns = ['Date', 'NEWORDER']
             
             # Calculate month-over-month percentage change
@@ -852,7 +860,8 @@ class IndicatorData:
                 'latest_value': mom_values[-1]
             }
             
-    def get_yield_curve(self, periods=36, frequency='M'):
+    @st.cache_data(ttl=3600*24) # Cache for 24 hours
+    def get_yield_curve(_self, periods=36, frequency='M'):
         """
         Get the 10Y-2Y Treasury Yield Spread data from FRED.
         
@@ -871,7 +880,7 @@ class IndicatorData:
                 # For daily data, fetch ~3 years (756 trading days)
                 observation_period = 756
             
-            yield_curve_data = self.fred_client.get_series('T10Y2Y', periods=observation_period, frequency=frequency)
+            yield_curve_data = _self.fred_client.get_series('T10Y2Y', periods=observation_period, frequency=frequency)
             yield_curve_data.columns = ['Date', 'T10Y2Y']
             
             # If daily data but we want monthly for display, aggregate to monthly
