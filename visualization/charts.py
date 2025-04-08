@@ -57,17 +57,20 @@ def apply_dark_theme(fig):
     return fig
 
 
-def create_line_chart(df, x_column, y_column, title, color=None, show_legend=False):
+def create_line_chart(df, x_column, y_column, title, color=None, show_legend=False, 
+                        threshold=None, threshold_label=None):
     """
-    Create a line chart using Plotly with the dark finance theme.
+    Create a line chart using Plotly with the dark finance theme, optionally adding a threshold line.
     
     Args:
         df (pd.DataFrame): DataFrame with data
         x_column (str): Column name for x-axis
         y_column (str): Column name for y-axis
         title (str): Chart title
-        color (str, optional): Line color
-        show_legend (bool, optional): Whether to show the legend
+        color (str, optional): Line color. Defaults to primary theme color.
+        show_legend (bool, optional): Whether to show the legend. Defaults to False.
+        threshold (float, optional): Value for horizontal threshold line. Defaults to None.
+        threshold_label (str, optional): Label for threshold line. Defaults to None.
         
     Returns:
         go.Figure: Plotly figure object
@@ -84,50 +87,7 @@ def create_line_chart(df, x_column, y_column, title, color=None, show_legend=Fal
         line=dict(color=color, width=2),
         marker=dict(color=color, size=6)  # Add marker styling
     ))
-    
-    fig.update_layout(
-        title=dict(
-            text=title,
-            font=dict(size=14)
-        ),
-        showlegend=show_legend,
-        xaxis=dict(type='category')  # Set type to category for proper ordering
-    )
-    
-    return apply_dark_theme(fig)
 
-
-def create_line_chart_with_threshold(df, x_column, y_column, title, threshold=None, 
-                                    threshold_label=None, color=None, show_legend=True):
-    """
-    Create a line chart with a horizontal threshold line using the dark finance theme.
-    
-    Args:
-        df (pd.DataFrame): DataFrame with data
-        x_column (str): Column name for x-axis
-        y_column (str): Column name for y-axis
-        title (str): Chart title
-        threshold (float, optional): Value for horizontal threshold line
-        threshold_label (str, optional): Label for threshold line
-        color (str, optional): Line color
-        show_legend (bool, optional): Whether to show the legend
-        
-    Returns:
-        go.Figure: Plotly figure object
-    """
-    if color is None:
-        color = THEME['line_colors']['primary']
-    
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df[x_column].tolist(),  # Convert to list explicitly
-        y=df[y_column].tolist(),  # Convert to list explicitly
-        name=y_column,
-        mode='lines+markers',  # Add markers to the line
-        line=dict(color=color, width=2),
-        marker=dict(color=color, size=6)  # Add marker styling
-    ))
-    
     # Add threshold line if specified
     if threshold is not None:
         threshold_color = THEME['line_colors']['warning']

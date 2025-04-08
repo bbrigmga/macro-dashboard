@@ -172,7 +172,7 @@ def create_dashboard(indicators):
             return f'color: {color}'
         
         # Apply styling to all columns
-        styled_positioning_df = positioning_df.style.applymap(color_positioning)
+        styled_positioning_df = positioning_df.style.map(color_positioning)
         
         # Match height with the indicator status table
         st.dataframe(styled_positioning_df, use_container_width=True, height=150, hide_index=True)

@@ -35,159 +35,6 @@ def generate_sample_dates(periods, frequency='M'):
         return [end_date - datetime.timedelta(days=30*i) for i in range(periods)][::-1]
 
 
-def generate_sample_data(indicator_type, periods, frequency='M'):
-    """
-    Generate sample data for when API calls fail.
-    
-    Args:
-        indicator_type (str): Type of indicator ('claims', 'pce', 'cpi', 'hours', 'liquidity')
-        periods (int): Number of periods to generate
-        frequency (str, optional): Frequency of data ('D' for daily, 'W' for weekly, 'M' for monthly)
-        
-    Returns:
-        dict: Dictionary with sample data and analysis
-    """
-    dates = generate_sample_dates(periods, frequency)
-    
-    if indicator_type == 'claims':
-        # Create sample claims data (random values around 200-250k)
-        values = np.random.randint(200000, 250000, size=periods)
-        df = pd.DataFrame({
-            'Date': dates,
-            'Claims': values
-        })
-        
-        return {
-            'data': df,
-            'recent_claims': df['Claims'].tail(4).values,
-            'claims_increasing': False,
-            'claims_decreasing': False,
-            'current_value': df['Claims'].iloc[-1]
-        }
-        
-    elif indicator_type == 'pce':
-        # Create sample PCE data
-        base_value = 100.0
-        pce_values = []
-        for i in range(periods):
-            base_value *= (1 + np.random.uniform(0.001, 0.003))
-            pce_values.append(base_value)
-            
-        df = pd.DataFrame({
-            'Date': dates,
-            'PCE': pce_values,
-            'PCE_YoY': 2.5 + np.random.uniform(-0.5, 0.5, size=periods),  # Around 2-3%
-            'PCE_MoM': 0.2 + np.random.uniform(-0.1, 0.1, size=periods)   # Around 0.1-0.3%
-        })
-        
-        return {
-            'data': df,
-            'recent_pce_mom': df['PCE_MoM'].tail(4).values,
-            'pce_increasing': False,
-            'pce_decreasing': False,
-            'current_pce': df['PCE_YoY'].iloc[-1],
-            'current_pce_mom': df['PCE_MoM'].iloc[-1]
-        }
-        
-    elif indicator_type == 'cpi':
-        # Create sample CPI data
-        base_value = 300.0
-        cpi_values = []
-        for i in range(periods):
-            base_value *= (1 + np.random.uniform(0.002, 0.004))
-            cpi_values.append(base_value)
-            
-        df = pd.DataFrame({
-            'Date': dates,
-            'CPI': cpi_values,
-            'CPI_YoY': 3.5 + np.random.uniform(-0.5, 0.5, size=periods),  # Around 3-4%
-            'CPI_MoM': 0.3 + np.random.uniform(-0.1, 0.1, size=periods)   # Around 0.2-0.4%
-        })
-        
-        return {
-            'data': df,
-            'recent_cpi_mom': df['CPI_MoM'].tail(4).values,
-            'cpi_accelerating': False,
-            'current_cpi': df['CPI_YoY'].iloc[-1],
-            'current_cpi_mom': df['CPI_MoM'].iloc[-1]
-        }
-        
-    elif indicator_type == 'hours':
-        # Create sample hours data (random values around 34-35 hours)
-        hours = 34.5 + np.random.uniform(-0.5, 0.5, size=periods)
-        df = pd.DataFrame({
-            'Date': dates,
-            'Hours': hours
-        })
-        
-        return {
-            'data': df,
-            'recent_hours': df['Hours'].tail(4).values,
-            'consecutive_declines': 1,  # For demonstration
-            'consecutive_increases': 2   # For demonstration
-        }
-        
-    elif indicator_type == 'liquidity':
-        # Create sample liquidity data
-        base_value = 5000000  # 5 trillion in millions
-        liquidity_values = []
-        for i in range(periods):
-            base_value += np.random.uniform(-100000, 100000)
-            liquidity_values.append(base_value)
-            
-        df = pd.DataFrame({
-            'Date': dates,
-            'USD_Liquidity': liquidity_values,
-            'USD_Liquidity_MoM': 0.5 + np.random.uniform(-1.0, 1.0, size=periods)
-        })
-        
-        # Create sample component values for the latest data point
-        walcl_value = 8500000  # 8.5 trillion in millions
-        rrponttld_value = 2000  # 2 trillion in billions
-        wtregen_value = 700  # 700 billion
-        
-        return {
-            'data': df,
-            'recent_liquidity': df['USD_Liquidity'].tail(4).values,
-            'recent_liquidity_mom': df['USD_Liquidity_MoM'].tail(4).values,
-            'liquidity_increasing': False,
-            'liquidity_decreasing': False,
-            'current_liquidity': df['USD_Liquidity'].iloc[-1],
-            'current_liquidity_mom': df['USD_Liquidity_MoM'].iloc[-1],
-            'details': {
-                'WALCL': walcl_value,
-                'RRPONTTLD': rrponttld_value,
-                'WTREGEN': wtregen_value
-            }
-        }
-    
-    elif indicator_type == 'pmi':
-        # Return default PMI values
-        return {
-            'latest_pmi': 50.0,  # Neutral value
-            'pmi_series': pd.Series([50.0]),  # Single neutral value
-            'component_values': {
-                'new_orders': 50.0,
-                'production': 50.0,
-                'employment': 50.0,
-                'supplier_deliveries': 50.0,
-                'inventories': 50.0
-            },
-            'component_weights': {
-                'new_orders': 0.30,
-                'production': 0.25,
-                'employment': 0.20,
-                'supplier_deliveries': 0.15,
-                'inventories': 0.10
-            },
-            'pmi_below_50': False
-        }
-    
-    else:
-        logger.error(f"Unknown indicator type: {indicator_type}")
-        return None
-
-
 class IndicatorData:
     """Class for fetching and processing economic indicators."""
     
@@ -229,8 +76,8 @@ class IndicatorData:
                 'current_value': claims_data['Claims'].iloc[-1]
             }
         except Exception as e:
-            logger.error(f"Error fetching initial claims data: {str(e)}")
-            return generate_sample_data('claims', periods, frequency='W')
+            logger.error(f"Failed to fetch or process claims data: {e}")
+            raise
     
     @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_pce(_self, periods=24):
@@ -249,8 +96,8 @@ class IndicatorData:
             pce_data.columns = ['Date', 'PCE']
             
             # Calculate year-over-year and month-over-month percentage changes
-            pce_data['PCE_YoY'] = calculate_pct_change(pce_data, 'PCE', periods=12)
-            pce_data['PCE_MoM'] = calculate_pct_change(pce_data, 'PCE', periods=1)
+            pce_data['PCE_YoY'] = calculate_pct_change(pce_data, 'PCE', periods=12, fill_method=None)
+            pce_data['PCE_MoM'] = calculate_pct_change(pce_data, 'PCE', periods=1, fill_method=None)
             
             # Get recent MoM values for trend analysis
             recent_pce_mom = pce_data['PCE_MoM'].tail(4).values
@@ -272,8 +119,8 @@ class IndicatorData:
                 'current_pce_mom': current_pce_mom
             }
         except Exception as e:
-            logger.error(f"Error fetching PCE data: {str(e)}")
-            return generate_sample_data('pce', periods, frequency='M')
+            logger.error(f"Failed to fetch or process PCE data: {e}")
+            raise
     
     @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_core_cpi(_self, periods=24):
@@ -292,8 +139,8 @@ class IndicatorData:
             core_cpi_data.columns = ['Date', 'CPI']
             
             # Calculate year-over-year and month-over-month percentage changes
-            core_cpi_data['CPI_YoY'] = calculate_pct_change(core_cpi_data, 'CPI', periods=12)
-            core_cpi_data['CPI_MoM'] = calculate_pct_change(core_cpi_data, 'CPI', periods=1)
+            core_cpi_data['CPI_YoY'] = calculate_pct_change(core_cpi_data, 'CPI', periods=12, fill_method=None)
+            core_cpi_data['CPI_MoM'] = calculate_pct_change(core_cpi_data, 'CPI', periods=1, fill_method=None)
             
             # Get the last 4 months of MoM changes
             recent_cpi_mom = core_cpi_data['CPI_MoM'].tail(4).values
@@ -309,8 +156,8 @@ class IndicatorData:
                 'current_cpi_mom': core_cpi_data['CPI_MoM'].iloc[-1]
             }
         except Exception as e:
-            logger.error(f"Error fetching Core CPI data: {str(e)}")
-            return generate_sample_data('cpi', periods, frequency='M')
+            logger.error(f"Failed to fetch or process CPI data: {e}")
+            raise
     
     @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_hours_worked(_self, periods=24):
@@ -342,8 +189,8 @@ class IndicatorData:
                 'consecutive_increases': consecutive_increases
             }
         except Exception as e:
-            logger.error(f"Error fetching hours worked data: {str(e)}")
-            return generate_sample_data('hours', periods, frequency='M')
+            logger.error(f"Failed to fetch or process Aggregate Hours data: {e}")
+            raise
     
     @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def calculate_pmi_proxy(_self, periods=36, start_date=None):
@@ -357,49 +204,26 @@ class IndicatorData:
         Returns:
             dict: Dictionary with PMI proxy data and analysis
         """
-        logger.info("\n" + "="*80)
-        logger.info("Starting PMI Proxy Calculation")
-        logger.info("="*80)
-        
-        # Define FRED series IDs for proxy variables with additional validation
-        series_ids = {
-            'new_orders': 'AMTMNO',      # Manufacturing: New Orders
-            'production': 'IPMAN',       # Industrial Production: Manufacturing
-            'employment': 'MANEMP',      # Manufacturing Employment
-            'supplier_deliveries': 'AMDMUS',  # Manufacturing: Supplier Deliveries
-            'inventories': 'MNFCTRIMSA'  # Manufacturing Inventories (Seasonally Adjusted)
-        }
-        
-        # Define PMI component weights
-        weights = {
-            'new_orders': 0.30,
-            'production': 0.25,
-            'employment': 0.20,
-            'supplier_deliveries': 0.15,
-            'inventories': 0.10
-        }
-        
         try:
-            # Log the series IDs being requested
-            logger.info("\nRequesting PMI proxy series:")
-            logger.info(f"Series IDs: {list(series_ids.values())}")
-            logger.info(f"Periods: {periods}")
-            logger.info(f"Start Date: {start_date}")
+            # Define FRED series IDs for proxy variables with additional validation
+            series_ids = {
+                'new_orders': 'AMTMNO',      # Manufacturing: New Orders
+                'production': 'IPMAN',       # Industrial Production: Manufacturing
+                'employment': 'MANEMP',      # Manufacturing Employment
+                'supplier_deliveries': 'AMDMUS',  # Manufacturing: Supplier Deliveries
+                'inventories': 'MNFCTRIMSA'  # Manufacturing Inventories (Seasonally Adjusted)
+            }
             
-            # Validate FRED series before fetching
-            logger.info("\nValidating FRED series:")
-            for component, series_id in series_ids.items():
-                try:
-                    # Check if series exists and has recent data
-                    series_info = _self.fred_client.fred.get_series_info(series_id)
-                    logger.info(f"\nSeries {series_id} ({component}) info:")
-                    for key, value in series_info.items():
-                        logger.info(f"  {key}: {value}")
-                except Exception as series_check_error:
-                    logger.error(f"Error checking series {series_id} ({component}): {str(series_check_error)}")
+            # Define PMI component weights
+            weights = {
+                'new_orders': 0.30,
+                'production': 0.25,
+                'employment': 0.20,
+                'supplier_deliveries': 0.15,
+                'inventories': 0.10
+            }
             
             # Get all series in one batch request
-            logger.info("\nFetching all series data...")
             all_series = _self.fred_client.get_multiple_series(
                 list(series_ids.values()),
                 start_date=start_date,
@@ -417,9 +241,6 @@ class IndicatorData:
             for component in series_ids.keys():
                 if component in all_series.columns:
                     available_components.append(component)
-                    # Log first few rows of each available component
-                    logger.info(f"\n{component} first 5 rows:")
-                    logger.info(all_series[component].head().to_string())
                 else:
                     missing_components.append(component)
             
@@ -435,11 +256,6 @@ class IndicatorData:
             for component in available_components:
                 adjusted_weights[component] = weights[component] / weight_sum
             
-            # Log adjusted weights
-            logger.info("\nAdjusted weights:")
-            for component, weight in adjusted_weights.items():
-                logger.info(f"  {component}: {weight:.3f}")
-            
             # Keep only the available component columns and Date
             df = all_series[['Date'] + available_components].copy()
             
@@ -448,11 +264,7 @@ class IndicatorData:
             df = df.resample('M').last()
             
             # Calculate month-over-month percentage change
-            df_pct_change = df[available_components].ffill().pct_change() * 100  # Convert to percentage
-            
-            # Log percentage changes
-            logger.info("\nPercentage changes first 5 rows:")
-            logger.info(df_pct_change.head().to_string())
+            df_pct_change = df[available_components].ffill().pct_change(fill_method=None) * 100  # Convert to percentage
             
             # Calculate standard deviation for each series over 10 years (120 months)
             # Use a more robust method to handle limited data
@@ -483,7 +295,7 @@ class IndicatorData:
                     std_series = pd.Series([overall_std] * len(series), index=series.index)
                 
                 # Fill NaNs with the last valid value
-                std_series = std_series.fillna(method='ffill')
+                std_series = std_series.ffill()
                 
                 return std_series
 
@@ -491,10 +303,6 @@ class IndicatorData:
             std_dev = pd.DataFrame(index=df_pct_change.index, columns=available_components)
             for component in available_components:
                 std_dev[component] = robust_rolling_std(df_pct_change[component])
-            
-            # Log standard deviations
-            logger.info("\nStandard deviations first 5 rows:")
-            logger.info(std_dev.head().to_string())
             
             # Update to_diffusion_index function to handle more edge cases
             def to_diffusion_index(pct_change, std_dev):
@@ -512,285 +320,120 @@ class IndicatorData:
             df_diffusion = pd.DataFrame(index=df.index, columns=available_components)
             for component in available_components:
                 component_std = std_dev[component].iloc[-1]
-                logger.info(f"\nProcessing {component}:")
-                logger.info(f"  Using standard deviation: {component_std}")
                 df_diffusion[component] = df_pct_change[component].apply(
                     lambda x, sd=component_std: to_diffusion_index(x, sd)
                 )
             
-            # Log diffusion indices
-            logger.info("\nDiffusion indices first 5 rows:")
-            logger.info(df_diffusion.head().to_string())
-            
             # Calculate the approximated PMI as a weighted average
             df['approximated_pmi'] = (df_diffusion * pd.Series(adjusted_weights)).sum(axis=1)
-            
-            # Log final PMI values
-            logger.info("\nApproximated PMI first 5 rows:")
-            logger.info(df['approximated_pmi'].head().to_string())
-            
-            # Store component values for the latest month
-            component_values = {}
-            for component in available_components:
-                component_values[component] = df_diffusion[component].iloc[-1]
-            
-            # Log component values
-            logger.info("\nFinal component values:")
-            for component, value in component_values.items():
-                logger.info(f"  {component}: {value:.2f}")
-            
-            # For missing components, use a neutral value of 50
-            for component in missing_components:
-                component_values[component] = 50.0
             
             # Get current PMI and check if it's below 50
             current_pmi = df['approximated_pmi'].iloc[-1]
             pmi_below_50 = current_pmi < 50
             
-            # Log final PMI details
-            logger.info("\nFinal PMI Results:")
-            logger.info(f"  Current PMI: {current_pmi:.2f}")
-            logger.info(f"  PMI Below 50: {pmi_below_50}")
-            logger.info("="*80 + "\n")
-            
-            # Extract the PMI series with DatetimeIndex before resetting index
+            # Get the PMI series with DatetimeIndex before resetting index
             pmi_series = df['approximated_pmi'].copy()
             
             # Reset index to get Date as a column for other operations
             df.reset_index(inplace=True)
             
         except Exception as e:
-            logger.error("\nComprehensive error calculating PMI proxy:")
-            logger.error(str(e))
-            # Include full traceback for debugging
-            import traceback
-            logger.error(traceback.format_exc())
-            return generate_sample_data('pmi', periods, frequency='M')
+            logger.error(f"Failed to fetch or process PMI component data: {e}")
+            raise
         
         return {
             'latest_pmi': current_pmi,
             'pmi_series': pmi_series,  # Series with DatetimeIndex
-            'component_values': component_values,
-            'component_weights': weights,
-            'pmi_below_50': pmi_below_50
+            'pmi_below_50': pmi_below_50,
+            'component_values': df_diffusion,  # Add component values back
+            'component_weights': adjusted_weights # Add weights back
         }
     
     @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_usd_liquidity(_self, periods=36):
         """
-        Get USD Liquidity data calculated from FRED series.
+        Get USD Liquidity data and S&P 500 data (both weekly).
         
         Args:
-            periods (int, optional): Number of periods to fetch
+            periods (int, optional): Number of *months* of history to fetch (converted to weeks).
             
         Returns:
-            dict: Dictionary with USD Liquidity data and analysis
+            dict: Dictionary containing weekly liquidity and S&P 500 data, and analysis.
         """
         try:
-            # Fetch required series with monthly frequency based on the simplified formula: WALCL-RRPONTTLD-WTREGEN
-            # WALCL (millions) - Fed Balance Sheet
-            # RRPONTTLD (billions) - Reverse Repo
-            # WTREGEN (billions) - Treasury General Account
-            # SP500 (S&P 500 Index) - for comparison
+            # Convert periods (months) to approximate weeks
+            num_weeks = periods * 4 + 4 # Add a buffer
+            
+            # --- Fetch Weekly Liquidity Components & SP500 --- 
             series_ids = ['WALCL', 'RRPONTTLD', 'WTREGEN', 'SP500']
             
-            logger.info(f"Fetching USD Liquidity data for series: {series_ids}")
-            logger.info(f"Current date: {datetime.datetime.now().strftime('%Y-%m-%d')}")
+            all_series = _self.fred_client.get_multiple_series(
+                series_ids,
+                periods=num_weeks, # Use calculated weeks
+                frequency='W' # Explicitly Weekly
+            )
+
+            if all_series is None or all_series.empty or 'Date' not in all_series.columns:
+                logger.error("Failed to fetch valid weekly data for USD Liquidity/SP500 calculation.")
+                raise ValueError("Failed to fetch necessary weekly data.")
             
-            # Try fetching each series individually with detailed error handling
-            individual_series = {}
-            for series_id in series_ids:
-                try:
-                    # Use 'd' (daily) frequency to get the most recent data available
-                    # and then we'll convert to monthly in the processing step
-                    series_data = _self.fred_client.get_series(series_id, periods=periods*30, frequency='d')
-                    
-                    # Log the raw data received from FRED API
-                    logger.info(f"Raw data for {series_id}:")
-                    if not series_data.empty:
-                        logger.info(f"Date range: {series_data['Date'].min()} to {series_data['Date'].max()}")
-                        logger.info(f"Number of data points: {len(series_data)}")
-                        # Log the last 5 data points to see the most recent values
-                        logger.info(f"Last 5 data points for {series_id}:")
-                        for idx, row in series_data.tail(5).iterrows():
-                            logger.info(f"  {row['Date']}: {row[series_id]}")
-                    
-                    individual_series[series_id] = series_data
-                    logger.info(f"Successfully fetched {series_id}: {series_data.shape[0]} rows")
-                    
-                    # Log the most recent value for each series
-                    if not series_data.empty:
-                        latest_date = series_data['Date'].iloc[-1]
-                        latest_value = series_data[series_id].iloc[-1]
-                        logger.info(f"Latest {series_id} value ({latest_date}): {latest_value}")
-                except Exception as e:
-                    logger.error(f"Error fetching {series_id}: {str(e)}")
-            
-            # Merge all successfully fetched series
-            all_series = None
-            for series_id, series_data in individual_series.items():
-                # Convert to datetime index for resampling
-                series_data_copy = series_data.copy()
-                series_data_copy['Date'] = pd.to_datetime(series_data_copy['Date'])
-                
-                # Add logging for WTREGEN before resampling
-                if series_id == 'WTREGEN':
-                    logger.info("WTREGEN before resampling:")
-                    logger.info(f"Data types: {series_data_copy.dtypes}")
-                    logger.info(f"Last 5 values before resampling:\n{series_data_copy.tail()}")
-                
-                series_data_copy.set_index('Date', inplace=True)
-                
-                # Resample to monthly frequency (end of month)
-                # Use 'last' to get the most recent value in each month
-                series_data_copy = series_data_copy.resample('M').last()
-                
-                # Add logging for WTREGEN after resampling
-                if series_id == 'WTREGEN':
-                    logger.info("WTREGEN after resampling:")
-                    logger.info(f"Last 5 values after resampling:\n{series_data_copy.tail()}")
-                
-                # Forward fill missing values
-                series_data_copy = series_data_copy.ffill()
-                
-                # Add logging for WTREGEN after forward fill
-                if series_id == 'WTREGEN':
-                    logger.info("WTREGEN after forward fill:")
-                    logger.info(f"Last 5 values after forward fill:\n{series_data_copy.tail()}")
-                    logger.info(f"Number of null values: {series_data_copy['WTREGEN'].isnull().sum()}")
-                
-                # Reset index to get Date as a column
-                series_data_copy.reset_index(inplace=True)
-                
-                # Add more detailed logging for merge process
-                logger.info(f"Merging {series_id} data:")
-                logger.info(f"Current all_series shape: {all_series.shape if all_series is not None else 'None'}")
-                logger.info(f"Current {series_id} shape: {series_data_copy.shape}")
-                
-                if all_series is None:
-                    all_series = series_data_copy
-                    logger.info(f"Initialized all_series with {series_id}")
-                else:
-                    # Check for potential data loss before merge
-                    pre_merge_rows = len(all_series)
-                    all_series = pd.merge(all_series, series_data_copy, on='Date', how='outer')
-                    post_merge_rows = len(all_series)
-                    logger.info(f"Merge result - Pre: {pre_merge_rows} rows, Post: {post_merge_rows} rows")
-                    
-                    # Verify the merged data
-                    if series_id in all_series.columns:
-                        logger.info(f"Latest {series_id} value after merge: {all_series[series_id].iloc[-1]}")
-                    else:
-                        logger.error(f"{series_id} column missing after merge!")
-                        
-                logger.info(f"New all_series shape: {all_series.shape}")
-                logger.info(f"Columns in all_series: {all_series.columns.tolist()}")
-                
-            # Sort by date to ensure the latest data is at the end
-            all_series = all_series.sort_values('Date')
-            
-            # If no series were fetched, return sample data
-            if all_series is None:
-                logger.error("No series were successfully fetched.")
-                return generate_sample_data('liquidity', periods, frequency='M')
-                
-            # Check which series are available
-            available_series = [s for s in series_ids if s in all_series.columns]
-            missing_series = [s for s in series_ids if s not in all_series.columns]
-            logger.info(f"Available series: {available_series}")
-            logger.info(f"Missing series: {missing_series}")
-            
-            # Log the latest date in the merged dataset
-            if not all_series.empty:
-                latest_date = all_series['Date'].iloc[-1]
-                logger.info(f"Latest date in merged dataset: {latest_date}")
-                
-                # Log the latest values for each series in the merged dataset
-                for series_id in available_series:
-                    latest_value = all_series[series_id].iloc[-1]
-                    logger.info(f"Latest {series_id} value in merged dataset: {latest_value}")
-                    
-                    # Add detailed logging for WTREGEN specifically
-                    if series_id == 'WTREGEN':
-                        logger.info("WTREGEN details:")
-                        logger.info(f"Last 5 values:\n{all_series['WTREGEN'].tail()}")
-                        logger.info(f"Number of non-null values: {all_series['WTREGEN'].count()}")
-                        logger.info(f"Number of null values: {all_series['WTREGEN'].isnull().sum()}")
-                        if all_series['WTREGEN'].isnull().any():
-                            logger.info("Sample of rows with null WTREGEN values:")
-                            null_samples = all_series[all_series['WTREGEN'].isnull()].head()
-                            for _, row in null_samples.iterrows():
-                                logger.info(f"Date: {row['Date']}, WTREGEN: {row['WTREGEN']}")
-            
-            # Calculate USD Liquidity based on simplified formula: WALCL-RRPONTTLD-WTREGEN
-            # Where:
-            # WALCL (millions) - Fed Balance Sheet
-            # RRPONTTLD (billions) - Reverse Repo
-            # WTREGEN (billions) - Treasury General Account
+            all_series = all_series.sort_values('Date').reset_index(drop=True)
+            all_series['Date'] = pd.to_datetime(all_series['Date']) # Ensure Date is datetime
+
+            # --- Calculate Weekly USD Liquidity --- 
             if 'WALCL' in all_series.columns:
-                # Initialize USD_Liquidity with WALCL
                 all_series['USD_Liquidity'] = all_series['WALCL']
-                logger.info(f"Initial USD_Liquidity (WALCL): {all_series['USD_Liquidity'].iloc[-1]}")
                 
-                # Subtract RRPONTTLD * 1000 (convert billions to millions) if available
                 if 'RRPONTTLD' in all_series.columns:
-                    # Ensure RRPONTTLD is not null
                     all_series['RRPONTTLD'] = all_series['RRPONTTLD'].fillna(0)
-                    rrponttld_millions = all_series['RRPONTTLD'] * 1000
-                    all_series['USD_Liquidity'] -= rrponttld_millions
-                    logger.info(f"RRPONTTLD: {all_series['RRPONTTLD'].iloc[-1]} billion")
-                    logger.info(f"RRPONTTLD in millions: {rrponttld_millions.iloc[-1]}")
-                    logger.info(f"USD_Liquidity after subtracting RRPONTTLD: {all_series['USD_Liquidity'].iloc[-1]}")
+                    all_series['USD_Liquidity'] -= all_series['RRPONTTLD'] * 1000
                 
-                # Subtract WTREGEN * 1000 (convert billions to millions) if available
                 if 'WTREGEN' in all_series.columns:
-                    # Ensure WTREGEN is not null
                     all_series['WTREGEN'] = all_series['WTREGEN'].fillna(0)
-                    wtregen_millions = all_series['WTREGEN'] * 1000
-                    all_series['USD_Liquidity'] -= wtregen_millions
-                    logger.info(f"WTREGEN: {all_series['WTREGEN'].iloc[-1]} billion")
-                    logger.info(f"WTREGEN in millions: {wtregen_millions.iloc[-1]}")
-                    logger.info(f"USD_Liquidity after subtracting WTREGEN: {all_series['USD_Liquidity'].iloc[-1]}")
+                    all_series['USD_Liquidity'] -= all_series['WTREGEN'] * 1000
                 
-                # Store the details for display
+                # Calculate Week-over-Week (WoW) % change
+                all_series['USD_Liquidity_WoW'] = all_series['USD_Liquidity'].pct_change(fill_method=None) * 100
+                
+                # Determine trend based on recent WoW changes (e.g., last 4 weeks)
+                recent_wow = all_series['USD_Liquidity_WoW'].tail(4)
+                avg_recent_wow = recent_wow.mean()
+                liquidity_increasing = avg_recent_wow > 0.05 # Adjusted threshold for weekly
+                liquidity_decreasing = avg_recent_wow < -0.05 # Adjusted threshold for weekly
+                
+                latest_data = all_series.iloc[-1]
                 details = {
-                    'WALCL': all_series['WALCL'].iloc[-1],
-                    'RRPONTTLD': all_series['RRPONTTLD'].iloc[-1] if 'RRPONTTLD' in all_series.columns else 0,
-                    'WTREGEN': all_series['WTREGEN'].iloc[-1] if 'WTREGEN' in all_series.columns else 0,
+                    series: latest_data.get(series, 'N/A') 
+                    for series in series_ids if series in latest_data
                 }
-                logger.info(f"Final calculation details: {details}")
                 
-                # Calculate month-over-month percentage changes
-                all_series['USD_Liquidity_MoM'] = calculate_pct_change(all_series, 'USD_Liquidity', periods=1)
-                
-                # Get recent values for trend analysis
-                recent_liquidity = all_series['USD_Liquidity'].tail(4).values
-                recent_liquidity_mom = all_series['USD_Liquidity_MoM'].tail(4).values
-                
-                # Check for consecutive increases and decreases
-                liquidity_increasing = check_consecutive_increase(recent_liquidity, 3)
-                liquidity_decreasing = check_consecutive_decrease(recent_liquidity, 3)
-                
-                # Get current values
-                current_liquidity = all_series['USD_Liquidity'].iloc[-1]
-                current_liquidity_mom = all_series['USD_Liquidity_MoM'].iloc[-1]
-                
-                return {
-                    'data': all_series,
-                    'recent_liquidity': recent_liquidity,
-                    'recent_liquidity_mom': recent_liquidity_mom,
-                    'liquidity_increasing': liquidity_increasing,
-                    'liquidity_decreasing': liquidity_decreasing,
-                    'current_liquidity': current_liquidity,
-                    'current_liquidity_mom': current_liquidity_mom,
-                    'details': details
-                }
+                # Prepare weekly data for return
+                weekly_data = all_series[['Date', 'USD_Liquidity', 'USD_Liquidity_WoW', 'SP500']].dropna(subset=['USD_Liquidity']).copy()
+                sp500_weekly_data = all_series[['Date', 'SP500']].dropna().copy() # Separate SP500 for clarity if needed later
+
             else:
                 logger.error("Cannot calculate USD Liquidity: WALCL is required but not available")
-                return generate_sample_data('liquidity', periods, frequency='M')
-        except Exception as e:
-            logger.error(f"Error fetching USD Liquidity data: {str(e)}")
-            return generate_sample_data('liquidity', periods, frequency='M')
+                raise ValueError("Failed to calculate USD Liquidity")
+                
+            # --- Combine Results --- 
+            return {
+                'weekly_data': weekly_data, # Contains both liquidity and SP500
+                # 'sp500_weekly': sp500_weekly_data, # Could return separately if needed
+                'recent_liquidity': all_series['USD_Liquidity'].tail(4).tolist(),
+                'recent_liquidity_wow': all_series['USD_Liquidity_WoW'].tail(4).tolist(),
+                'liquidity_increasing': liquidity_increasing,
+                'liquidity_decreasing': liquidity_decreasing,
+                'current_liquidity': latest_data.get('USD_Liquidity', 'N/A'),
+                'current_liquidity_wow': latest_data.get('USD_Liquidity_WoW', 'N/A'),
+                'details': details
+            }
+
+        except ValueError as ve: # Catch specific value error from calculation
+            logger.error(f"Calculation error for USD Liquidity: {ve}")
+            raise # Re-raise calculation errors
+        except Exception as e: # Catch other potential errors (API, processing)
+            logger.error(f"Error fetching or processing weekly USD Liquidity or SP500 data: {e}")
+            raise
     
     @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_new_orders(_self, periods=24):
@@ -809,7 +452,7 @@ class IndicatorData:
             new_orders_data.columns = ['Date', 'NEWORDER']
             
             # Calculate month-over-month percentage change
-            new_orders_data['NEWORDER_MoM'] = calculate_pct_change(new_orders_data, 'NEWORDER', periods=1)
+            new_orders_data['NEWORDER_MoM'] = calculate_pct_change(new_orders_data, 'NEWORDER', periods=1, fill_method=None)
             
             # Get the most recent values for analysis
             recent_values = new_orders_data['NEWORDER'].tail(4).values
@@ -834,32 +477,8 @@ class IndicatorData:
             }
         except Exception as e:
             logger.error(f"Error fetching Non-Defense Durable Goods Orders data: {str(e)}")
-            # Generate sample data as a fallback
-            sample_dates = generate_sample_dates(periods, frequency='M')
-            
-            # Create sample orders data (random values)
-            orders_values = np.random.normal(loc=60000, scale=2000, size=periods)
-            
-            # Create sample MoM % changes that roughly correlate with orders_values
-            mom_values = np.diff(orders_values) / orders_values[:-1] * 100
-            mom_values = np.insert(mom_values, 0, 0.0)  # Add a 0 for the first month
-            
-            sample_df = pd.DataFrame({
-                'Date': sample_dates,
-                'NEWORDER': orders_values,
-                'NEWORDER_MoM': mom_values
-            })
-            
-            return {
-                'data': sample_df,
-                'recent_values': orders_values[-4:],
-                'recent_mom_values': mom_values[-4:],
-                'mom_increasing': False,
-                'mom_decreasing': False,
-                'is_positive': mom_values[-1] > 0,
-                'latest_value': mom_values[-1]
-            }
-            
+            raise
+    
     @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_yield_curve(_self, periods=36, frequency='M'):
         """
@@ -924,27 +543,7 @@ class IndicatorData:
             }
         except Exception as e:
             logger.error(f"Error fetching Yield Curve Spread data: {str(e)}")
-            # Generate sample data as a fallback
-            sample_dates = generate_sample_dates(periods, frequency=frequency)
-            
-            # Create slightly descending sample values hovering around 0
-            base = np.linspace(1.5, -0.5, periods)  # Start positive, end slightly negative
-            noise = np.random.normal(0, 0.2, periods)  # Add some noise
-            spread_values = base + noise
-            
-            sample_df = pd.DataFrame({
-                'Date': sample_dates,
-                'T10Y2Y': spread_values
-            })
-            
-            return {
-                'data': sample_df,
-                'recent_values': spread_values[-4:],
-                'spread_increasing': False,
-                'spread_decreasing': True,
-                'is_inverted': spread_values[-1] < 0,
-                'latest_value': spread_values[-1]
-            }
+            raise
     
     def get_all_indicators(self):
         """

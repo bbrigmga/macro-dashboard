@@ -41,15 +41,12 @@ if not os.getenv('FRED_API_KEY'):
 else:
     try:
         # Initialize FRED client
-        logger.info("Initializing FRED client")
         fred_client = FredClient()
         
         # Initialize indicator data handler
-        logger.info("Initializing indicator data handler")
         indicator_data = IndicatorData(fred_client)
         
         # Fetch all indicators with caching
-        logger.info("Fetching all indicators with caching")
         claims_data = indicator_data.get_initial_claims()
         pce_data = indicator_data.get_pce()
         core_cpi_data = indicator_data.get_core_cpi()
@@ -72,7 +69,6 @@ else:
         }
         
         # Create and display the dashboard (without calling setup_page_config again)
-        logger.info("Creating and displaying dashboard")
         create_dashboard(indicators)
     except Exception as e:
         logger.error(f"Error in dashboard initialization: {str(e)}")

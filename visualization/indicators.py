@@ -6,7 +6,6 @@ import plotly.graph_objects as go  # This is imported as go
 import plotly.express as px
 from visualization.charts import (
     create_line_chart, 
-    create_line_chart_with_threshold, 
     create_pmi_component_chart,
     THEME,
     apply_dark_theme
@@ -111,13 +110,11 @@ def create_core_cpi_chart(core_cpi_data, periods=18):
     cpi_plot_data['CPI_MoM'] = cpi_plot_data['CPI_MoM'].fillna(0)
     
     # Create a figure with MoM as the main axis
-    fig = create_line_chart_with_threshold(
+    fig = create_line_chart(
         cpi_plot_data,
         'Date_Str',
         'CPI_MoM',
         'Core CPI MoM % Change',
-        threshold=0.3,
-        threshold_label='0.3% threshold',
         color=THEME['line_colors']['danger'],
         show_legend=False
     )
@@ -162,15 +159,13 @@ def create_initial_claims_chart(claims_data, periods=26):
     # Fill any null values
     claims_plot_data['Claims'] = claims_plot_data['Claims'].fillna(0)
     
-    # Use create_line_chart_with_threshold for consistency with other charts
+    # Use create_line_chart for consistency with other charts
     # Using 300,000 as a threshold which is a common benchmark for jobless claims
-    fig = create_line_chart_with_threshold(
+    fig = create_line_chart(
         claims_plot_data,
         'Date_Str',
         'Claims',
         'Weekly Initial Jobless Claims',
-        threshold=300000,
-        threshold_label='300K benchmark',
         color=THEME['line_colors']['primary'],  # Changed to primary color for consistency
         show_legend=False
     )
@@ -272,13 +267,11 @@ def create_pmi_chart(pmi_data, periods=18):
     pmi_plot_data['PMI'] = pmi_plot_data['PMI'].fillna(0)
     
     # Create the chart
-    fig = create_line_chart_with_threshold(
+    fig = create_line_chart(
         pmi_plot_data,
         'Date_Str',
         'PMI',
         'Manufacturing PMI Proxy',
-        threshold=50,
-        threshold_label='Expansion/Contraction',
         color=THEME['line_colors']['primary'],
         show_legend=False
     )
@@ -302,116 +295,122 @@ def create_pmi_chart(pmi_data, periods=18):
     return fig
 
 
-def create_usd_liquidity_chart(usd_liquidity_data, periods=36):  # Changed from 18 to 36 months (3 years)
+def create_usd_liquidity_chart(usd_liquidity_data, periods=36):
     """
-    Create a chart for USD Liquidity data with modern styling.
-    Also includes S&P 500 data on a secondary y-axis for comparison.
+    Create a chart for USD Liquidity data and S&P 500 (both weekly).
     
     Args:
-        usd_liquidity_data (dict): Dictionary with USD Liquidity data
-        periods (int, optional): Number of periods to display
+        usd_liquidity_data (dict): Dictionary containing 'weekly_data' DataFrame.
+        periods (int, optional): Number of *months* of history to display (used to calculate weeks).
         
     Returns:
         go.Figure: Plotly figure object
     """
-    # Get the data and prepare for display
-    if 'data' in usd_liquidity_data and 'Date' in usd_liquidity_data['data'].columns and 'USD_Liquidity' in usd_liquidity_data['data'].columns:
-        liquidity_plot_data = usd_liquidity_data['data'].tail(periods).copy()
-        liquidity_plot_data = prepare_date_for_display(liquidity_plot_data)
-        
-        # Ensure data is sorted properly
-        liquidity_plot_data = liquidity_plot_data.sort_values('Date')
-        
-        # Fill any null values
-        liquidity_plot_data['USD_Liquidity'] = liquidity_plot_data['USD_Liquidity'].fillna(0)
-        if 'SP500' in liquidity_plot_data.columns:
-            liquidity_plot_data['SP500'] = liquidity_plot_data['SP500'].fillna(0)
-        
-        # Convert to trillions before creating the chart
-        liquidity_plot_data['USD_Liquidity_T'] = liquidity_plot_data['USD_Liquidity'] / 1000000
-        
-        # Create a figure with two y-axes
-        import plotly.graph_objects as go  # Ensure go is available in this scope
+    import plotly.graph_objects as go # Ensure go is imported at function scope
+
+    # Extract data
+    weekly_data = usd_liquidity_data.get('weekly_data')
+    num_weeks = periods * 4 + 4 # Approx weeks to display based on months
+
+    # Basic validation
+    if weekly_data is None or weekly_data.empty:
         fig = go.Figure()
+        fig.update_layout(title="Weekly Liquidity/S&P 500 Data Not Available")
+        return apply_dark_theme(fig)
         
-        # Add USD Liquidity trace
+    # Prepare weekly data
+    plot_data = weekly_data.tail(num_weeks).copy()
+    plot_data['Date'] = pd.to_datetime(plot_data['Date']) # Ensure datetime type
+    plot_data = plot_data.sort_values('Date')
+    
+    # Fill any null values (use ffill for weekly data)
+    plot_data['USD_Liquidity'] = plot_data['USD_Liquidity'].ffill()
+    plot_data['SP500'] = plot_data['SP500'].ffill()
+    
+    # Convert to trillions
+    plot_data['USD_Liquidity_T'] = plot_data['USD_Liquidity'] / 1000000
+            
+    # Create a figure with two y-axes
+    fig = go.Figure()
+    
+    # Add USD Liquidity trace (Weekly)
+    fig.add_trace(go.Scatter(
+        x=plot_data['Date'].tolist(), 
+        y=plot_data['USD_Liquidity_T'].tolist(),
+        name='USD Liquidity (Weekly)',
+        line=dict(color=THEME['line_colors']['success'], width=2)
+    ))
+    
+    # Add S&P 500 trace (Weekly)
+    if 'SP500' in plot_data.columns and not plot_data['SP500'].isnull().all():
         fig.add_trace(go.Scatter(
-            x=liquidity_plot_data['Date_Str'].tolist(),  # Convert to list explicitly
-            y=liquidity_plot_data['USD_Liquidity_T'].tolist(),  # Convert to list explicitly
-            name='USD Liquidity',
-            line=dict(color=THEME['line_colors']['success'], width=2)  # Green color
+            x=plot_data['Date'].tolist(), 
+            y=plot_data['SP500'].tolist(), 
+            name='S&P 500 (Weekly)',
+            line=dict(color=THEME['line_colors']['primary'], width=1.5),
+            yaxis='y2'
         ))
-        
-        # Add S&P 500 trace on secondary y-axis if available
-        if 'SP500' in liquidity_plot_data.columns:
-            fig.add_trace(go.Scatter(
-                x=liquidity_plot_data['Date_Str'].tolist(),  # Convert to list explicitly
-                y=liquidity_plot_data['SP500'].tolist(),  # Convert to list explicitly
-                name='S&P 500',
-                line=dict(color=THEME['line_colors']['primary'], width=2),  # Blue color
-                yaxis='y2'
-            ))
-        
-        # Update layout for dual y-axes
-        fig.update_layout(
+    
+    # Determine dynamic ranges for axes
+    liquidity_min = 5.7 # Keep floor for liquidity
+    liquidity_max = plot_data['USD_Liquidity_T'].max() * 1.05 if not plot_data.empty else 10
+    sp500_min = 3200 # Keep floor for SP500
+    sp500_max = plot_data['SP500'].max() * 1.05 if 'SP500' in plot_data.columns and not plot_data['SP500'].isnull().all() else 5000
+
+    # Remove manual tick calculation
+
+    # Update layout for dual y-axes - Use date type for x-axis
+    fig.update_layout(
+        title=dict(
+            text='USD Liquidity & S&P 500 (Weekly)',
+            font=dict(size=14)
+        ),
+        yaxis=dict(
             title=dict(
-                text='USD Liquidity & S&P 500',
-                font=dict(size=14)
+                text="Trillions USD",
+                font=dict(size=10, color=THEME['line_colors']['success'])
             ),
-            yaxis=dict(
+            tickfont=dict(size=9),
+            tickformat='.2f',
+            range=[liquidity_min, liquidity_max]
+        ),
+        xaxis=dict(
+            title=None, # Remove X-axis title
+            tickangle=-45, # Angle ticks for better readability
+            tickfont=dict(size=9),
+            type='date', # Use date type now that frequency is consistent
+            dtick="M1", # Show ticks every 1 month for clarity on weekly data
+            tickformat="%b '%y" # Format as 'Jan '23'
+        ),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    # Add secondary y-axis for S&P 500 if data exists
+    if 'SP500' in plot_data.columns and not plot_data['SP500'].isnull().all():
+        fig.update_layout(
+            yaxis2=dict(
                 title=dict(
-                    text="Trillions USD",
-                    font=dict(size=10, color=THEME['line_colors']['success'])
+                    text="S&P 500 Index",
+                    font=dict(size=10, color=THEME['line_colors']['primary'])
                 ),
                 tickfont=dict(size=9),
-                tickformat='.2f',  # Format to 2 decimal places
-                range=[5.7, max(liquidity_plot_data['USD_Liquidity_T']) * 1.05]  # Set minimum to 5.7 trillion
-            ),
-            xaxis=dict(
-                tickangle=45,
-                tickfont=dict(size=9),
-                type='category'  # Set type to category for proper ordering
-            ),
-            showlegend=True,
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
+                overlaying='y',
+                side='right',
+                range=[sp500_min, sp500_max]
             )
         )
-        
-        # Add secondary y-axis for S&P 500 if available
-        if 'SP500' in liquidity_plot_data.columns:
-            fig.update_layout(
-                yaxis2=dict(
-                    title=dict(
-                        text="S&P 500",
-                        font=dict(size=10, color=THEME['line_colors']['primary'])
-                    ),
-                    tickfont=dict(size=9),
-                    overlaying='y',
-                    side='right',
-                    range=[3200, max(liquidity_plot_data['SP500']) * 1.05]  # Set minimum to 3200
-                )
-            )
-        
-        # Apply dark theme
-        fig = apply_dark_theme(fig)
-        
-        return fig
-    else:
-        # Create an empty figure if data is not available
-        # Import is already at the top, but adding here for clarity and consistency
-        import plotly.graph_objects as go
-        fig = go.Figure()
-        fig.update_layout(
-            title="USD Liquidity Data Not Available",
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
-        )
-        return apply_dark_theme(fig)
+    
+    # Apply dark theme
+    fig = apply_dark_theme(fig)
+    
+    return fig
 
 
 def create_pmi_components_table(pmi_data):
@@ -433,13 +432,17 @@ def create_pmi_components_table(pmi_data):
         'inventories': 'MNFCTRIMSA'
     }
     
+    # Get the latest values for each component
+    latest_values = pmi_data['component_values'].iloc[-1]
+    available_components = latest_values.index # Use the index from the latest row
+    
     return pd.DataFrame({
-        'Component': list(pmi_data['component_values'].keys()),
-        'Ticker': [component_tickers.get(comp, 'N/A') for comp in pmi_data['component_values'].keys()],
-        'Weight': [f"{pmi_data['component_weights'][comp]*100:.0f}%" for comp in pmi_data['component_values'].keys()],
-        'Value': [f"{pmi_data['component_values'][comp]:.1f}" for comp in pmi_data['component_values'].keys()],
-        'Status': [create_warning_indicator(pmi_data['component_values'][comp] < 50, 0.5, higher_is_bad=True) 
-                for comp in pmi_data['component_values'].keys()]
+        'Component': list(available_components),
+        'Ticker': [component_tickers.get(comp, 'N/A') for comp in available_components],
+        'Weight': [f"{pmi_data['component_weights'][comp]*100:.0f}%" for comp in available_components],
+        'Value': [f"{latest_values[comp]:.1f}" for comp in available_components],
+        'Status': [create_warning_indicator(latest_values[comp] < 50, 0.5, higher_is_bad=True) 
+                   for comp in available_components]
     })
 
 
@@ -465,13 +468,11 @@ def create_new_orders_chart(new_orders_data, periods=18):
     orders_plot_data['NEWORDER_MoM'] = orders_plot_data['NEWORDER_MoM'].fillna(0)
     
     # Create the chart - using 0 as threshold for growth vs contraction
-    fig = create_line_chart_with_threshold(
+    fig = create_line_chart(
         orders_plot_data,
         'Date_Str',
         'NEWORDER_MoM',
         'Non-Defense Durable Goods Orders',
-        threshold=0,
-        threshold_label='Growth/Contraction',
         color=THEME['line_colors']['primary'],
         show_legend=False
     )
@@ -517,13 +518,11 @@ def create_yield_curve_chart(yield_curve_data, periods=36):
     curve_plot_data['T10Y2Y'] = curve_plot_data['T10Y2Y'].fillna(0)
     
     # Create the chart using the same function as durable goods
-    fig = create_line_chart_with_threshold(
+    fig = create_line_chart(
         curve_plot_data,
         'Date_Str',
         'T10Y2Y',
         '10Y-2Y Treasury Yield Spread',
-        threshold=0,
-        threshold_label='Inversion Line',
         color=THEME['line_colors']['warning'],
         show_legend=False
     )

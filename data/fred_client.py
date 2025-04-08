@@ -131,12 +131,8 @@ class FredClient:
                 start = end - timedelta(days=(periods + 2) * 30)  # Add buffer
                 
             start_date = start.strftime('%Y-%m-%d')
-            logger.info(f"Calculated start_date {start_date} for {periods} {frequency} periods")
         
         try:
-            logger.info(f"Attempting to fetch series {series_id} from FRED API")
-            logger.info(f"Parameters - start_date: {start_date}, end_date: {end_date}")
-            
             # Fetch series with detailed error handling
             try:
                 series = self.fred.get_series(
@@ -150,7 +146,7 @@ class FredClient:
                 try:
                     # Check series information
                     series_info = self.fred.get_series_info(series_id)
-                    logger.info(f"Series Info for {series_id}: {series_info}")
+                    logger.error(f"Series Info for {series_id}: {series_info}")
                 except Exception as info_error:
                     logger.error(f"Could not retrieve series info: {str(info_error)}")
                 
@@ -167,12 +163,6 @@ class FredClient:
             
             # Convert Date to numpy datetime64 to avoid FutureWarning
             df['Date'] = pd.to_datetime(df['Date']).to_numpy()
-            
-            # Log series details
-            logger.info(f"Successfully fetched {series_id}")
-            logger.info(f"Date range: {df['Date'].min()} to {df['Date'].max()}")
-            logger.info(f"Number of rows: {len(df)}")
-            logger.info(f"First 5 rows:\n{df.head()}")
             
             return df
             
@@ -197,10 +187,6 @@ class FredClient:
         Returns:
             pd.DataFrame: DataFrame with date index and columns for each series
         """
-        # Log input parameters for debugging
-        logger.info(f"Fetching multiple series: {series_ids}")
-        logger.info(f"Start Date: {start_date}, End Date: {end_date}, Periods: {periods}, Frequency: {frequency}")
-        
         result = None
         series_fetch_results = {}
         
@@ -222,12 +208,6 @@ class FredClient:
                 try:
                     df = future.result()
                     
-                    # Log details about each fetched series
-                    logger.info(f"Series {series_id} fetched successfully:")
-                    logger.info(f"  Rows: {len(df)}")
-                    logger.info(f"  Date Range: {df['Date'].min()} to {df['Date'].max()}")
-                    logger.info(f"  First 5 rows:\n{df.head()}")
-                    
                     series_fetch_results[series_id] = df
                     
                     if result is None:
@@ -238,12 +218,6 @@ class FredClient:
                     logger.error(f"Error in get_multiple_series for {series_id}: {str(e)}")
                     series_fetch_results[series_id] = None
                     continue
-        
-        # Detailed logging of merge result
-        if result is not None:
-            logger.info(f"Merged result shape: {result.shape}")
-            logger.info(f"Merged result columns: {result.columns}")
-            logger.info(f"Date range of merged result: {result['Date'].min()} to {result['Date'].max()}")
         
         # Raise error if no series were successfully fetched
         if result is None or len(result) == 0:
@@ -264,14 +238,12 @@ class FredClient:
             int: Release ID if available, None otherwise
         """
         try:
-            logger.info(f"Getting release info for series {series_id}")
             # Get series release info
             response = requests.get(f"https://api.stlouisfed.org/fred/series/release?series_id={series_id}&api_key={self.fred.api_key}&file_type=json")
             response.raise_for_status()
             release_info = response.json()
             if release_info and 'releases' in release_info and release_info['releases']:
                 release_id = release_info['releases'][0]['id']
-                logger.info(f"Found release ID {release_id} for series {series_id}")
                 return release_id
             else:
                 logger.warning(f"No release ID found for series {series_id}")
@@ -292,8 +264,6 @@ class FredClient:
             datetime: Next release date if available, None otherwise
         """
         try:
-            logger.info(f"Getting release dates for release ID {release_id}")
-            
             # First try the release/dates endpoint
             params = {
                 'release_id': release_id,
@@ -313,7 +283,6 @@ class FredClient:
                 future_releases = [date['date'] for date in release_dates if pd.to_datetime(date['date']) > current_time]
                 if future_releases:
                     next_date = pd.to_datetime(min(future_releases))
-                    logger.info(f"Found next release date: {next_date}")
                     return next_date
                 
             logger.warning(f"No future release dates found for release ID {release_id}")
@@ -335,11 +304,9 @@ class FredClient:
             datetime: Next release date if available, None otherwise
         """
         try:
-            logger.info(f"Getting release date for series {series_id}")
             # First try to get the release ID for the series
             release_id = self.get_series_release_id(series_id)
             if release_id:
-                logger.info(f"Using release ID {release_id} for series {series_id}")
                 # Get next release date from the release schedule
                 next_date = self.get_next_release_date_from_release(release_id)
                 if next_date:
@@ -357,7 +324,6 @@ class FredClient:
                 future_releases = [date for date in vintage_dates if pd.to_datetime(date) > current_time]
                 if future_releases:
                     next_date = pd.to_datetime(min(future_releases))
-                    logger.info(f"Found next release date from vintage dates: {next_date}")
                     return next_date
                 else:
                     logger.warning(f"No future vintage dates found for series {series_id}")
