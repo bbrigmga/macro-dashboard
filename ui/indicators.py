@@ -11,7 +11,8 @@ from visualization.indicators import (
     create_pmi_components_table,
     create_usd_liquidity_chart,
     create_new_orders_chart,
-    create_yield_curve_chart
+    create_yield_curve_chart,
+    create_gundlach_ratio_chart
 )
 from visualization.warning_signals import (
     generate_hours_worked_warning,
@@ -450,106 +451,269 @@ def display_new_orders_card(new_orders_data, fred_client=None):
         new_orders_data (dict): Dictionary with New Orders data
         fred_client (FredClient, optional): FRED API client for getting release dates
     """
-    st.subheader("📦 Non-Defense Durable Goods Orders")
+    with st.container():
+        # Title at the top
+        st.subheader("📦 Non-Defense Durable Goods Orders")
+        
+        # Add release date info
+        next_release = get_next_release_date('new_orders', fred_client)
+        st.caption(format_release_date(next_release))
+        
+        # Get latest value and determine status
+        latest_value = new_orders_data['latest_value']
+        previous_period = new_orders_data['recent_mom_values'][-2] if len(new_orders_data['recent_mom_values']) > 1 else 0
+        delta = latest_value - previous_period
+        
+        # Determine status based on latest value and trend
+        if latest_value > 0 and new_orders_data.get('mom_increasing', False):
+            status = "Bullish"
+            delta_color = "normal"
+        elif latest_value < 0 and new_orders_data.get('mom_decreasing', False):
+            status = "Bearish"
+            delta_color = "inverse"
+        else:
+            status = "Neutral"
+            delta_color = "off"
+        
+        # Status below the title
+        if status == "Bearish":
+            st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
+        elif status == "Bullish":
+            st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
+        
+        # Current value below the status in black text
+        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{latest_value:.1f}%</div>", unsafe_allow_html=True)
+        
+        # Add chart
+        fig = create_new_orders_chart(new_orders_data)
+        st.plotly_chart(fig, use_container_width=True, height=250)
+        
+        # Expandable details section
+        with st.expander("View Details"):
+            st.write("Non-Defense Durable Goods Orders represents new orders placed with domestic manufacturers for delivery of non-defense capital goods. It's a leading indicator of manufacturing activity and business investment.")
+            st.markdown("[FRED Data: NEWORDER - Manufacturers' New Orders: Durable Goods](https://fred.stlouisfed.org/series/NEWORDER)")
+
+
+def display_gundlach_ratio_card(copper_data, treasury_data, gold_data=None, fred_client=None):
+    """
+    Display a card with the Gundlach Ratio (Copper/Gold ratio and US 10Y Yield).
     
-    # Get latest value and determine status
-    latest_value = new_orders_data['latest_value']
-    previous_period = new_orders_data['recent_mom_values'][-2] if len(new_orders_data['recent_mom_values']) > 1 else 0
-    delta = latest_value - previous_period
-    
-    # Determine status based on latest value and trend
-    if latest_value > 0 and new_orders_data.get('mom_increasing', False):
-        status = "Bullish"
-        delta_color = "normal"
-    elif latest_value < 0 and new_orders_data.get('mom_decreasing', False):
-        status = "Bearish"
-        delta_color = "inverse"
+    Args:
+        copper_data (dict): Dictionary with copper price data
+        treasury_data (dict): Dictionary with 10Y Treasury yield data
+        gold_data (dict, optional): Dictionary with gold price data (if available)
+        fred_client (FredClient, optional): FRED API client for getting release dates
+    """
+    # Calculate current values for display
+    if 'data' in copper_data and 'data' in treasury_data:
+        current_copper = copper_data['data']['PCOPPUSDM'].iloc[-1]
+        current_treasury = treasury_data['data']['DGS10'].iloc[-1]
+        
+        # Convert copper from USD/metric ton to USD/pound for display
+        METRIC_TON_TO_POUNDS = 2204.62
+        copper_per_pound = current_copper / METRIC_TON_TO_POUNDS
+        
+        # Simple status determination
+        if current_treasury > 4.0:
+            status = "Bullish"
+        elif current_treasury < 3.5:
+            status = "Bearish"
+        else:
+            status = "Neutral"
     else:
+        current_copper = "N/A"
+        current_treasury = "N/A"
+        copper_per_pound = 0
         status = "Neutral"
-        delta_color = "off"
     
-    # Display status
-    if status == "Bearish":
-        st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
-    elif status == "Bullish":
-        st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
+    # Global chart height constant for the entire row
+    CHART_HEIGHT = 250  # Increased height to 250px for better data visibility
     
-    # Display metric with delta
-    st.metric(
-        label="MoM % Change",
-        value=f"{latest_value:.1f}%",
-        delta=f"{delta:.1f}%",
-        delta_color=delta_color
-    )
+    # Apply custom CSS to reduce spacing drastically
+    st.markdown("""
+    <style>
+    /* Aggressive height reduction for Gundlach Ratio */
+    [data-testid="stVerticalBlock"] > div:has([data-testid="stSubheader"]:contains("Gundlach Ratio")) {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-height: 275px !important;
+        overflow: hidden !important;
+    }
+    [data-testid="stVerticalBlock"] > div:has([data-testid="stSubheader"]:contains("Gundlach Ratio")) > div {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    [data-testid="stVerticalBlock"] > div:has([data-testid="stSubheader"]:contains("Gundlach Ratio")) [data-testid="stExpander"] {
+        margin-top: 0 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
-    # Add release date info
-    next_release = get_next_release_date('new_orders', fred_client)
-    st.caption(format_release_date(next_release))
+    # Create a container with fixed height
+    with st.container():
+        # Ultra-compact title and caption
+        cols = st.columns([3, 1])
+        with cols[0]:
+            st.markdown("### 🔄 Gundlach Ratio", unsafe_allow_html=True)
+        with cols[1]:
+            st.caption("Monthly data")
+            
+        # Status and value in one condensed line
+        status_color = "#f44336" if status == "Bearish" else ("#00c853" if status == "Bullish" else "#78909c")
+        status_arrow = "↓" if status == "Bearish" else ("↑" if status == "Bullish" else "→")
+        
+        st.markdown(f"""
+        <div style='margin:0; padding:0;'>
+            <span style='color: {status_color}; font-size: 1rem; font-weight: 600;'>{status_arrow} {status}</span>
+            <span style='color: #000000; font-size: 0.85rem; margin-left: 5px;'>Copper: ${copper_per_pound:.2f}/lb</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Create chart with severely reduced height
+        fig_ratio = create_gundlach_ratio_chart(copper_data, treasury_data, gold_data)
+        st.plotly_chart(fig_ratio, use_container_width=True, height=CHART_HEIGHT)
+        
+        # Compact expander
+        with st.expander("Details"):
+            st.markdown("<small>The Gundlach Ratio uses copper price per pound divided by gold price per troy ounce.</small>", unsafe_allow_html=True)
+            st.markdown("<small>This ratio compares commodity prices to indicate economic sentiment - copper (growth) vs gold (fear).</small>", unsafe_allow_html=True)
+
+
+def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
+    """
+    Display a card with the USD Liquidity and S&P 500 chart.
     
-    # Add chart
-    fig = create_new_orders_chart(new_orders_data)
-    st.plotly_chart(fig, use_container_width=True)
+    Args:
+        usd_liquidity_data (dict): Dictionary with USD Liquidity data
+        fred_client (FredClient, optional): FRED API client for getting release dates
+    """
+    # Global chart height constant for the entire row
+    CHART_HEIGHT = 250  # Increased height to 250px for better data visibility
     
-    # Expandable details section
-    with st.expander("View Details"):
-        st.write("Non-Defense Durable Goods Orders represents new orders placed with domestic manufacturers for delivery of non-defense capital goods. It's a leading indicator of manufacturing activity and business investment.")
-        st.markdown("[FRED Data: NEWORDER - Manufacturers' New Orders: Durable Goods](https://fred.stlouisfed.org/series/NEWORDER)")
+    # Extract current value for display
+    current_liquidity = None
+    if 'weekly_data' in usd_liquidity_data and not usd_liquidity_data['weekly_data'].empty:
+        try:
+            latest_value = usd_liquidity_data['weekly_data']['USD_Liquidity'].iloc[-1]
+            current_liquidity = latest_value / 1000000  # Convert to trillions
+        except (IndexError, KeyError):
+            current_liquidity = None
+    
+    # Apply height-limiting CSS for this card too
+    st.markdown("""
+    <style>
+    [data-testid="stVerticalBlock"] > div:has([data-testid="stSubheader"]:contains("USD Liquidity")) {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-height: 275px !important;
+        overflow: hidden !important;
+    }
+    [data-testid="stVerticalBlock"] > div:has([data-testid="stSubheader"]:contains("USD Liquidity")) > div {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    with st.container():
+        # Title and metadata
+        cols = st.columns([3, 1])
+        with cols[0]:
+            st.markdown("### 💵 USD Liquidity", unsafe_allow_html=True)
+        with cols[1]:
+            st.caption("Most release date not available")
+        
+        # Status indicator
+        st.markdown(f"""
+        <div style='margin:0; padding:0;'>
+            <span style='color: #78909c; font-size: 1rem; font-weight: 600;'>→ Neutral</span>
+            <span style='color: #000000; font-size: 0.85rem; margin-left: 5px;'>${current_liquidity:.2f}T</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Create and display chart
+        fig_liquidity = create_usd_liquidity_chart(usd_liquidity_data)
+        st.plotly_chart(fig_liquidity, use_container_width=True, height=CHART_HEIGHT)
+        
+        # Expandable details section
+        with st.expander("Details"):
+            st.markdown("<small>USD Liquidity and S&P 500 correlation indicator</small>", unsafe_allow_html=True)
 
 
 def display_yield_curve_card(yield_curve_data, fred_client=None):
     """
-    Display a card with 10Y-2Y Treasury Yield Spread data and chart.
+    Display a card with the 2-10 Year Treasury Yield Spread.
     
     Args:
         yield_curve_data (dict): Dictionary with yield curve data
         fred_client (FredClient, optional): FRED API client for getting release dates
     """
-    # Title at the top
-    st.subheader("📈 2-10 Year Spread")
+    # Global chart height constant for the entire row
+    CHART_HEIGHT = 250  # Increased height to 250px for better data visibility
+    
+    # Apply height-limiting CSS for this card too
+    st.markdown("""
+    <style>
+    [data-testid="stVerticalBlock"] > div:has([data-testid="stSubheader"]:contains("2-10 Year Spread")) {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-height: 275px !important;
+        overflow: hidden !important;
+    }
+    [data-testid="stVerticalBlock"] > div:has([data-testid="stSubheader"]:contains("2-10 Year Spread")) > div {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     # Calculate current value and status
-    latest_value = yield_curve_data['latest_value']
-    previous_value = yield_curve_data['recent_values'][-2] if len(yield_curve_data['recent_values']) > 1 else 0
-    delta = latest_value - previous_value
-    
-    # Determine status based on inversion (negative spread is bearish)
-    if latest_value < 0:
-        status = "Bearish"
-        delta_color = "inverse"
-    elif latest_value > 0.5:  # Healthy spread
-        status = "Bullish"
-        delta_color = "normal"
-    else:  # Low but positive spread
-        status = "Neutral"
-        delta_color = "off"
-    
-    # Display status
-    if status == "Bearish":
-        st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
-    elif status == "Bullish":
-        st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
+    if 'data' in yield_curve_data and not yield_curve_data['data'].empty:
+        current_spread = yield_curve_data['data']['T10Y2Y'].iloc[-1]
+        
+        # Determine status based on spread value
+        if current_spread < -0.1:  # Inverted yield curve
+            status = "Bearish"
+        elif current_spread > 0.5:  # Steep yield curve
+            status = "Bullish"
+        else:
+            status = "Neutral"
+            
+        # Get release date if available
+        if 'release_date' in yield_curve_data and yield_curve_data['release_date']:
+            release_date = yield_curve_data['release_date']
+        else:
+            release_date = "Today"  # Default if not available
     else:
-        st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
+        current_spread = 0
+        status = "Neutral"
+        release_date = "Today"
     
-    # Display metric with delta
-    st.metric(
-        label="Spread (%)",
-        value=f"{latest_value:.2f}%",
-        delta=f"{delta:.2f}%",
-        delta_color=delta_color
-    )
-    
-    # Add release date info
-    next_release = get_next_release_date('yield_curve', fred_client)
-    st.caption(format_release_date(next_release))
-    
-    # Add chart
-    fig = create_yield_curve_chart(yield_curve_data)
-    st.plotly_chart(fig, use_container_width=True, height=300)  # Added explicit height
-    
-    # Expandable details section
-    with st.expander("View Details"):
-        st.write("The 10Y-2Y Treasury Yield Spread is the difference between 10-year and 2-year Treasury yields. A negative spread (yield curve inversion) has historically preceded recessions.")
-        st.markdown("[FRED Data: T10Y2Y - 10-Year Treasury Minus 2-Year Treasury](https://fred.stlouisfed.org/series/T10Y2Y)")
+    with st.container():
+        # Title and metadata
+        cols = st.columns([3, 1])
+        with cols[0]:
+            st.markdown("### 📈 2-10 Year Spread", unsafe_allow_html=True)
+        with cols[1]:
+            st.caption(f"Next release: {release_date}")
+        
+        # Status indicator
+        status_color = "#f44336" if status == "Bearish" else ("#00c853" if status == "Bullish" else "#78909c")
+        status_arrow = "↓" if status == "Bearish" else ("↑" if status == "Bullish" else "→")
+        
+        st.markdown(f"""
+        <div style='margin:0; padding:0;'>
+            <span style='color: {status_color}; font-size: 1rem; font-weight: 600;'>{status_arrow} {status}</span>
+            <span style='color: #000000; font-size: 0.85rem; margin-left: 5px;'>{current_spread:.2f}%</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Create and display chart
+        fig = create_yield_curve_chart(yield_curve_data)
+        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT)
+        
+        # Expandable details section
+        with st.expander("Details"):
+            st.markdown("<small>10Y-2Y Treasury yield spread - recession indicator</small>", unsafe_allow_html=True)

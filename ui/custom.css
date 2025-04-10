@@ -325,3 +325,32 @@ footer {
     color: #ffffff; /* Bright white for better contrast */
     font-weight: 600;
 }
+
+/* Card height standardization */
+[data-testid="stVerticalBlock"] > div:has([data-testid="stSubheader"]) {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-height: 280px !important;
+    overflow: hidden !important;
+}
+
+/* Container padding reduction */
+[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlock"] {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* Chart containers */
+[data-testid="stVerticalBlock"] > div [data-testid="element-container"]:has(.js-plotly-plot) {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Expandable details */
+[data-testid="stVerticalBlock"] > div [data-testid="stExpander"] {
+    margin-top: 0 !important;
+}

@@ -380,6 +380,13 @@ class IndicatorData:
             all_series = all_series.sort_values('Date').reset_index(drop=True)
             all_series['Date'] = pd.to_datetime(all_series['Date']) # Ensure Date is datetime
 
+            # === DEBUG: Log raw TGA data ===
+            if 'WTREGEN' in all_series.columns:
+                logger.debug(f"Raw WTREGEN tail:\n{all_series[['Date', 'WTREGEN']].tail()}")
+            else:
+                logger.debug("WTREGEN column not found in fetched data.")
+            # ================================
+            
             # --- Calculate Weekly USD Liquidity --- 
             if 'WALCL' in all_series.columns:
                 all_series['USD_Liquidity'] = all_series['WALCL']
@@ -401,11 +408,28 @@ class IndicatorData:
                 liquidity_increasing = avg_recent_wow > 0.05 # Adjusted threshold for weekly
                 liquidity_decreasing = avg_recent_wow < -0.05 # Adjusted threshold for weekly
                 
+                # Find the last valid values for the components
+                last_valid_walcl = all_series['WALCL'].dropna().iloc[-1] if not all_series['WALCL'].dropna().empty else 0
+                last_valid_rrp = all_series['RRPONTTLD'].dropna().iloc[-1] if not all_series['RRPONTTLD'].dropna().empty else 0
+                last_valid_tga = all_series['WTREGEN'].dropna().iloc[-1] if not all_series['WTREGEN'].dropna().empty else 0
+                
+                # === DEBUG: Log last valid TGA ===
+                logger.debug(f"Last valid TGA determined: {last_valid_tga}")
+                # ================================
+                
+                # Calculate current liquidity based on last valid points
+                current_liquidity_calc = last_valid_walcl - (last_valid_rrp * 1000) - (last_valid_tga * 1000)
+                
                 latest_data = all_series.iloc[-1]
+                
                 details = {
-                    series: latest_data.get(series, 'N/A') 
-                    for series in series_ids if series in latest_data
+                    'WALCL': last_valid_walcl,
+                    'RRPONTTLD': last_valid_rrp,
+                    'WTREGEN': last_valid_tga
                 }
+                
+                # Get the most recent WoW % change (can be NaN if latest liquidity is NaN)
+                current_liquidity_wow = latest_data.get('USD_Liquidity_WoW', 'N/A')
                 
                 # Prepare weekly data for return
                 weekly_data = all_series[['Date', 'USD_Liquidity', 'USD_Liquidity_WoW', 'SP500']].dropna(subset=['USD_Liquidity']).copy()
@@ -423,8 +447,8 @@ class IndicatorData:
                 'recent_liquidity_wow': all_series['USD_Liquidity_WoW'].tail(4).tolist(),
                 'liquidity_increasing': liquidity_increasing,
                 'liquidity_decreasing': liquidity_decreasing,
-                'current_liquidity': latest_data.get('USD_Liquidity', 'N/A'),
-                'current_liquidity_wow': latest_data.get('USD_Liquidity_WoW', 'N/A'),
+                'current_liquidity': current_liquidity_calc, # Use the calculated value from last valid points
+                'current_liquidity_wow': current_liquidity_wow,
                 'details': details
             }
 
