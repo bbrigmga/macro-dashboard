@@ -3,7 +3,10 @@ Utility functions for data processing.
 """
 import pandas as pd
 import numpy as np
+import logging
 
+# Set up logging
+logger = logging.getLogger(__name__)
 
 def convert_dates(df):
     """
@@ -78,7 +81,9 @@ def check_consecutive_increase(values, count=3):
         return False
     
     # Check if each of the last 'count' values is greater than the previous
-    return all(values[i] < values[i+1] for i in range(len(values)-count, len(values)-1))
+    result = all(values[i] < values[i+1] for i in range(len(values)-count, len(values)-1))
+    
+    return result
 
 
 def check_consecutive_decrease(values, count=3):
@@ -96,7 +101,9 @@ def check_consecutive_decrease(values, count=3):
         return False
     
     # Check if each of the last 'count' values is less than the previous
-    return all(values[i] > values[i+1] for i in range(len(values)-count, len(values)-1))
+    result = all(values[i] > values[i+1] for i in range(len(values)-count, len(values)-1))
+    
+    return result
 
 
 def count_consecutive_changes(values, decreasing=True):

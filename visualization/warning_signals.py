@@ -191,8 +191,8 @@ def generate_core_cpi_warning(core_cpi_data):
     current_cpi_mom = core_cpi_data['current_cpi_mom']
     
     # Check for consecutive increases and decreases
-    cpi_increasing = check_consecutive_increase(recent_cpi_mom, 3)
-    cpi_decreasing = check_consecutive_decrease(recent_cpi_mom, 3)
+    cpi_increasing = core_cpi_data.get('cpi_increasing', False)
+    cpi_decreasing = core_cpi_data.get('cpi_decreasing', False)
     
     # Determine warning status
     if cpi_increasing:
@@ -214,8 +214,8 @@ Current Core CPI MoM: {current_cpi_mom:.2f}%
 <div style='margin-top: 0.5rem;'>
 <strong>Key Signals to Watch:</strong>
 <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>Three consecutive months of increasing MoM inflation (Bearish)</li>
-    <li>Three consecutive months of decreasing MoM inflation (Bullish)</li>
+    <li>Four consecutive months of increasing MoM inflation (Bearish)</li>
+    <li>Four consecutive months of decreasing MoM inflation (Bullish)</li>
 </ul>
 </div>
 """
@@ -233,8 +233,8 @@ def generate_initial_claims_warning(claims_data):
     Returns:
         str: Formatted warning message
     """
-    claims_increasing = claims_data['claims_increasing']
-    claims_decreasing = claims_data['claims_decreasing']
+    claims_increasing = claims_data.get('claims_increasing', False)
+    claims_decreasing = claims_data.get('claims_decreasing', False)
     
     # Determine warning status
     if claims_increasing:
@@ -252,8 +252,8 @@ def generate_initial_claims_warning(claims_data):
 <div style='margin-top: 0.5rem;'>
 <strong>Key Warning Signals to Watch:</strong>
 <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>Three consecutive weeks of rising claims</li>
-    <li>Claims rising while PCE is also rising</li>
+    <li>Four consecutive weeks of rising claims (Bearish)</li>
+    <li>Four consecutive weeks of falling claims (Bullish)</li>
     <li>Sudden spike in claims (>10% week-over-week)</li>
 </ul>
 </div>
@@ -310,8 +310,8 @@ Current PCE MoM: {current_pce_mom:.2f}%
 <div style='margin-top: 0.5rem;'>
 <strong>Key Signals to Watch:</strong>
 <ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>Three consecutive months of increasing MoM inflation (Bearish)</li>
-    <li>Three consecutive months of decreasing MoM inflation (Bullish)</li>
+    <li>Four consecutive months of increasing MoM inflation (Bearish)</li>
+    <li>Four consecutive months of decreasing MoM inflation (Bullish)</li>
 </ul>
 </div>
 

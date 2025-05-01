@@ -14,8 +14,7 @@ from .indicators import (
     display_usd_liquidity_card,
     display_core_principles_card,
     display_new_orders_card,
-    display_yield_curve_card,
-    display_gundlach_ratio_card
+    display_yield_curve_card
 )
 from data.fred_client import FredClient
 
@@ -206,12 +205,9 @@ def create_dashboard(indicators):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        display_gundlach_ratio_card(indicators['copper'], indicators['treasury'], indicators['gold'], fred_client)
-    
-    with col2:
         display_usd_liquidity_card(indicators['usd_liquidity'], fred_client)
     
-    with col3:
+    with col2:
         display_yield_curve_card(indicators['yield_curve'], fred_client)
     
     # Display footer
