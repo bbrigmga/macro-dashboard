@@ -306,6 +306,8 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):
         go.Figure: Plotly figure object
     """
     import plotly.graph_objects as go # Ensure go is imported at function scope
+    import pandas as pd
+    from datetime import datetime
 
     # Extract data
     weekly_data = usd_liquidity_data.get('weekly_data')
@@ -342,6 +344,9 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):
     
     # Convert to trillions
     plot_data['USD_Liquidity_T'] = plot_data['USD_Liquidity'] / 1000000
+    
+    # Get the current liquidity value from the header calculation
+    current_liquidity = usd_liquidity_data.get('current_liquidity', None)
             
     # Create a figure with two y-axes
     fig = go.Figure()
@@ -353,6 +358,24 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):
         name='USD Liquidity (Weekly)',
         line=dict(color=THEME['line_colors']['success'], width=2)
     ))
+    
+    # Add the latest calculated value as a special point if it exists and differs from the last weekly value
+    if current_liquidity is not None:
+        current_liquidity_t = current_liquidity / 1000000  # Convert to trillions
+        last_date = plot_data['Date'].iloc[-1]
+        
+        # Check if the current value differs significantly from the last weekly value
+        last_weekly_value_t = plot_data['USD_Liquidity_T'].iloc[-1]
+        if abs(current_liquidity_t - last_weekly_value_t) > 0.01:  # If difference is more than 0.01T
+            # Add a special point for the latest calculated value
+            fig.add_trace(go.Scatter(
+                x=[last_date],
+                y=[current_liquidity_t],
+                mode='markers',
+                marker=dict(size=8, color=THEME['line_colors']['success'], symbol='star'),
+                name='Latest USD Liquidity',
+                hovertemplate='%{x|%b %y}: %{y:.2f}T<extra></extra>'
+            ))
     
     # Add S&P 500 trace (Weekly)
     if has_sp500 and not plot_data['SP500'].isnull().all():

@@ -165,7 +165,7 @@ def display_initial_claims_card(claims_data, fred_client=None):
         st.subheader("🏢 Initial Claims")
         
         # Add release date info
-        next_release = get_next_release_date('initial_claims', fred_client)
+        next_release = get_next_release_date('claims', fred_client)
         st.caption(format_release_date(next_release))
         
         # Status below the title

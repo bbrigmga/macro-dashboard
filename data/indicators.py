@@ -378,13 +378,44 @@ class IndicatorData:
             num_weeks = periods * 4 + 4 # Add a buffer
             
             # --- Fetch Weekly Liquidity Components & SP500 --- 
-            series_ids = ['WALCL', 'RRPONTTLD', 'WTREGEN']
+            # Fetch WALCL and RRPONTTLD together
+            series_ids = ['WALCL', 'RRPONTTLD']
             
             all_series = _self.fred_client.get_multiple_series(
                 series_ids,
                 periods=num_weeks, # Use calculated weeks
                 frequency='W' # Explicitly Weekly
             )
+            
+            # Fetch WTREGEN data separately to ensure we get the latest value
+            # This is a critical component of the USD Liquidity calculation
+            wtregen_fetched = False
+            wtregen_latest_value = None
+            
+            try:
+                # First try to get the latest value directly
+                wtregen_info = _self.fred_client.fred.get_series_info('WTREGEN')
+                if wtregen_info is not None:
+                    logger.info(f"Got WTREGEN series info: Last updated {wtregen_info.get('last_updated', 'unknown')}")
+                
+                # Now fetch the actual data series
+                wtregen_data = _self.fred_client.get_series('WTREGEN', periods=num_weeks, frequency='W')
+                
+                if not wtregen_data.empty:
+                    logger.info(f"Successfully fetched WTREGEN data with {len(wtregen_data)} rows")
+                    
+                    # Get the latest value from the data
+                    if len(wtregen_data) > 0:
+                        wtregen_latest_value = wtregen_data.iloc[-1, 1]  # Get the value from the last row
+                        latest_date = wtregen_data.iloc[-1, 0]  # Get the date from the last row
+                        logger.info(f"Latest WTREGEN value from API: {wtregen_latest_value} billion as of {latest_date}")
+                    
+                    # Add to all_series
+                    all_series = pd.merge(all_series, wtregen_data, on='Date', how='left')
+                    wtregen_fetched = True
+            except Exception as e:
+                logger.error(f"Error fetching WTREGEN data: {str(e)}")
+                wtregen_fetched = False
 
             if all_series is None or all_series.empty or 'Date' not in all_series.columns:
                 logger.error("Failed to fetch valid weekly data for USD Liquidity calculation.")
@@ -393,14 +424,7 @@ class IndicatorData:
             all_series = all_series.sort_values('Date').reset_index(drop=True)
             all_series['Date'] = pd.to_datetime(all_series['Date']) # Ensure Date is datetime
 
-            # Fetch TGA data
-            try:
-                tga_data = _self.fred_client.get_series('WTREGEN', periods=periods, frequency='W')
-                if not tga_data.empty:
-                    tga_data.columns = ['Date', 'WTREGEN']
-                    all_series = pd.merge(all_series, tga_data, on='Date', how='left')
-            except Exception as e:
-                logger.warning(f"Failed to fetch TGA data: {e}")
+            # This section is now handled above with better error handling
             
             # Fetch S&P 500 data separately to ensure we get it even if other data fails
             sp500_data = None
@@ -434,10 +458,20 @@ class IndicatorData:
                 last_valid_walcl = all_series['WALCL'].dropna().iloc[-1] if not all_series['WALCL'].dropna().empty else 0
                 last_valid_rrp = all_series['RRPONTTLD'].dropna().iloc[-1] if not all_series['RRPONTTLD'].dropna().empty else 0
                 
-                # For WTREGEN, we need to use the actual value from FRED (606.632 billion)
-                # The API might be returning 0 or the data might not be available in the timeframe
-                # Hardcoding the latest known value for now
-                last_valid_tga = 606.632  # Current value from FRED as of April 2025
+                # Always prioritize the latest value we got directly from the API
+                if wtregen_latest_value is not None:
+                    # Use the latest value we got directly
+                    last_valid_tga = wtregen_latest_value
+                    logger.info(f"Using latest TGA value from API: {last_valid_tga} billion")
+                # Fallback to data in the DataFrame if available
+                elif 'WTREGEN' in all_series.columns and not all_series['WTREGEN'].dropna().empty:
+                    # Use the last valid value from the data
+                    last_valid_tga = all_series['WTREGEN'].dropna().iloc[-1]
+                    logger.info(f"Using TGA value from merged data: {last_valid_tga} billion")
+                else:
+                    # Fallback to a known recent value if API fails
+                    last_valid_tga = 595.741  # Example value from FRED as of 2025-04-30
+                    logger.warning(f"WTREGEN data not available from API, using fallback value: {last_valid_tga} billion")
                 
                 # Calculate current liquidity based on last valid points
                 current_liquidity_calc = last_valid_walcl - (last_valid_rrp * 1000) - (last_valid_tga * 1000)

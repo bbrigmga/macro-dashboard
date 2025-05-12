@@ -132,9 +132,18 @@ def get_next_release_date(indicator_type: str, fred_client=None, current_date=No
         
     if schedule['frequency'] == 'weekly':
         # For weekly releases (like Initial Claims)
-        next_date = current_date + timedelta(days=(schedule['weekday'] - current_date.weekday() + 7) % 7)
-        if next_date <= current_date:
-            next_date += timedelta(weeks=1)
+        # Find the next occurrence of the specified weekday
+        days_ahead = (schedule['weekday'] - current_date.weekday()) % 7
+        if days_ahead == 0 and current_date.hour >= 12:  # If it's the same day but after release time
+            days_ahead = 7
+        next_date = current_date + timedelta(days=days_ahead)
+        
+        # For Initial Claims specifically, ensure we're getting the next Thursday
+        if indicator_type == 'claims' and next_date.weekday() != 3:  # 3 is Thursday
+            # Find the next Thursday
+            days_to_thursday = (3 - next_date.weekday()) % 7
+            next_date = next_date + timedelta(days=days_to_thursday)
+        
         return next_date
         
     elif schedule['frequency'] == 'daily':
@@ -203,6 +212,18 @@ def format_release_date(date, indicator_type=None):
     release_date = date.date()
     
     days_until = (release_date - today_date).days
+    
+    # Special handling for Initial Claims which is released weekly on Thursdays
+    if indicator_type == 'claims':
+        if days_until < 0:
+            # If we have a past date, calculate the next Thursday
+            next_thursday = today + timedelta(days=(3 - today.weekday()) % 7)
+            if next_thursday.date() == today_date:  # If today is Thursday
+                if today.hour >= 12:  # If it's after the typical release time
+                    next_thursday += timedelta(days=7)  # Next week's Thursday
+            
+            release_date = next_thursday.date()
+            days_until = (release_date - today_date).days
     
     if days_until < 0:
         return "Next release date not available"
