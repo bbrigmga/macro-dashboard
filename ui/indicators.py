@@ -427,7 +427,7 @@ def display_new_orders_card(new_orders_data, fred_client=None):
     """
     with st.container():
         # Title at the top
-        st.subheader("📦 Non-Defense Durable Goods Orders")
+        st.subheader("📦 Non-Defense Durable Goods")
         
         # Add release date info
         next_release = get_next_release_date('new_orders', fred_client)
