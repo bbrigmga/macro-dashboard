@@ -508,7 +508,7 @@ def create_new_orders_chart(new_orders_data, periods=18):
         orders_plot_data,
         'Date_Str',
         'NEWORDER_MoM',
-        'Non-Defense Durable Goods Orders',
+        'Non-Defense Durable Goods',
         color=THEME['line_colors']['primary'],
         show_legend=False
     )
