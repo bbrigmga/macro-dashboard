@@ -26,6 +26,16 @@ setup_page_config()
 # Load environment variables
 load_dotenv()
 
+# Add cached singletons for shared clients/resources
+@st.cache_resource
+def get_fred_client():
+    # Enable internal client cache and increase max cache size
+    return FredClient(cache_enabled=True, max_cache_size=512)
+
+@st.cache_resource
+def get_indicator_data():
+    return IndicatorData(get_fred_client())
+
 # Check if FRED API key is available
 if not os.getenv('FRED_API_KEY'):
     st.error("""
@@ -44,12 +54,9 @@ if not os.getenv('FRED_API_KEY'):
     """)
 else:
     try:
-        # Initialize FRED client
-        fred_client = FredClient()
-        
-        # Initialize indicator data handler
-        indicator_data = IndicatorData(fred_client)
-        
+        # Initialize FRED client (singleton) and indicator data handler (singleton)
+        fred_client = get_fred_client()
+        indicator_data = get_indicator_data()
         # Fetch all indicators with caching
         claims_data = indicator_data.get_initial_claims()
         pce_data = indicator_data.get_pce()
@@ -59,7 +66,6 @@ else:
         usd_liquidity_data = indicator_data.get_usd_liquidity()
         new_orders_data = indicator_data.get_new_orders()
         yield_curve_data = indicator_data.get_yield_curve(periods=36, frequency='D')
-        
         # Combine all indicators
         indicators = {
             'claims': claims_data,
@@ -71,9 +77,8 @@ else:
             'new_orders': new_orders_data,
             'yield_curve': yield_curve_data
         }
-        
-        # Create and display the dashboard (without calling setup_page_config again)
-        create_dashboard(indicators)
+        # Create and display the dashboard (pass shared fred_client)
+        create_dashboard(indicators, fred_client=fred_client)
     except Exception as e:
         logger.error(f"Error in dashboard initialization: {str(e)}")
         st.error(f"An error occurred while initializing the dashboard: {str(e)}")

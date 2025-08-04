@@ -5,6 +5,7 @@ import datetime
 from datetime import timedelta
 import calendar
 from typing import Dict, Optional
+import streamlit as st
 
 # Mapping of indicators to their FRED series IDs and release IDs
 INDICATOR_SERIES_MAP = {
@@ -39,10 +40,12 @@ INDICATOR_SERIES_MAP = {
     }
 }
 
-def get_next_release_date(indicator_type: str, fred_client=None, current_date=None) -> Optional[datetime.datetime]:
+@st.cache_data(ttl=86400)
+def get_next_release_date(indicator_type: str, _fred_client=None, current_date=None) -> Optional[datetime.datetime]:
     """
     Get the next release date for a given economic indicator using FRED API if available,
     otherwise fallback to estimated dates.
+    Cached for 24 hours to avoid repeated API calls within a session.
     
     Args:
         indicator_type (str): Type of indicator
@@ -54,39 +57,35 @@ def get_next_release_date(indicator_type: str, fred_client=None, current_date=No
     """
     if current_date is None:
         current_date = datetime.datetime.now()
-    
     # Critical override for April 29, 2025 PCE release
     if indicator_type == 'pce' and current_date.year == 2025 and current_date.month == 4 and current_date.day == 29:
         return datetime.datetime(2025, 4, 30)
-    
     # If we have a FRED client, try to get the actual release date
-    if fred_client is not None:
+    if _fred_client is not None:
         indicator_info = INDICATOR_SERIES_MAP.get(indicator_type)
         if indicator_info:
             # Try using series IDs first as this is more reliable
             if 'series_id' in indicator_info:
-                release_date = fred_client.get_series_release_date(indicator_info['series_id'])
+                release_date = _fred_client.get_series_release_date(indicator_info['series_id'])
                 if release_date:
                     return release_date
             elif 'series_ids' in indicator_info:
                 # For indicators that use multiple series
-                release_dates = fred_client.get_multiple_release_dates(indicator_info['series_ids'])
+                release_dates = _fred_client.get_multiple_release_dates(indicator_info['series_ids'])
                 if release_dates:
                     return min(release_dates.values())
             elif isinstance(indicator_info, dict) and 'release_id' not in indicator_info:
                 # For PMI-like indicators with multiple component series
-                release_dates = fred_client.get_multiple_release_dates(list(
+                release_dates = _fred_client.get_multiple_release_dates(list(
                     v for k, v in indicator_info.items() if k != 'release_id'
                 ))
                 if release_dates:
                     return min(release_dates.values())
-            
             # If series approach fails, try release ID as fallback
             if 'release_id' in indicator_info:
-                release_date = fred_client.get_next_release_date_from_release(indicator_info['release_id'])
+                release_date = _fred_client.get_next_release_date_from_release(indicator_info['release_id'])
                 if release_date:
                     return release_date
-    
     # Fallback to estimated dates if FRED API is not available or doesn't return dates
     # Get the first day of next month
     first_of_next_month = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
@@ -188,9 +187,11 @@ def get_next_release_date(indicator_type: str, fred_client=None, current_date=No
                 next_date += timedelta(days=1)
             return next_date
 
+@st.cache_data(ttl=86400)
 def format_release_date(date, indicator_type=None):
     """
     Format the release date in a human-readable format.
+    Cached for 24 hours because formatting depends only on 'today' and the date.
     
     Args:
         date (datetime): Release date

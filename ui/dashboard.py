@@ -57,16 +57,16 @@ def display_footer():
     st.caption("Data sourced from FRED (Federal Reserve Economic Data). Updated automatically with each release.")
 
 
-def create_dashboard(indicators):
+def create_dashboard(indicators, fred_client):
     """
     Create the complete dashboard layout with a modern grid-based design.
     
     Args:
         indicators (dict): Dictionary with all indicator data
+        fred_client (FredClient): Shared FRED client instance
     """
     # Initialize FRED client for release dates
-    fred_client = FredClient()
-    
+    # fred_client is provided by the caller; do not instantiate here
     # Display header
     display_header()
     

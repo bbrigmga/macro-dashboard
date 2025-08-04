@@ -1,6 +1,7 @@
 """
 Functions for creating charts and visualizations with a modern finance-based theme.
 """
+
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
@@ -80,8 +81,8 @@ def create_line_chart(df, x_column, y_column, title, color=None, show_legend=Fal
     
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=df[x_column].tolist(),  # Convert to list explicitly
-        y=df[y_column].tolist(),  # Convert to list explicitly
+        x=df[x_column],  # Avoid tolist() to prevent unnecessary copies
+        y=df[y_column],  # Avoid tolist() to prevent unnecessary copies
         name=y_column,
         mode='lines+markers',  # Add markers to the line
         line=dict(color=color, width=2),

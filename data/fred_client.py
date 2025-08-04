@@ -17,6 +17,9 @@ import requests
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Create a module-level session for HTTP reuse
+_session = requests.Session()
+
 def retry_with_backoff(max_retries: int = 3, initial_backoff: int = 1, backoff_factor: int = 2):
     """
     Retry decorator with exponential backoff for API calls.
@@ -82,6 +85,8 @@ class FredClient:
         self.cache_enabled = cache_enabled  # Explicitly set to False by default
         self.cache: dict = {}
         self.max_cache_size = max_cache_size
+        # Reuse HTTP session
+        self._session = _session
         
         # Add logging for API key validation
         logger.info("FRED API Client initialized with cache_enabled: %s", cache_enabled)
@@ -132,6 +137,12 @@ class FredClient:
                 
             start_date = start.strftime('%Y-%m-%d')
         
+        # Deterministic cache key
+        cache_key = f"series:{series_id}:{start_date}:{end_date}:{periods}:{frequency}"
+        if self.cache_enabled and cache_key in self.cache:
+            cached = self.cache[cache_key]['data']
+            # Return a copy to avoid accidental mutation of cache
+            return cached.copy()
         try:
             # Fetch series with detailed error handling
             try:
@@ -160,10 +171,11 @@ class FredClient:
             # Convert to DataFrame
             df = pd.DataFrame(series, columns=['Value']).reset_index()
             df.columns = ['Date', series_id]
-            
-            # Convert Date to numpy datetime64 to avoid FutureWarning
-            df['Date'] = pd.to_datetime(df['Date']).to_numpy()
-            
+            # Normalize Date to pandas datetime
+            df['Date'] = pd.to_datetime(df['Date'])
+            # Write to cache
+            if self.cache_enabled:
+                self._manage_cache(cache_key, df.copy())
             return df
             
         except Exception as e:
@@ -187,9 +199,12 @@ class FredClient:
         Returns:
             pd.DataFrame: DataFrame with date index and columns for each series
         """
+        # Optional: cap workers to reduce rate-limit risk
+        max_workers = min(max_workers, 3)
         result = None
         series_fetch_results = {}
-        
+        # Deduplicate incoming IDs to avoid redundant fetches
+        unique_series_ids = list(dict.fromkeys(series_ids))
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all series fetch tasks
             future_to_series = {
@@ -200,9 +215,10 @@ class FredClient:
                     end_date, 
                     periods, 
                     frequency
-                ): series_id for series_id in series_ids
+                ): series_id for series_id in unique_series_ids
             }
             
+            # Handle completed tasks
             for future in concurrent.futures.as_completed(future_to_series):
                 series_id = future_to_series[future]
                 try:
@@ -224,6 +240,8 @@ class FredClient:
             logger.error("Failed to fetch any of the requested series")
             raise ValueError("Failed to fetch any of the requested series")
         
+        # Ensure Date normalized once
+        result['Date'] = pd.to_datetime(result['Date'])
         return result
 
     @retry_with_backoff()
@@ -238,8 +256,8 @@ class FredClient:
             int: Release ID if available, None otherwise
         """
         try:
-            # Get series release info
-            response = requests.get(f"https://api.stlouisfed.org/fred/series/release?series_id={series_id}&api_key={self.fred.api_key}&file_type=json")
+            # Use shared session
+            response = self._session.get(f"https://api.stlouisfed.org/fred/series/release?series_id={series_id}&api_key={self.fred.api_key}&file_type=json")
             response.raise_for_status()
             release_info = response.json()
             if release_info and 'releases' in release_info and release_info['releases']:
@@ -273,7 +291,7 @@ class FredClient:
                 'api_key': self.fred.api_key,
                 'file_type': 'json'
             }
-            response = requests.get("https://api.stlouisfed.org/fred/release/dates", params=params)
+            response = self._session.get("https://api.stlouisfed.org/fred/release/dates", params=params)
             response.raise_for_status()
             release_dates = response.json()
             
@@ -314,7 +332,7 @@ class FredClient:
             
             logger.info(f"Falling back to vintage dates for series {series_id}")
             # If that fails, try the vintage dates approach as fallback
-            response = requests.get(f"https://api.stlouisfed.org/fred/series/vintagedates?series_id={series_id}&api_key={self.fred.api_key}&file_type=json")
+            response = self._session.get(f"https://api.stlouisfed.org/fred/series/vintagedates?series_id={series_id}&api_key={self.fred.api_key}&file_type=json")
             response.raise_for_status()
             vintage_dates = response.json()
             
