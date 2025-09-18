@@ -13,6 +13,7 @@ from visualization.indicators import (
     create_new_orders_chart,
     create_yield_curve_chart
 )
+from visualization.charts import create_copper_gold_yield_chart
 from visualization.warning_signals import (
     generate_hours_worked_warning,
     generate_core_cpi_warning,
@@ -473,31 +474,72 @@ def display_new_orders_card(new_orders_data, fred_client=None):
 def display_yield_curve_card(yield_curve_data, fred_client=None):
     """
     Display a card with the 2-10 Year Treasury Yield Spread.
-    
+
     Args:
         yield_curve_data (dict): Dictionary with yield curve data
         fred_client (FredClient, optional): FRED API client for getting release dates
     """
     # Global chart height constant for the entire row
     CHART_HEIGHT = 250  # Same height as USD Liquidity chart
-    
+
     # Calculate current value
     if 'data' in yield_curve_data and not yield_curve_data['data'].empty:
         current_spread = yield_curve_data['data']['T10Y2Y'].iloc[-1]
     else:
         current_spread = 0
-    
+
     with st.container():
         # Title at the top - use subheader like USD Liquidity
         st.subheader("📈 2-10 Year Spread")
-        
+
         # Current value - use same styling as USD Liquidity
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{current_spread:.2f}%</div>", unsafe_allow_html=True)
-        
+
         # Create and display chart
         fig = create_yield_curve_chart(yield_curve_data)
         st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT)
-        
+
         # Expandable details section - use same label as USD Liquidity
         with st.expander("View Details"):
             st.markdown("<small>10Y-2Y Treasury yield spread</small>", unsafe_allow_html=True)
+
+
+def display_copper_gold_ratio_card(copper_gold_data, fred_client=None):
+    """
+    Display a card with Copper/Gold Ratio vs US 10-year Treasury yield chart.
+
+    Args:
+        copper_gold_data (dict): Dictionary with copper/gold ratio and yield data
+        fred_client (FredClient, optional): FRED API client for getting release dates
+    """
+    # Global chart height constant for the entire row
+    CHART_HEIGHT = 250  # Same height as other charts
+
+    # Calculate current values
+    if 'data' in copper_gold_data and not copper_gold_data['data'].empty:
+        current_ratio = copper_gold_data['data']['ratio'].iloc[-1]
+        current_yield = copper_gold_data['data']['yield'].iloc[-1]
+    else:
+        current_ratio = 0
+        current_yield = 0
+
+    with st.container():
+        # Title at the top
+        st.subheader("🥈 Copper/Gold vs 10Y Yield")
+
+        # Current values - display both ratio and yield
+        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>Ratio: {current_ratio:.2f} | Yield: {current_yield:.2f}%</div>", unsafe_allow_html=True)
+
+        # Create and display chart
+        fig = create_copper_gold_yield_chart(copper_gold_data)
+        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT)
+
+        # Expandable details section
+        with st.expander("View Details"):
+            st.markdown("""
+            <small>
+            Copper/Gold Ratio: Copper COMEX price divided by Gold COMEX price<br>
+            US 10Y Treasury Yield: Daily yield data from FRED<br>
+            Higher ratios typically indicate bullish sentiment, lower yields suggest accommodative monetary policy
+            </small>
+            """, unsafe_allow_html=True)

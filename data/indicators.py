@@ -569,11 +569,11 @@ class IndicatorData:
     def get_yield_curve(_self, periods=36, frequency='M'):
         """
         Get the 10Y-2Y Treasury Yield Spread data from FRED.
-        
+
         Args:
             periods (int, optional): Number of periods to fetch
             frequency (str, optional): Frequency of data - 'D' for daily, 'M' for monthly
-            
+
         Returns:
             dict: Dictionary with yield curve data and analysis
         """
@@ -584,34 +584,34 @@ class IndicatorData:
             if frequency == 'D':
                 # For daily data, fetch ~3 years (756 trading days)
                 observation_period = 756
-            
+
             yield_curve_data = _self.fred_client.get_series('T10Y2Y', periods=observation_period, frequency=frequency)
             yield_curve_data.columns = ['Date', 'T10Y2Y']
-            
+
             # If daily data but we want monthly for display, aggregate to monthly
             if frequency == 'D' and periods <= 60:  # Only aggregate if we're looking at a reasonable timeframe
                 # Convert Date to datetime
                 yield_curve_data['Date'] = pd.to_datetime(yield_curve_data['Date'])
-                
+
                 # Create a year-month column for grouping
                 yield_curve_data['YearMonth'] = yield_curve_data['Date'].dt.to_period('M')
-                
+
                 # Group by year-month and get last day of each month (or avg)
                 monthly_data = yield_curve_data.groupby('YearMonth').agg({
                     'Date': 'last',  # Last day of month
                     'T10Y2Y': 'mean'  # Average for the month
                 }).reset_index()
-                
+
                 # Drop the YearMonth column
                 monthly_data = monthly_data.drop('YearMonth', axis=1)
-                
+
                 # Limit to the specified number of periods
                 yield_curve_data = monthly_data.tail(periods)
-            
+
             # Get latest value
             latest_value = yield_curve_data['T10Y2Y'].iloc[-1]
             is_inverted = latest_value < 0
-            
+
             return {
                 'data': yield_curve_data,
                 'is_inverted': is_inverted,
@@ -619,6 +619,68 @@ class IndicatorData:
             }
         except Exception as e:
             logger.error(f"Error fetching Yield Curve Spread data: {str(e)}")
+            raise
+
+    @st.cache_data(ttl=3600*24) # Cache for 24 hours
+    def get_copper_gold_ratio(_self, periods=365):
+        """
+        Get Copper/Gold Ratio vs US 10-year Treasury yield data.
+
+        Args:
+            periods (int, optional): Number of days of historical data to fetch
+
+        Returns:
+            dict: Dictionary with merged data and analysis
+        """
+        try:
+            from data.yahoo_client import YahooClient
+
+            # Initialize Yahoo client for commodity data
+            yahoo_client = YahooClient()
+
+            # Fetch Copper COMEX data
+            copper_df = yahoo_client.get_historical_prices(ticker='HG=F', periods=periods, frequency='1d')
+            copper_df = copper_df.rename(columns={'value': 'copper'})
+
+            # Fetch Gold COMEX data
+            gold_df = yahoo_client.get_historical_prices(ticker='GC=F', periods=periods, frequency='1d')
+            gold_df = gold_df.rename(columns={'value': 'gold'})
+
+            # Fetch US 10-year Treasury yield data
+            yield_df = _self.fred_client.get_series('DGS10', periods=periods, frequency='D')
+            yield_df.columns = ['Date', 'yield']
+
+            # Normalize Date columns to remove timezone info for merging
+            copper_df['Date'] = pd.to_datetime(copper_df['Date']).dt.tz_localize(None)
+            gold_df['Date'] = pd.to_datetime(gold_df['Date']).dt.tz_localize(None)
+            yield_df['Date'] = pd.to_datetime(yield_df['Date']).dt.tz_localize(None)
+
+            # Merge Copper and Gold data first
+            merged_df = pd.merge(copper_df, gold_df, on='Date', how='outer')
+
+            # Handle missing data: forward-fill, then drop any remaining NaNs
+            merged_df = merged_df.sort_values('Date').ffill().dropna()
+
+            # Compute Copper/Gold ratio
+            merged_df['ratio'] = merged_df['copper'] / merged_df['gold']
+
+            # Merge with yield data
+            final_df = pd.merge(merged_df[['Date', 'ratio']], yield_df[['Date', 'yield']], on='Date', how='inner')
+
+            # Sort by date
+            final_df = final_df.sort_values('Date')
+
+            # Get latest values
+            latest_ratio = final_df['ratio'].iloc[-1]
+            latest_yield = final_df['yield'].iloc[-1]
+
+            return {
+                'data': final_df,
+                'latest_ratio': latest_ratio,
+                'latest_yield': latest_yield
+            }
+        except Exception as e:
+            logger.error(f"Error fetching Copper/Gold Ratio data: {str(e)}")
             raise
     
     def get_all_indicators(self):

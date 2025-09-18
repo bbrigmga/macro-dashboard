@@ -139,10 +139,10 @@ def create_line_chart(df, x_column, y_column, title, color=None, show_legend=Fal
 def create_pmi_component_chart(component_data):
     """
     Create a chart for PMI components with the dark finance theme.
-    
+
     Args:
         component_data (dict): Dictionary with component data
-        
+
     Returns:
         go.Figure: Plotly figure object
     """
@@ -152,12 +152,12 @@ def create_pmi_component_chart(component_data):
         'Value': list(component_data['component_values'].values()),
         'Weight': [component_data['component_weights'][comp] * 100 for comp in component_data['component_values'].keys()]
     })
-    
+
     # Create a horizontal bar chart
     fig = px.bar(
-        df, 
-        y='Component', 
-        x='Value', 
+        df,
+        y='Component',
+        x='Value',
         color='Value',
         color_continuous_scale=THEME['colorscale'],
         range_color=[40, 60],
@@ -165,7 +165,7 @@ def create_pmi_component_chart(component_data):
         title='PMI Components',
         orientation='h'
     )
-    
+
     # Add a vertical line at 50 (expansion/contraction threshold)
     fig.add_shape(
         type="line",
@@ -179,7 +179,7 @@ def create_pmi_component_chart(component_data):
             dash="dash",
         )
     )
-    
+
     # Add weight annotations
     for i, row in df.iterrows():
         fig.add_annotation(
@@ -190,7 +190,7 @@ def create_pmi_component_chart(component_data):
             font=dict(color=THEME['font_color']),
             xshift=15
         )
-    
+
     fig.update_layout(
         xaxis=dict(range=[40, 60]),
         showlegend=False,
@@ -199,5 +199,86 @@ def create_pmi_component_chart(component_data):
             font=dict(size=14)
         )
     )
-    
+
+    return apply_dark_theme(fig)
+
+
+def create_copper_gold_yield_chart(copper_gold_data):
+    """
+    Create a dual-axis chart for Copper/Gold Ratio vs US 10-Year Treasury Yield.
+
+    Args:
+        copper_gold_data (dict): Dictionary containing merged data with Date, ratio, and yield columns
+
+    Returns:
+        go.Figure: Plotly figure object with dual y-axes
+    """
+    # Get the merged data
+    final_df = copper_gold_data['data']
+
+    fig = go.Figure()
+
+    # Add Copper/Gold Ratio trace (primary y-axis)
+    fig.add_trace(go.Scatter(
+        x=final_df['Date'],
+        y=final_df['ratio'],
+        name='Copper/Gold Ratio',
+        mode='lines+markers',
+        line=dict(color='#ff8c00', width=2),  # Dark yellow color
+        marker=dict(color='#ff8c00', size=6),  # Dark yellow color
+        hovertemplate='%{x|%Y-%m-%d}<br>Copper/Gold Ratio: %{y:.4f}<extra></extra>'
+    ))
+
+    # Add US 10-year Treasury yield trace (secondary y-axis)
+    fig.add_trace(go.Scatter(
+        x=final_df['Date'],
+        y=final_df['yield'],
+        name='US 10Y Treasury Yield',
+        mode='lines+markers',
+        line=dict(color=THEME['line_colors']['primary'], width=2),
+        marker=dict(color=THEME['line_colors']['primary'], size=6),
+        yaxis='y2',
+        hovertemplate='%{x|%Y-%m-%d}<br>10Y Yield: %{y:.2f}%<extra></extra>'
+    ))
+
+    # Update layout for dual y-axes
+    fig.update_layout(
+        title=dict(
+            text='Copper/Gold Ratio vs US 10-Year Treasury Yield',
+            font=dict(size=14)
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Copper/Gold Ratio",
+                font=dict(size=10, color=THEME['line_colors']['primary'])
+            ),
+            tickfont=dict(size=9)
+        ),
+        yaxis2=dict(
+            title=dict(
+                text="10Y Treasury Yield (%)",
+                font=dict(size=10, color=THEME['line_colors']['primary'])
+            ),
+            tickfont=dict(size=9),
+            overlaying='y',
+            side='right'
+        ),
+        xaxis=dict(
+            title=None,
+            tickangle=-45,
+            tickfont=dict(size=9),
+            type='date'
+        ),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            y=1.02,
+            x=0.5,
+            xanchor="center",
+            font=dict(size=10)
+        ),
+        height=250
+    )
+
+    # Apply dark theme
     return apply_dark_theme(fig)

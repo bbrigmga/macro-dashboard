@@ -11,16 +11,18 @@ logger = logging.getLogger(__name__)
 def convert_dates(df):
     """
     Convert datetime index to numpy datetime64 array to avoid FutureWarning.
-    
+
     Args:
         df (pd.DataFrame): DataFrame with datetime index or column
-        
+
     Returns:
         pd.DataFrame: DataFrame with converted dates
     """
     if isinstance(df.index, pd.DatetimeIndex):
         df = df.copy()
+        index_name = df.index.name
         df.index = df.index.to_numpy()
+        df.index.name = index_name
     return df
 
 

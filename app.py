@@ -66,6 +66,7 @@ else:
         usd_liquidity_data = indicator_data.get_usd_liquidity()
         new_orders_data = indicator_data.get_new_orders()
         yield_curve_data = indicator_data.get_yield_curve(periods=36, frequency='D')
+        copper_gold_ratio_data = indicator_data.get_copper_gold_ratio()
         # Combine all indicators
         indicators = {
             'claims': claims_data,
@@ -75,7 +76,8 @@ else:
             'pmi': pmi_data,
             'usd_liquidity': usd_liquidity_data,
             'new_orders': new_orders_data,
-            'yield_curve': yield_curve_data
+            'yield_curve': yield_curve_data,
+            'copper_gold_ratio': copper_gold_ratio_data
         }
         # Create and display the dashboard (pass shared fred_client)
         create_dashboard(indicators, fred_client=fred_client)
