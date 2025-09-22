@@ -638,22 +638,53 @@ class IndicatorData:
             # Initialize Yahoo client for commodity data
             yahoo_client = YahooClient()
 
-            # Fetch Copper COMEX data
-            copper_df = yahoo_client.get_historical_prices(ticker='HG=F', periods=periods, frequency='1d')
-            copper_df = copper_df.rename(columns={'value': 'copper'})
+            # Fetch Copper data (using FCX as alternative to HG=F which may not be available)
+            try:
+                copper_df = yahoo_client.get_historical_prices(ticker='FCX', periods=periods, frequency='1d')
+                copper_df = copper_df.rename(columns={'value': 'copper'})
+                logger.info("Successfully fetched copper data using FCX ticker")
+            except Exception as e:
+                logger.warning(f"Failed to fetch copper data with FCX ticker: {e}")
+                # Try alternative copper tickers
+                alternative_tickers = ['CPER', 'JJC', 'SCCO']
+                copper_df = None
+                for alt_ticker in alternative_tickers:
+                    try:
+                        copper_df = yahoo_client.get_historical_prices(ticker=alt_ticker, periods=periods, frequency='1d')
+                        copper_df = copper_df.rename(columns={'value': 'copper'})
+                        logger.info(f"Successfully fetched copper data using {alt_ticker} ticker")
+                        break
+                    except Exception as alt_e:
+                        logger.warning(f"Failed to fetch copper data with {alt_ticker} ticker: {alt_e}")
+                        continue
+
+                if copper_df is None:
+                    raise ValueError("Unable to fetch copper data from any available ticker")
 
             # Fetch Gold COMEX data
-            gold_df = yahoo_client.get_historical_prices(ticker='GC=F', periods=periods, frequency='1d')
-            gold_df = gold_df.rename(columns={'value': 'gold'})
+            try:
+                gold_df = yahoo_client.get_historical_prices(ticker='GC=F', periods=periods, frequency='1d')
+                gold_df = gold_df.rename(columns={'value': 'gold'})
+                logger.info("Successfully fetched gold data")
+            except Exception as e:
+                logger.error(f"Failed to fetch gold data: {e}")
+                raise ValueError("Unable to fetch gold data - this is required for copper/gold ratio")
 
             # Fetch US 10-year Treasury yield data
-            yield_df = _self.fred_client.get_series('DGS10', periods=periods, frequency='D')
-            yield_df.columns = ['Date', 'yield']
+            try:
+                yield_df = _self.fred_client.get_series('DGS10', periods=periods, frequency='D')
+                yield_df.columns = ['Date', 'yield']
+                logger.info("Successfully fetched treasury yield data")
+            except Exception as e:
+                logger.warning(f"Failed to fetch treasury yield data: {e}")
+                # Create empty yield data as fallback
+                yield_df = pd.DataFrame(columns=['Date', 'yield'])
 
             # Normalize Date columns to remove timezone info for merging
             copper_df['Date'] = pd.to_datetime(copper_df['Date']).dt.tz_localize(None)
             gold_df['Date'] = pd.to_datetime(gold_df['Date']).dt.tz_localize(None)
-            yield_df['Date'] = pd.to_datetime(yield_df['Date']).dt.tz_localize(None)
+            if not yield_df.empty:
+                yield_df['Date'] = pd.to_datetime(yield_df['Date']).dt.tz_localize(None)
 
             # Merge Copper and Gold data first
             merged_df = pd.merge(copper_df, gold_df, on='Date', how='outer')
@@ -664,15 +695,19 @@ class IndicatorData:
             # Compute Copper/Gold ratio
             merged_df['ratio'] = merged_df['copper'] / merged_df['gold']
 
-            # Merge with yield data
-            final_df = pd.merge(merged_df[['Date', 'ratio']], yield_df[['Date', 'yield']], on='Date', how='inner')
+            # Merge with yield data (if available)
+            if not yield_df.empty:
+                final_df = pd.merge(merged_df[['Date', 'ratio']], yield_df[['Date', 'yield']], on='Date', how='inner')
+            else:
+                final_df = merged_df[['Date', 'ratio']].copy()
+                final_df['yield'] = None
 
             # Sort by date
             final_df = final_df.sort_values('Date')
 
             # Get latest values
             latest_ratio = final_df['ratio'].iloc[-1]
-            latest_yield = final_df['yield'].iloc[-1]
+            latest_yield = final_df['yield'].iloc[-1] if 'yield' in final_df.columns and final_df['yield'].iloc[-1] is not None else 'N/A'
 
             return {
                 'data': final_df,
@@ -681,7 +716,12 @@ class IndicatorData:
             }
         except Exception as e:
             logger.error(f"Error fetching Copper/Gold Ratio data: {str(e)}")
-            raise
+            # Return empty data structure instead of raising exception
+            return {
+                'data': pd.DataFrame(columns=['Date', 'ratio', 'yield']),
+                'latest_ratio': 'N/A',
+                'latest_yield': 'N/A'
+            }
     
     def get_all_indicators(self):
         """
