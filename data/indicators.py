@@ -638,37 +638,25 @@ class IndicatorData:
             # Initialize Yahoo client for commodity data
             yahoo_client = YahooClient()
 
-            # Fetch Copper data (using FCX as alternative to HG=F which may not be available)
+            # Fetch Copper data using HG=F ticker only
+            copper_df = None
             try:
-                copper_df = yahoo_client.get_historical_prices(ticker='FCX', periods=periods, frequency='1d')
+                copper_df = yahoo_client.get_historical_prices(ticker='HG=F', periods=periods, frequency='1d')
                 copper_df = copper_df.rename(columns={'value': 'copper'})
-                logger.info("Successfully fetched copper data using FCX ticker")
+                logger.info("Successfully fetched copper data using HG=F ticker")
             except Exception as e:
-                logger.warning(f"Failed to fetch copper data with FCX ticker: {e}")
-                # Try alternative copper tickers
-                alternative_tickers = ['CPER', 'JJC', 'SCCO']
-                copper_df = None
-                for alt_ticker in alternative_tickers:
-                    try:
-                        copper_df = yahoo_client.get_historical_prices(ticker=alt_ticker, periods=periods, frequency='1d')
-                        copper_df = copper_df.rename(columns={'value': 'copper'})
-                        logger.info(f"Successfully fetched copper data using {alt_ticker} ticker")
-                        break
-                    except Exception as alt_e:
-                        logger.warning(f"Failed to fetch copper data with {alt_ticker} ticker: {alt_e}")
-                        continue
+                logger.error(f"Failed to fetch copper data with HG=F ticker: {e}")
+                raise ValueError("Unable to fetch copper data from HG=F")
 
-                if copper_df is None:
-                    raise ValueError("Unable to fetch copper data from any available ticker")
-
-            # Fetch Gold COMEX data
+            # Fetch Gold COMEX data using GC=F ticker only
+            gold_df = None
             try:
                 gold_df = yahoo_client.get_historical_prices(ticker='GC=F', periods=periods, frequency='1d')
                 gold_df = gold_df.rename(columns={'value': 'gold'})
-                logger.info("Successfully fetched gold data")
+                logger.info("Successfully fetched gold data using GC=F ticker")
             except Exception as e:
-                logger.error(f"Failed to fetch gold data: {e}")
-                raise ValueError("Unable to fetch gold data - this is required for copper/gold ratio")
+                logger.error(f"Failed to fetch gold data with GC=F ticker: {e}")
+                raise ValueError("Unable to fetch gold data from GC=F")
 
             # Fetch US 10-year Treasury yield data
             try:

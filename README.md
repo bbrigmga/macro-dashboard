@@ -1,41 +1,57 @@
 # Macro Economic Indicators Dashboard
 
-A Streamlit dashboard that tracks and visualizes key macro economic indicators including Average Weekly Hours, Core CPI, Initial Jobless Claims, PCE (Personal Consumption Expenditures), and Manufacturing PMI Proxy. The dashboard provides real-time data visualization, warning signals, and interpretation guidelines for each indicator.
+A Streamlit dashboard that tracks and visualizes key macro economic indicators to help forecast market conditions and economic trends. The dashboard displays 9 comprehensive indicators with real-time data from FRED (Federal Reserve Economic Data) and Yahoo Finance, providing interactive charts, warning signals, interpretation guidelines, and risk assessment frameworks.
 
 ## Features
 
-- Real-time data from FRED (Federal Reserve Economic Data)
-- Interactive charts for each economic indicator
-- Warning signals and interpretation guidelines
-- Danger combination detection
-- Defensive playbook recommendations
-- Core principles for market analysis
-- Summary table with current status of all indicators
+- Real-time data from FRED (Federal Reserve Economic Data) and Yahoo Finance
+- Interactive charts for 9 comprehensive economic indicators
+- Warning signals and interpretation guidelines for each indicator
+- Danger combination detection with risk assessment framework
+- Defensive playbook recommendations based on indicator combinations
+- Core principles for disciplined market analysis
+- Summary table with current status and positioning guidance
+- Release schedule tracking for data updates
+- Modern finance-themed UI with responsive design
 
 ## Code Structure
 
-The codebase follows a modular architecture for better maintainability:
+The codebase follows a modular architecture for better maintainability and scalability:
 
 ```
 macro_dashboard/
-├── app.py                  # Main application entry point
-├── requirements.txt        # Dependencies
-├── .env.example            # Example environment variables
-├── README.md               # Documentation
-├── data/                   # Data handling modules
+├── app.py                          # Main Streamlit application entry point
+├── requirements.txt                # Python dependencies
+├── .env.example                    # Example environment variables template
+├── README.md                       # Project documentation
+├── .gitignore                      # Git ignore rules
+├── Macro Dashboard.code-workspace  # VS Code workspace configuration
+├── Dockerfile                      # Docker container configuration
+├── .devcontainer/                  # Development container configuration
+│   └── devcontainer.json
+├── data/                           # Data handling and API client modules
 │   ├── __init__.py
-│   ├── fred_client.py      # FRED API client
-│   ├── indicators.py       # Data fetching for each indicator
-│   └── processing.py       # Data processing utilities
-├── visualization/          # Visualization modules
+│   ├── fred_client.py              # FRED API client with caching
+│   ├── yahoo_client.py             # Yahoo Finance API client
+│   ├── indicators.py               # Economic indicators data fetching and processing
+│   ├── processing.py               # Data processing utilities
+│   ├── pce_fix.py                  # PCE data processing fixes
+│   └── release_schedule.py         # Economic data release schedule tracking
+├── ui/                             # User interface components
 │   ├── __init__.py
-│   ├── charts.py           # Chart creation functions
-│   └── indicators.py       # Indicator-specific visualizations
-└── ui/                     # UI components
-    ├── __init__.py
-    ├── dashboard.py        # Main dashboard layout
-    ├── summary.py          # Summary section
-    └── indicators.py       # Individual indicator sections
+│   ├── dashboard.py                # Main dashboard layout and status tables
+│   ├── indicators.py               # Individual indicator card displays
+│   └── custom.css                  # Custom CSS styling
+├── visualization/                  # Chart and visualization modules
+│   ├── __init__.py
+│   ├── charts.py                   # Core chart creation functions and theming
+│   ├── indicators.py               # Indicator-specific chart functions
+│   └── warning_signals.py          # Warning signal generation and display
+├── fetch_copper.py                 # Script for fetching copper price data
+├── fetch_gold.py                   # Script for fetching gold price data
+├── calculate_copper_gold_ratio.py  # Copper/gold ratio calculation script
+├── create_copper_gold_yield_chart.py # Chart creation script
+└── copper_gold_yield_chart.html    # Generated HTML chart output
 ```
 
 ## Local Setup
@@ -46,24 +62,35 @@ git clone [your-repository-url]
 cd [repository-name]
 ```
 
-2. Install required packages:
+2. Set up a Python virtual environment (recommended):
+```bash
+python -m venv venv
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+# source venv/bin/activate
+```
+
+3. Install required packages:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Get a FRED API key:
-   - Go to https://fred.stlouisfed.org/docs/api/api_key.html
-   - Create a free account and request an API key
-   - Copy your API key
+4. Get a FRED API key:
+    - Go to https://fred.stlouisfed.org/docs/api/api_key.html
+    - Create a free account and request an API key
+    - Copy your API key
 
-4. Set up your environment:
-   - Copy `.env.example` to a new file named `.env`
-   - Replace `your_api_key_here` with your actual FRED API key
+5. Set up your environment:
+    - Copy `.env.example` to a new file named `.env`
+    - Replace `your_api_key_here` with your actual FRED API key
 
-5. Run the dashboard locally:
+6. Run the dashboard locally:
 ```bash
 streamlit run app.py
 ```
+
+**Note:** If you encounter issues installing pandas with Python 3.13, consider using Python 3.12 or conda for better package compatibility.
 
 ## Deployment on Streamlit Cloud
 
@@ -98,29 +125,49 @@ This dashboard can be deployed for free on Streamlit Cloud:
 ## Indicators Tracked
 
 1. **Average Weekly Hours**
-   - Hours worked in the private sector
-   - Warning signals for consecutive months of decline
-   - Part of the danger combination when declining
+    - Hours worked in the private sector
+    - Warning signals for consecutive months of decline
+    - Part of the danger combination when declining
 
 2. **Core CPI (Consumer Price Index Less Food and Energy)**
-   - Inflation excluding volatile food and energy prices
-   - Month-over-month change tracking
-   - Warning signals for accelerating inflation
+    - Inflation excluding volatile food and energy prices
+    - Month-over-month change tracking
+    - Warning signals for accelerating inflation
 
 3. **Initial Jobless Claims**
-   - Weekly unemployment claims data
-   - Warning signals for consecutive increases
-   - Part of the danger combination when rising
+    - Weekly unemployment claims data
+    - Warning signals for consecutive increases
+    - Part of the danger combination when rising
 
 4. **PCE (Personal Consumption Expenditures)**
-   - The Fed's preferred inflation measure
-   - Year-over-year change tracking
-   - Combined analysis with other indicators
+    - The Fed's preferred inflation measure
+    - Year-over-year change tracking
+    - Combined analysis with other indicators
 
 5. **Manufacturing PMI Proxy**
-   - Proxy for ISM Manufacturing PMI using FRED data
-   - Expansion/contraction threshold at 50
-   - Part of the danger combination when below 50
+    - Proxy for ISM Manufacturing PMI using FRED data
+    - Expansion/contraction threshold at 50
+    - Part of the danger combination when below 50
+
+6. **USD Liquidity**
+    - Federal Reserve balance sheet minus reverse repo and Treasury General Account
+    - Weekly data tracking liquidity conditions
+    - Key indicator of monetary policy stance
+
+7. **Non-Defense Durable Goods Orders**
+    - New orders for manufacturing capital goods
+    - Month-over-month percentage changes
+    - Leading indicator of business investment
+
+8. **2-10 Year Treasury Yield Spread**
+    - Difference between 10-year and 2-year Treasury yields
+    - Inverted spread signals potential recession risk
+    - Key yield curve indicator
+
+9. **Copper/Gold Ratio vs 10Y Treasury Yield**
+    - Ratio of copper to gold commodity prices
+    - Compared against 10-year Treasury yield
+    - Bullish sentiment indicator when ratio rises
 
 ### Manufacturing PMI Proxy Calculation
 
@@ -162,18 +209,25 @@ The dashboard tracks a specific combination of warning signals that indicate pot
 - Average Weekly Hours dropping for 3+ months
 
 ### Risk Framework
-The dashboard uses a simple framework for risk assessment:
-- PCE dropping + Stable jobs = Add risk
-- PCE rising + Rising claims = Get defensive
+The dashboard uses a comprehensive framework for risk assessment based on PCE and Initial Claims:
+- **Risk On**: PCE Bullish + Initial Claims Bullish/Neutral (favorable economic conditions)
+- **Risk Off**: PCE Bearish + Initial Claims Bearish (stressful economic conditions)
+- **Risk Neutral**: Mixed signals requiring caution
+
+Additional context from USD Liquidity, yield curve positioning, and commodity ratios helps refine risk assessment.
 
 ## Maintenance
 
-The dashboard automatically updates with new data as it becomes available:
+The dashboard automatically updates with new data as it becomes available from FRED and Yahoo Finance:
 - Initial Jobless Claims: Updated weekly (Thursday)
 - PCE: Updated monthly
 - Core CPI: Updated monthly
 - Average Weekly Hours: Updated monthly
-- Manufacturing PMI Proxy: Updated monthly (calculated from multiple indicators)
+- Manufacturing PMI Proxy: Updated monthly (calculated from multiple FRED indicators)
+- USD Liquidity: Updated weekly (calculated from Fed balance sheet data)
+- Non-Defense Durable Goods Orders: Updated monthly
+- 2-10 Year Treasury Yield Spread: Updated daily
+- Copper/Gold Ratio: Updated daily (from Yahoo Finance commodity data)
 
 ## Contributing
 
