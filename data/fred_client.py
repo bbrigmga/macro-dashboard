@@ -97,11 +97,45 @@ class FredClient:
             # Remove the oldest entry
             oldest_key = min(self.cache, key=lambda k: self.cache[k].get('timestamp', 0))
             del self.cache[oldest_key]
-        
+
         self.cache[cache_key] = {
             'data': df,
             'timestamp': time.time()
         }
+
+    def _get_cache_file_path(self, series_id: str) -> str:
+        """Get the cache file path for a FRED series."""
+        # Replace invalid filename characters
+        safe_id = series_id.replace('/', '_').replace('\\', '_').replace(':', '_')
+        return os.path.join('data', 'cache', f'{safe_id}.csv')
+
+    def _load_cached_data(self, series_id: str) -> pd.DataFrame:
+        """Load cached data for a FRED series if it exists."""
+        cache_file = self._get_cache_file_path(series_id)
+        if os.path.exists(cache_file):
+            try:
+                df = pd.read_csv(cache_file)
+                df['Date'] = pd.to_datetime(df['Date'])
+                logger.info(f"Loaded {len(df)} cached records for {series_id}")
+                return df
+            except Exception as e:
+                logger.warning(f"Failed to load cache for {series_id}: {e}")
+        return pd.DataFrame()
+
+    def _save_cached_data(self, series_id: str, df: pd.DataFrame) -> None:
+        """Save data to cache file."""
+        cache_file = self._get_cache_file_path(series_id)
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        df.to_csv(cache_file, index=False)
+        logger.info(f"Saved {len(df)} records to cache for {series_id}")
+
+    def _is_cache_fresh(self, series_id: str, max_age_hours: int = 24) -> bool:
+        """Check if the cached data for a series is fresh (within max_age_hours)."""
+        cache_file = self._get_cache_file_path(series_id)
+        if not os.path.exists(cache_file):
+            return False
+        file_age_hours = (time.time() - os.path.getmtime(cache_file)) / 3600
+        return file_age_hours < max_age_hours
     
     @retry_with_backoff(max_retries=3, initial_backoff=2, backoff_factor=2)
     def get_series(self, series_id: str, start_date: Optional[str] = None, 
@@ -127,16 +161,78 @@ class FredClient:
         # Calculate start_date based on periods if not provided
         if start_date is None and periods is not None:
             end = datetime.now() if end_date is None else datetime.strptime(end_date, '%Y-%m-%d')
-            
+
             if frequency == 'D':
                 start = end - timedelta(days=periods + 10)  # Add buffer
             elif frequency == 'W':
                 start = end - timedelta(weeks=periods + 2)  # Add buffer
             else:  # Monthly
                 start = end - timedelta(days=(periods + 2) * 30)  # Add buffer
-                
+
             start_date = start.strftime('%Y-%m-%d')
-        
+
+        # Check persistent cache
+        if self.cache_enabled and self._is_cache_fresh(series_id):
+            cached_df = self._load_cached_data(series_id)
+            if not cached_df.empty:
+                cached_start = cached_df['Date'].min()
+                cached_end = cached_df['Date'].max()
+                requested_start = pd.to_datetime(start_date) if start_date else cached_start
+                requested_end = pd.to_datetime(end_date) if end_date else datetime.now()
+
+                # If cache covers the requested period
+                if cached_start <= requested_start and cached_end >= requested_end:
+                    logger.info(f"Using cached data for {series_id}")
+                    # Filter to requested period
+                    filtered_df = cached_df[(cached_df['Date'] >= requested_start) & (cached_df['Date'] <= requested_end)].copy()
+                    # Ensure correct column names
+                    if len(filtered_df.columns) == 2:
+                        filtered_df.columns = ['Date', series_id]
+                    # Manage in-memory cache
+                    cache_key = f"series:{series_id}:{start_date}:{end_date}:{periods}:{frequency}"
+                    if self.cache_enabled:
+                        self._manage_cache(cache_key, filtered_df.copy())
+                    return filtered_df
+
+                # If cache is missing recent data, fetch incremental
+                elif cached_end < requested_end:
+                    logger.info(f"Fetching incremental data for {series_id} from {(cached_end + timedelta(days=1)).date()} to {requested_end.date()}")
+                    try:
+                        new_start_date = (cached_end + timedelta(days=1)).strftime('%Y-%m-%d')
+                        new_series = self.fred.get_series(
+                            series_id,
+                            observation_start=new_start_date,
+                            observation_end=end_date
+                        )
+                        if not new_series.empty:
+                            new_df = pd.DataFrame(new_series, columns=['Value']).reset_index()
+                            new_df.columns = ['Date', series_id]
+                            new_df['Date'] = pd.to_datetime(new_df['Date'])
+                            # Merge with cached
+                            combined_df = pd.concat([cached_df, new_df], ignore_index=True)
+                            combined_df = combined_df.drop_duplicates(subset='Date', keep='last')
+                            combined_df = combined_df.sort_values('Date').reset_index(drop=True)
+                            # Save updated cache
+                            self._save_cached_data(series_id, combined_df)
+                            # Filter to requested period
+                            filtered_df = combined_df[(combined_df['Date'] >= requested_start) & (combined_df['Date'] <= requested_end)].copy()
+                            # Manage in-memory cache
+                            cache_key = f"series:{series_id}:{start_date}:{end_date}:{periods}:{frequency}"
+                            if self.cache_enabled:
+                                self._manage_cache(cache_key, filtered_df.copy())
+                            return filtered_df
+                    except Exception as e:
+                        logger.warning(f"Failed to fetch incremental data for {series_id}: {e}")
+                        # Fall back to using available cached data
+                        if cached_start <= requested_start:
+                            filtered_df = cached_df[(cached_df['Date'] >= requested_start)].copy()
+                            if len(filtered_df.columns) == 2:
+                                filtered_df.columns = ['Date', series_id]
+                            cache_key = f"series:{series_id}:{start_date}:{end_date}:{periods}:{frequency}"
+                            if self.cache_enabled:
+                                self._manage_cache(cache_key, filtered_df.copy())
+                            return filtered_df
+
         # Deterministic cache key
         cache_key = f"series:{series_id}:{start_date}:{end_date}:{periods}:{frequency}"
         if self.cache_enabled and cache_key in self.cache:
@@ -176,6 +272,7 @@ class FredClient:
             # Write to cache
             if self.cache_enabled:
                 self._manage_cache(cache_key, df.copy())
+                self._save_cached_data(series_id, df.copy())
             return df
             
         except Exception as e:

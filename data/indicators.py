@@ -645,8 +645,8 @@ class IndicatorData:
                 copper_df = copper_df.rename(columns={'value': 'copper'})
                 logger.info("Successfully fetched copper data using HG=F ticker")
             except Exception as e:
-                logger.error(f"Failed to fetch copper data with HG=F ticker: {e}")
-                raise ValueError("Unable to fetch copper data from HG=F")
+                logger.warning(f"Failed to fetch copper data with HG=F ticker: {e}")
+                # Don't raise, return empty data instead
 
             # Fetch Gold COMEX data using GC=F ticker only
             gold_df = None
@@ -655,8 +655,8 @@ class IndicatorData:
                 gold_df = gold_df.rename(columns={'value': 'gold'})
                 logger.info("Successfully fetched gold data using GC=F ticker")
             except Exception as e:
-                logger.error(f"Failed to fetch gold data with GC=F ticker: {e}")
-                raise ValueError("Unable to fetch gold data from GC=F")
+                logger.warning(f"Failed to fetch gold data with GC=F ticker: {e}")
+                # Don't raise, return empty data instead
 
             # Fetch US 10-year Treasury yield data
             try:
