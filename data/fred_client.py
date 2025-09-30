@@ -166,7 +166,11 @@ class FredClient:
                 start = end - timedelta(days=periods + 10)  # Add buffer
             elif frequency == 'W':
                 start = end - timedelta(weeks=periods + 2)  # Add buffer
-            else:  # Monthly
+            elif frequency == 'M':
+                start = end - timedelta(days=(periods + 2) * 30)  # Add buffer
+            elif frequency == 'Q':
+                start = end - timedelta(days=(periods + 2) * 91)  # Add buffer, ~91 days per quarter
+            else:  # Default to monthly
                 start = end - timedelta(days=(periods + 2) * 30)  # Add buffer
 
             start_date = start.strftime('%Y-%m-%d')

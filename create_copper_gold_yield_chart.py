@@ -4,9 +4,18 @@ Script to create a dual-axis chart for Copper/Gold Ratio versus US 10-year Treas
 """
 import sys
 import os
-sys.path.append(os.path.dirname(__file__))
+from pathlib import Path
 
-from visualization.charts import THEME, apply_dark_theme
+# Add the project root to Python path for proper imports
+project_root = Path(__file__).parent
+sys.path.insert(0, str(project_root))
+
+try:
+    from visualization.charts import THEME, apply_dark_theme
+except ImportError as e:
+    print(f"Import error: {e}")
+    print("Please ensure you're running this script from the project root directory")
+    sys.exit(1)
 import pandas as pd
 import plotly.graph_objects as go
 import numpy as np

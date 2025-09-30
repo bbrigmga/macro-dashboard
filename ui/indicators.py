@@ -336,46 +336,45 @@ def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
         
         # Expandable details section
         with st.expander("View Details"):
-            st.write("USD Liquidity is calculated as: Fed Balance Sheet - Reverse Repo - Treasury General Account")
-            
+            st.write("USD Liquidity is calculated as: (Fed Balance Sheet - Reverse Repo - Treasury General Account - Currency in Circulation + Tariff Receipts) / GDP")
+            st.write("Tariff receipts are added back as they represent inflows that are parked in the Treasury General Account but are not a real drain on liquidity like taxes.")
+
             # Display the actual values used in the calculation
             if 'details' in usd_liquidity_data:
                 # Get the values from the details dictionary
                 walcl = usd_liquidity_data['details'].get('WALCL', 0)
                 rrponttld = usd_liquidity_data['details'].get('RRPONTTLD', 0)
                 wtregen = usd_liquidity_data['details'].get('WTREGEN', 0)
-                
+                currcir = usd_liquidity_data['details'].get('CURRCIR', 0)
+                gdpc1 = usd_liquidity_data['details'].get('GDPC1', 1)
+                tariff_flow = usd_liquidity_data['details'].get('Tariff_Flow', 0)
+
                 # Check for NaN values and replace with zeros
                 import numpy as np
                 walcl = 0 if np.isnan(walcl) else walcl
                 rrponttld = 0 if np.isnan(rrponttld) else rrponttld
                 wtregen = 0 if np.isnan(wtregen) else wtregen
-                
+                currcir = 0 if np.isnan(currcir) else currcir
+                gdpc1 = 1 if np.isnan(gdpc1) or gdpc1 == 0 else gdpc1
+
                 # Format the values for display
-                if walcl >= 1000000:
-                    walcl_formatted = f"{walcl/1000000:.2f}T"  # Convert millions to trillions
-                elif walcl >= 1000:
-                    walcl_formatted = f"{walcl/1000:.2f}B"  # Billions
-                else:
-                    walcl_formatted = f"{walcl:,.0f}M"  # Millions
-                
-                # RRPONTTLD and WTREGEN are already in billions, but we'll convert to display format
-                rrponttld_formatted = f"{rrponttld:.2f}B"  # Billions
-                wtregen_formatted = f"{wtregen:.2f}B"  # Billions
-                
-                # Calculate the result (should match current_liquidity)
-                # WALCL is in millions, RRPONTTLD and WTREGEN are in billions
-                result = walcl - (rrponttld * 1000) - (wtregen * 1000)
-                if result >= 1000000:
-                    result_formatted = f"{result/1000000:.2f}T"  # Trillions
-                elif result >= 1000:
-                    result_formatted = f"{result/1000:.2f}B"  # Billions
-                else:
-                    result_formatted = f"{result:,.0f}M"  # Millions
-                
-                # Format WALCL (which is in millions) to trillions for display
-                walcl_formatted = f"{walcl/1000000:.2f}T"  # Convert millions to trillions
-                
+                walcl_formatted = f"{walcl/1000000:.2f}T"  # WALCL in millions, display as trillions
+                rrponttld_formatted = f"{rrponttld:.2f}B"  # RRPONTTLD in billions
+                wtregen_formatted = f"{wtregen:.2f}B"  # WTREGEN in billions
+                currcir_formatted = f"{currcir:.2f}B"  # CURRCIR in billions
+                gdpc1_formatted = f"{gdpc1:.2f}T"  # GDPC1 in billions, display as trillions
+
+                # Calculate the intermediate result before GDP division
+                intermediate = walcl - (rrponttld * 1000) - (wtregen * 1000) - currcir + (tariff_flow * 1000)
+                intermediate_formatted = f"{intermediate/1000000:.2f}T"  # Display as trillions
+
+                # Calculate the final result (should match current_liquidity)
+                final_result = (intermediate / gdpc1) / 1000  # Divide by GDP and by 1000 to get % of GDP
+                final_formatted = f"{final_result:.2f}"
+
+                # Format tariff flow
+                tariff_flow_formatted = f"{tariff_flow:.2f}B"  # Tariff flow in billions
+
                 # Display the calculation with actual values
                 st.markdown("""
                 <div style='background-color: #f5f5f5; padding: 10px; border-radius: 5px;'>
@@ -383,9 +382,14 @@ def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
                 Fed Balance Sheet: {} <br>
                 - Reverse Repo: {} <br>
                 - Treasury General Account: {} <br>
-                = USD Liquidity: {}
+                - Currency in Circulation: {} <br>
+                + Tariff Receipts: {} <br>
+                = Pre-GDP Adjustment: {} <br>
+                ÷ GDP: {} <br>
+                = USD Liquidity (% of GDP): {}
                 </div>
-                """.format(walcl_formatted, rrponttld_formatted, wtregen_formatted, result_formatted), 
+                """.format(walcl_formatted, rrponttld_formatted, wtregen_formatted, currcir_formatted, tariff_flow_formatted,
+                          intermediate_formatted, gdpc1_formatted, final_formatted),
                 unsafe_allow_html=True)
             
             st.markdown("""
@@ -393,6 +397,9 @@ def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
             [WALCL](https://fred.stlouisfed.org/series/WALCL) - Fed Balance Sheet (millions),
             [RRPONTTLD](https://fred.stlouisfed.org/series/RRPONTTLD) - Reverse Repo (billions),
             [WTREGEN](https://fred.stlouisfed.org/series/WTREGEN) - Treasury General Account (billions),
+            [CURRCIR](https://fred.stlouisfed.org/series/CURRCIR) - Currency in Circulation (billions),
+            [B235RC1Q027SBEA](https://fred.stlouisfed.org/series/B235RC1Q027SBEA) - Tariff Receipts (billions, SAAR),
+            [GDPC1](https://fred.stlouisfed.org/series/GDPC1) - Real Gross Domestic Product (billions),
             [SP500](https://fred.stlouisfed.org/series/SP500) - S&P 500 Index
             """)
             

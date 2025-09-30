@@ -294,14 +294,14 @@ def create_pmi_chart(pmi_data, periods=18):
     return fig
 
 
-def create_usd_liquidity_chart(usd_liquidity_data, periods=36):
+def create_usd_liquidity_chart(usd_liquidity_data, periods=120):
     """
-    Create a chart for USD Liquidity data and S&P 500 (both weekly).
-    
+    Create a chart for USD Liquidity data and S&P 500 (quarterly).
+
     Args:
-        usd_liquidity_data (dict): Dictionary containing 'weekly_data' DataFrame.
-        periods (int, optional): Number of *months* of history to display (used to calculate weeks).
-        
+        usd_liquidity_data (dict): Dictionary containing 'data' DataFrame.
+        periods (int, optional): Number of *months* of history to display (used to calculate quarters).
+
     Returns:
         go.Figure: Plotly figure object
     """
@@ -310,40 +310,40 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):
     from datetime import datetime
 
     # Extract data
-    weekly_data = usd_liquidity_data.get('weekly_data')
+    quarterly_data = usd_liquidity_data.get('data')
     sp500_data = usd_liquidity_data.get('sp500_data')  # Explicitly get SP500 data
-    num_weeks = periods * 4 + 4 # Approx weeks to display based on months
+    num_quarters = periods // 3 + 1 # Approx quarters to display based on months
 
     # Basic validation
-    if weekly_data is None or weekly_data.empty:
+    if quarterly_data is None or quarterly_data.empty:
         fig = go.Figure()
-        fig.update_layout(title="Weekly Liquidity/S&P 500 Data Not Available")
+        fig.update_layout(title="Quarterly Liquidity/S&P 500 Data Not Available")
         return apply_dark_theme(fig)
-        
-    # Prepare weekly data
-    plot_data = weekly_data.tail(num_weeks).copy()
+
+    # Prepare quarterly data
+    plot_data = quarterly_data.tail(num_quarters).copy()
     plot_data['Date'] = pd.to_datetime(plot_data['Date']) # Ensure datetime type
     plot_data = plot_data.sort_values('Date')
     
-    # Check if SP500 column exists in weekly_data
-    has_sp500_in_weekly = 'SP500' in plot_data.columns
-    
-    # If SP500 is not in weekly_data but we have sp500_data, merge it in
-    if not has_sp500_in_weekly and sp500_data is not None and not sp500_data.empty:
-        sp500_plot_data = sp500_data.tail(num_weeks).copy()
+    # Check if SP500 column exists in quarterly_data
+    has_sp500_in_quarterly = 'SP500' in plot_data.columns
+
+    # If SP500 is not in quarterly_data but we have sp500_data, merge it in
+    if not has_sp500_in_quarterly and sp500_data is not None and not sp500_data.empty:
+        sp500_plot_data = sp500_data.tail(num_quarters).copy()
         sp500_plot_data['Date'] = pd.to_datetime(sp500_plot_data['Date'])
         plot_data = pd.merge(plot_data, sp500_plot_data, on='Date', how='left')
         has_sp500 = True
     else:
-        has_sp500 = has_sp500_in_weekly
-    
-    # Fill any null values (use ffill for weekly data)
+        has_sp500 = has_sp500_in_quarterly
+
+    # Fill any null values (use ffill for quarterly data)
     plot_data['USD_Liquidity'] = plot_data['USD_Liquidity'].ffill()
     if has_sp500:
         plot_data['SP500'] = plot_data['SP500'].ffill()
-    
-    # Convert to trillions
-    plot_data['USD_Liquidity_T'] = plot_data['USD_Liquidity'] / 1000000
+
+    # Data is already in trillions
+    plot_data['USD_Liquidity_T'] = plot_data['USD_Liquidity']
     
     # Get the current liquidity value from the header calculation
     current_liquidity = usd_liquidity_data.get('current_liquidity', None)
@@ -351,22 +351,22 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):
     # Create a figure with two y-axes
     fig = go.Figure()
     
-    # Add USD Liquidity trace (Weekly)
+    # Add USD Liquidity trace (Quarterly)
     fig.add_trace(go.Scatter(
-        x=plot_data['Date'].tolist(), 
+        x=plot_data['Date'].tolist(),
         y=plot_data['USD_Liquidity_T'].tolist(),
-        name='USD Liquidity (Weekly)',
+        name='USD Liquidity (Quarterly)',
         line=dict(color=THEME['line_colors']['success'], width=2)
     ))
-    
-    # Add the latest calculated value as a special point if it exists and differs from the last weekly value
+
+    # Add the latest calculated value as a special point if it exists and differs from the last quarterly value
     if current_liquidity is not None:
-        current_liquidity_t = current_liquidity / 1000000  # Convert to trillions
+        current_liquidity_t = current_liquidity  # Already in trillions
         last_date = plot_data['Date'].iloc[-1]
-        
-        # Check if the current value differs significantly from the last weekly value
-        last_weekly_value_t = plot_data['USD_Liquidity_T'].iloc[-1]
-        if abs(current_liquidity_t - last_weekly_value_t) > 0.01:  # If difference is more than 0.01T
+
+        # Check if the current value differs significantly from the last quarterly value
+        last_quarterly_value_t = plot_data['USD_Liquidity_T'].iloc[-1]
+        if abs(current_liquidity_t - last_quarterly_value_t) > 0.01:  # If difference is more than 0.01T
             # Add a special point for the latest calculated value
             fig.add_trace(go.Scatter(
                 x=[last_date],
@@ -376,20 +376,20 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):
                 name='Latest USD Liquidity',
                 hovertemplate='%{x|%b %y}: %{y:.2f}T<extra></extra>'
             ))
-    
-    # Add S&P 500 trace (Weekly)
+
+    # Add S&P 500 trace (Quarterly)
     if has_sp500 and not plot_data['SP500'].isnull().all():
         fig.add_trace(go.Scatter(
-            x=plot_data['Date'].tolist(), 
-            y=plot_data['SP500'].tolist(), 
-            name='S&P 500 (Weekly)',
+            x=plot_data['Date'].tolist(),
+            y=plot_data['SP500'].tolist(),
+            name='S&P 500 (Quarterly)',
             line=dict(color=THEME['line_colors']['primary'], width=1.5),
             yaxis='y2'
         ))
     
     # Determine dynamic ranges for axes
-    liquidity_min = 5.7 # Keep floor for liquidity
-    liquidity_max = plot_data['USD_Liquidity_T'].max() * 1.05 if not plot_data.empty else 10
+    liquidity_min = max(0, plot_data['USD_Liquidity_T'].min() * 0.95) if not plot_data.empty else 0
+    liquidity_max = plot_data['USD_Liquidity_T'].max() * 1.05 if not plot_data.empty else 25
     sp500_min = 3200 # Keep floor for SP500
     sp500_max = plot_data['SP500'].max() * 1.05 if 'SP500' in plot_data.columns and not plot_data['SP500'].isnull().all() else 5000
 
@@ -398,12 +398,12 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):
     # Update layout for dual y-axes - Use date type for x-axis
     fig.update_layout(
         title=dict(
-            text='USD Liquidity & S&P 500 (Weekly)',
+            text='USD Liquidity & S&P 500 (Quarterly)',
             font=dict(size=14)
         ),
         yaxis=dict(
             title=dict(
-                text="Trillions USD",
+                text="Liquidity (% of GDP)",
                 font=dict(size=10, color=THEME['line_colors']['success'])
             ),
             tickfont=dict(size=9),
@@ -415,7 +415,7 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=36):
             tickangle=-45, # Angle ticks for better readability
             tickfont=dict(size=9),
             type='date', # Use date type now that frequency is consistent
-            dtick="M1", # Show ticks every 1 month for clarity on weekly data
+            dtick="M3", # Show ticks every 3 months for quarterly data
             tickformat="%b '%y" # Format as 'Jan '23'
         ),
         showlegend=True,

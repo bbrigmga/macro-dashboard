@@ -4,9 +4,18 @@ Script to fetch US 10-year Treasury yield data using FredClient and process the 
 """
 import sys
 import os
-sys.path.append(os.path.dirname(__file__))
+from pathlib import Path
 
-from dotenv import load_dotenv
+# Add the project root to Python path for proper imports
+project_root = Path(__file__).parent
+sys.path.insert(0, str(project_root))
+
+try:
+    from dotenv import load_dotenv
+except ImportError as e:
+    print(f"Import error: {e}")
+    print("Please ensure python-dotenv is installed and you're running from project root")
+    sys.exit(1)
 load_dotenv()  # Load environment variables from .env file
 
 from data.fred_client import FredClient

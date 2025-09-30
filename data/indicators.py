@@ -37,15 +37,19 @@ def generate_sample_dates(periods, frequency='M'):
 
 class IndicatorData:
     """Class for fetching and processing economic indicators."""
-    
-    def __init__(self, fred_client=None):
+
+    def __init__(self, fred_client=None, use_sample_data=False):
         """
         Initialize the indicator data handler.
-        
+
         Args:
             fred_client (FredClient, optional): FRED API client. If None, a new client will be created.
+            use_sample_data (bool, optional): Whether to use sample data instead of FRED API.
         """
-        self.fred_client = fred_client if fred_client else FredClient()
+        if use_sample_data:
+            self.fred_client = None
+        else:
+            self.fred_client = fred_client if fred_client else FredClient()
     
     @st.cache_data(ttl=3600) # Cache for 1 hour
     def get_initial_claims(_self, periods=52):
@@ -362,56 +366,188 @@ class IndicatorData:
             'component_weights': adjusted_weights # Add weights back
         }
     
+    def get_usd_liquidity(_self, periods=120, use_sample_data=False):
+        if not use_sample_data:
+            # Only cache for real data
+            result = _self._get_usd_liquidity_cached(periods, use_sample_data)
+        else:
+            # For sample data, don't cache
+            result = _self._get_usd_liquidity_impl(periods, use_sample_data)
+
+        # Export CSV every time the app runs, even with cached data
+        try:
+            csv_data = result['all_series'].copy()
+            csv_data['Date'] = csv_data['Date'].dt.strftime('%Y-%m-%d')
+            filename = 'usd_liquidity_data_sample.csv' if use_sample_data else 'usd_liquidity_data.csv'
+            csv_data.to_csv(filename, index=False)
+            print(f"Exported USD liquidity data to {filename}")
+        except Exception as e:
+            print(f"Failed to export data to CSV: {e}")
+
+        return result
+
     @st.cache_data(ttl=3600*24) # Cache for 24 hours
-    def get_usd_liquidity(_self, periods=36):
+    def _get_usd_liquidity_cached(_self, periods=120, use_sample_data=False):
+        return _self._get_usd_liquidity_impl(periods, use_sample_data)
+
+    def _get_usd_liquidity_impl(_self, periods=120, use_sample_data=False):
         """
-        Get USD Liquidity data and S&P 500 data (both weekly).
-        
+        Get USD Liquidity data and S&P 500 data (quarterly).
+
         Args:
-            periods (int, optional): Number of *months* of history to fetch (converted to weeks).
-            
+            periods (int, optional): Number of *months* of history to fetch (converted to quarters).
+
         Returns:
-            dict: Dictionary containing weekly liquidity and S&P 500 data, and analysis.
+            dict: Dictionary containing quarterly liquidity and S&P 500 data, and analysis.
         """
         try:
-            # Convert periods (months) to approximate weeks
-            num_weeks = periods * 4 + 4 # Add a buffer
-            
-            # --- Fetch Weekly Liquidity Components & SP500 --- 
-            # Fetch WALCL and RRPONTTLD together
-            series_ids = ['WALCL', 'RRPONTTLD']
-            
+            if use_sample_data:
+                # Generate sample quarterly data for testing
+                import numpy as np
+                dates = pd.date_range(end=pd.Timestamp.now(), periods=20, freq='Q')
+                np.random.seed(42)  # For reproducible results
+                sample_data = []
+                base_liquidity = 3.5  # Base liquidity in trillions
+                base_gdp = 22000  # Base GDP
+                for i, date in enumerate(dates):
+                    # Simulate some trend and volatility
+                    trend = i * 0.02  # Slight upward trend
+                    noise = np.random.normal(0, 0.1)
+                    liquidity = base_liquidity + trend + noise
+                    # Simulate missing GDP for the last 2 quarters (most recent)
+                    gdp_value = base_gdp + i * 200 + np.random.normal(0, 500) if i < len(dates) - 2 else np.nan
+                    sample_data.append({
+                        'Date': date,
+                        'WALCL': 7200000 + i * 100000,  # Sample WALCL
+                        'RRPONTTLD': 500 - i * 10,  # Sample RRP
+                        'WTREGEN': 800 + i * 20,  # Sample TGA
+                        'CURRCIR': 2300 + i * 50,  # Sample CURRCIR
+                        'GDPC1': gdp_value,  # GDP with missing recent values
+                        'USD_Liquidity': max(0, liquidity),  # Ensure non-negative
+                        'USD_Liquidity_QoQ': np.random.normal(0, 2),  # Random QoQ change
+                        'SP500': 4500 + i * 50 + np.random.normal(0, 100)  # S&P 500 around 4500-5500
+                    })
+                quarterly_data = pd.DataFrame(sample_data)
+                sp500_data = quarterly_data[['Date', 'SP500']].copy()
+                current_liquidity = quarterly_data['USD_Liquidity'].iloc[-1]
+                current_liquidity_qoq = quarterly_data['USD_Liquidity_QoQ'].iloc[-1]
+                liquidity_increasing = quarterly_data['USD_Liquidity'].iloc[-1] > quarterly_data['USD_Liquidity'].iloc[-2] > quarterly_data['USD_Liquidity'].iloc[-3]
+                liquidity_decreasing = quarterly_data['USD_Liquidity'].iloc[-1] < quarterly_data['USD_Liquidity'].iloc[-2] < quarterly_data['USD_Liquidity'].iloc[-3]
+                details = {
+                    'WALCL': 7200000,  # Sample values
+                    'RRPONTTLD': 500,
+                    'WTREGEN': 800,
+                    'CURRCIR': 2300,
+                    'GDPC1': 22000
+                }
+
+                return {
+                    'data': quarterly_data,
+                    'all_series': quarterly_data,  # For sample data, quarterly_data has all components
+                    'sp500_data': sp500_data,
+                    'current_liquidity': current_liquidity,
+                    'current_liquidity_qoq': current_liquidity_qoq,
+                    'liquidity_increasing': liquidity_increasing,
+                    'liquidity_decreasing': liquidity_decreasing,
+                    'details': details
+                }
+
+            # Convert periods (months) to quarters
+            num_quarters = periods // 3 + 1 # Add a buffer
+
+            # --- Fetch Quarterly Liquidity Components & SP500 ---
+            # Fetch WALCL, RRPONTTLD together
+            series_ids = ['WALCL', 'RRPONTTLD', 'B235RC1Q027SBEA']
+
             all_series = _self.fred_client.get_multiple_series(
                 series_ids,
-                periods=num_weeks, # Use calculated weeks
-                frequency='W' # Explicitly Weekly
+                periods=num_quarters, # Use calculated quarters
+                frequency='Q' # Quarterly
             )
+
+            # Add quarter column for merging
+            all_series['Quarter'] = all_series['Date'].dt.to_period('Q')
+
+            # Fetch CURRCIR separately to ensure we get historical data
+            # Temporarily disable cache to force fresh historical data
+            original_cache = _self.fred_client.cache_enabled
+            _self.fred_client.cache_enabled = False
+            try:
+                currcir_data = _self.fred_client.get_series('CURRCIR', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
+            finally:
+                _self.fred_client.cache_enabled = original_cache
+
+            if not currcir_data.empty:
+                currcir_data['Quarter'] = currcir_data['Date'].dt.to_period('Q')
+                all_series = pd.merge(all_series, currcir_data[['Quarter', 'CURRCIR']], on='Quarter', how='left')
+
+            # Fetch GDPC1 separately with explicit start_date to ensure we get historical data
+            # Temporarily disable cache to force fresh data
+            original_cache = _self.fred_client.cache_enabled
+            _self.fred_client.cache_enabled = False
+            try:
+                gdp_data = _self.fred_client.get_series('GDPC1', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
+            finally:
+                _self.fred_client.cache_enabled = original_cache
+
+            if not gdp_data.empty:
+                # Save GDPC1 data for debugging
+                gdp_debug = gdp_data.copy()
+                gdp_debug['Date'] = gdp_debug['Date'].dt.strftime('%Y-%m-%d')
+                gdp_debug.to_csv('gdp_debug.csv', index=False)
+
+                # Debug: save all_series dates before merge
+                dates_debug = all_series[['Date']].copy()
+                dates_debug['Date'] = dates_debug['Date'].dt.strftime('%Y-%m-%d')
+                dates_debug.to_csv('dates_debug.csv', index=False)
+
+                gdp_data['Quarter'] = gdp_data['Date'].dt.to_period('Q')
+
+                all_series = pd.merge(all_series, gdp_data[['Quarter', 'GDPC1']], on='Quarter', how='left')
+
+                # Debug: save merged data
+                merged_debug = all_series[['Date', 'GDPC1']].copy()
+                merged_debug['Date'] = merged_debug['Date'].dt.strftime('%Y-%m-%d')
+                merged_debug.to_csv('merged_debug.csv', index=False)
             
             # Fetch WTREGEN data separately to ensure we get the latest value
             # This is a critical component of the USD Liquidity calculation
             wtregen_fetched = False
             wtregen_latest_value = None
-            
+
             try:
                 # First try to get the latest value directly
                 wtregen_info = _self.fred_client.fred.get_series_info('WTREGEN')
                 if wtregen_info is not None:
                     logger.info(f"Got WTREGEN series info: Last updated {wtregen_info.get('last_updated', 'unknown')}")
-                
-                # Now fetch the actual data series
-                wtregen_data = _self.fred_client.get_series('WTREGEN', periods=num_weeks, frequency='W')
-                
+
+                # Now fetch the actual data series as weekly (since it releases Wednesdays)
+                wtregen_data = _self.fred_client.get_series('WTREGEN', periods=num_quarters * 13, frequency='W')  # ~13 weeks per quarter
+
                 if not wtregen_data.empty:
                     logger.info(f"Successfully fetched WTREGEN data with {len(wtregen_data)} rows")
-                    
-                    # Get the latest value from the data
+
+                    # Forward fill any gaps in weekly WTREGEN data, then resample to quarterly
+                    wtregen_data.set_index('Date', inplace=True)
+                    wtregen_data = wtregen_data.ffill()  # Fill any missing weeks with last known value
+                    wtregen_data = wtregen_data.resample('Q').last()  # Take last value of each quarter
+                    wtregen_data.reset_index(inplace=True)
+
+                    # Add Quarter column for merging
+                    wtregen_data['Quarter'] = wtregen_data['Date'].dt.to_period('Q')
+
+                    # Get the latest value from the resampled data
                     if len(wtregen_data) > 0:
                         wtregen_latest_value = wtregen_data.iloc[-1, 1]  # Get the value from the last row
                         latest_date = wtregen_data.iloc[-1, 0]  # Get the date from the last row
                         logger.info(f"Latest WTREGEN value from API: {wtregen_latest_value} billion as of {latest_date}")
-                    
-                    # Add to all_series
-                    all_series = pd.merge(all_series, wtregen_data, on='Date', how='left')
+
+                    # Add to all_series by merging on Quarter
+                    all_series = pd.merge(all_series, wtregen_data[['Quarter', 'WTREGEN']], on='Quarter', how='left')
+                    # Fill any NaN WTREGEN values with the latest available value (not forward fill from previous quarters)
+                    if all_series['WTREGEN'].isna().any():
+                        all_series['WTREGEN'] = all_series['WTREGEN'].fillna(wtregen_latest_value)
+                        logger.info(f"Filled {all_series['WTREGEN'].isna().sum()} missing WTREGEN values with latest value: {wtregen_latest_value}")
                     wtregen_fetched = True
             except Exception as e:
                 logger.error(f"Error fetching WTREGEN data: {str(e)}")
@@ -424,14 +560,49 @@ class IndicatorData:
             all_series = all_series.sort_values('Date').reset_index(drop=True)
             all_series['Date'] = pd.to_datetime(all_series['Date']) # Ensure Date is datetime
 
+            # Resample weekly data to quarterly frequency
+            all_series.set_index('Date', inplace=True)
+            # For stock variables like WALCL, RRPONTTLD, WTREGEN, CURRCIR, use end of quarter value
+            # For flow variables, might use sum, but since these are levels, use last
+            all_series = all_series.resample('Q').last()
+            all_series.reset_index(inplace=True)
+
+            # Handle missing GDP data: fetch latest GDPC1 separately to ensure we have the most recent
+            if not use_sample_data:
+                try:
+                    latest_gdp_data = _self.fred_client.get_series('GDPC1', periods=1, frequency='Q')  # Get latest
+                    if not latest_gdp_data.empty:
+                        latest_gdp_date = latest_gdp_data['Date'].iloc[-1]
+                        latest_gdp_value = latest_gdp_data['GDPC1'].iloc[-1]
+                        # Check if this is newer than what's in all_series
+                        if 'GDPC1' in all_series.columns and not all_series['GDPC1'].dropna().empty:
+                            last_gdp_date = all_series['Date'].iloc[-1] if all_series['GDPC1'].isna().iloc[-1] else all_series[all_series['GDPC1'].notna()]['Date'].iloc[-1]
+                            if latest_gdp_date > last_gdp_date:
+                                # Add the new GDP data point
+                                new_row = all_series.iloc[-1].copy()
+                                new_row['Date'] = latest_gdp_date
+                                new_row['GDPC1'] = latest_gdp_value
+                                # Fill other columns with last known values
+                                for col in ['WALCL', 'RRPONTTLD', 'WTREGEN', 'CURRCIR']:
+                                    if col in all_series.columns:
+                                        new_row[col] = all_series[col].fillna(method='ffill').iloc[-1]
+                                all_series = pd.concat([all_series, pd.DataFrame([new_row])], ignore_index=True)
+                                all_series = all_series.drop_duplicates(subset='Date', keep='last').sort_values('Date').reset_index(drop=True)
+                except Exception as e:
+                    logger.warning(f"Failed to fetch latest GDPC1: {e}")
+
             # This section is now handled above with better error handling
             
             # Fetch S&P 500 data separately to ensure we get it even if other data fails
             sp500_data = None
             try:
-                sp500_data = _self.fred_client.get_series('SP500', periods=num_weeks, frequency='W')
+                sp500_data = _self.fred_client.get_series('SP500', periods=num_quarters, frequency='Q')
                 if not sp500_data.empty:
                     sp500_data.columns = ['Date', 'SP500']
+                    # Resample SP500 to quarterly
+                    sp500_data.set_index('Date', inplace=True)
+                    sp500_data = sp500_data.resample('Q').last()
+                    sp500_data.reset_index(inplace=True)
                     # Also merge into all_series for convenience
                     all_series = pd.merge(all_series, sp500_data, on='Date', how='left')
             except Exception as e:
@@ -439,25 +610,49 @@ class IndicatorData:
                 # Create empty DataFrame with same structure for SP500 if fetch failed
                 sp500_data = pd.DataFrame(columns=['Date', 'SP500'])
             
-            # --- Calculate Weekly USD Liquidity --- 
+            # --- Calculate Quarterly USD Liquidity ---
             if 'WALCL' in all_series.columns:
                 all_series['USD_Liquidity'] = all_series['WALCL']
-                
+
                 if 'RRPONTTLD' in all_series.columns:
                     all_series['RRPONTTLD'] = all_series['RRPONTTLD'].fillna(0)
                     all_series['USD_Liquidity'] -= all_series['RRPONTTLD'] * 1000
-                
+
                 if 'WTREGEN' in all_series.columns:
-                    all_series['WTREGEN'] = all_series['WTREGEN'].fillna(0)
                     all_series['USD_Liquidity'] -= all_series['WTREGEN'] * 1000
-                
-                # Calculate Week-over-Week (WoW) % change
-                all_series['USD_Liquidity_WoW'] = all_series['USD_Liquidity'].pct_change(fill_method=None) * 100
+
+                if 'CURRCIR' in all_series.columns:
+                    all_series['CURRCIR'] = all_series['CURRCIR'].fillna(0)
+                    all_series['USD_Liquidity'] -= all_series['CURRCIR']
+
+                # Add back tariff flow (treat tariffs as not a real drain like taxes)
+                if 'B235RC1Q027SBEA' in all_series.columns:
+                    # Convert SAAR to actual quarterly flow
+                    all_series['Tariff_Flow'] = all_series['B235RC1Q027SBEA'] / 4
+                    all_series['Tariff_Flow'] = all_series['Tariff_Flow'].fillna(0)
+                    all_series['USD_Liquidity'] += all_series['Tariff_Flow'] * 1000
+
+                if 'GDPC1' in all_series.columns:
+                    # Forward fill missing GDPC1, then use mean of available values as fallback
+                    available_gdp = all_series['GDPC1'].dropna()
+                    gdp_mean = available_gdp.mean() if not available_gdp.empty else 22000  # Fallback to approximate current GDP
+                    all_series['GDPC1'] = all_series['GDPC1'].fillna(method='ffill').fillna(gdp_mean)
+                    all_series['USD_Liquidity'] = all_series['USD_Liquidity'] / all_series['GDPC1']
+
+                # Apply final division by 1000 to convert to trillions
+                all_series['USD_Liquidity'] = all_series['USD_Liquidity'] / 1000
+
+                # Calculate Quarter-over-Quarter (QoQ) % change
+                all_series['USD_Liquidity_QoQ'] = all_series['USD_Liquidity'].pct_change(fill_method=None) * 100
                 
                 # Find the last valid values for the components
                 last_valid_walcl = all_series['WALCL'].dropna().iloc[-1] if not all_series['WALCL'].dropna().empty else 0
                 last_valid_rrp = all_series['RRPONTTLD'].dropna().iloc[-1] if not all_series['RRPONTTLD'].dropna().empty else 0
-                
+                last_valid_currcir = all_series['CURRCIR'].dropna().iloc[-1] if 'CURRCIR' in all_series.columns and not all_series['CURRCIR'].dropna().empty else 0
+                last_valid_gdpc1 = all_series['GDPC1'].dropna().iloc[-1] if 'GDPC1' in all_series.columns and not all_series['GDPC1'].dropna().empty else 1
+                last_valid_tariff = all_series['B235RC1Q027SBEA'].dropna().iloc[-1] if 'B235RC1Q027SBEA' in all_series.columns and not all_series['B235RC1Q027SBEA'].dropna().empty else 0
+                last_valid_tariff_flow = last_valid_tariff / 4
+
                 # Always prioritize the latest value we got directly from the API
                 if wtregen_latest_value is not None:
                     # Use the latest value we got directly
@@ -472,31 +667,36 @@ class IndicatorData:
                     # Fallback to a known recent value if API fails
                     last_valid_tga = 595.741  # Example value from FRED as of 2025-04-30
                     logger.warning(f"WTREGEN data not available from API, using fallback value: {last_valid_tga} billion")
-                
+
                 # Calculate current liquidity based on last valid points
-                current_liquidity_calc = last_valid_walcl - (last_valid_rrp * 1000) - (last_valid_tga * 1000)
-                
+                current_liquidity_calc = ((last_valid_walcl - (last_valid_rrp * 1000) - (last_valid_tga * 1000) - last_valid_currcir + (last_valid_tariff_flow * 1000)) / last_valid_gdpc1) / 1000
+
                 latest_data = all_series.iloc[-1]
-                
+
                 details = {
                     'WALCL': last_valid_walcl,
                     'RRPONTTLD': last_valid_rrp,
-                    'WTREGEN': last_valid_tga
+                    'WTREGEN': last_valid_tga,
+                    'CURRCIR': last_valid_currcir,
+                    'GDPC1': last_valid_gdpc1,
+                    'B235RC1Q027SBEA': last_valid_tariff,
+                    'Tariff_Flow': last_valid_tariff_flow
                 }
-                
-                # Get the most recent WoW % change (can be NaN if latest liquidity is NaN)
-                current_liquidity_wow = latest_data.get('USD_Liquidity_WoW', 'N/A')
-                
-                # Prepare weekly data for return
+
+                # Get the most recent QoQ % change (can be NaN if latest liquidity is NaN)
+                current_liquidity_qoq = latest_data.get('USD_Liquidity_QoQ', 'N/A')
+
+                # Prepare quarterly data for return
                 if 'SP500' in all_series.columns:
-                    weekly_data = all_series[['Date', 'USD_Liquidity', 'USD_Liquidity_WoW', 'SP500']].dropna(subset=['USD_Liquidity']).copy()
+                    quarterly_data = all_series[['Date', 'USD_Liquidity', 'USD_Liquidity_QoQ', 'SP500']].dropna(subset=['USD_Liquidity']).copy()
                 else:
                     # Handle case where SP500 data is not available in all_series
-                    weekly_data = all_series[['Date', 'USD_Liquidity', 'USD_Liquidity_WoW']].dropna(subset=['USD_Liquidity']).copy()
+                    quarterly_data = all_series[['Date', 'USD_Liquidity', 'USD_Liquidity_QoQ']].dropna(subset=['USD_Liquidity']).copy()
+
                 
                 # Determine if liquidity is increasing or decreasing
-                if len(weekly_data) >= 4:
-                    recent_liquidity = weekly_data['USD_Liquidity'].tail(4).values
+                if len(quarterly_data) >= 4:
+                    recent_liquidity = quarterly_data['USD_Liquidity'].tail(4).values
                     liquidity_increasing = recent_liquidity[-1] > recent_liquidity[-2] > recent_liquidity[-3]
                     liquidity_decreasing = recent_liquidity[-1] < recent_liquidity[-2] < recent_liquidity[-3]
                 else:
@@ -508,10 +708,11 @@ class IndicatorData:
                 raise ValueError("Failed to calculate USD Liquidity")
             
             return {
-                'weekly_data': weekly_data,
+                'data': quarterly_data,
+                'all_series': all_series,  # Full dataset with all components
                 'sp500_data': sp500_data,
                 'current_liquidity': current_liquidity_calc,
-                'current_liquidity_wow': current_liquidity_wow,
+                'current_liquidity_qoq': current_liquidity_qoq,
                 'liquidity_increasing': liquidity_increasing,
                 'liquidity_decreasing': liquidity_decreasing,
                 'details': details

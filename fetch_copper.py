@@ -4,10 +4,19 @@ Script to fetch Copper prices using FRED API as fallback when Yahoo Finance fail
 """
 import sys
 import os
-sys.path.append(os.path.dirname(__file__))
+from pathlib import Path
 
-from data.fred_client import FredClient
-from data.yahoo_client import YahooClient
+# Add the project root to Python path for proper imports
+project_root = Path(__file__).parent
+sys.path.insert(0, str(project_root))
+
+try:
+    from data.fred_client import FredClient
+    from data.yahoo_client import YahooClient
+except ImportError as e:
+    print(f"Import error: {e}")
+    print("Please ensure you're running this script from the project root directory")
+    sys.exit(1)
 import pandas as pd
 import logging
 from dotenv import load_dotenv
