@@ -47,3 +47,6 @@ Thumbs.db
 #Files
 *.csv
 *.xlsx
+
+# Runtime cache artifacts
+data/cache/*.pkl
