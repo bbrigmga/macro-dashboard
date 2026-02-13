@@ -3,10 +3,9 @@ Functions for creating visualizations for specific indicators with a modern fina
 """
 import pandas as pd
 import plotly.graph_objects as go  # This is imported as go
-import plotly.express as px
 from visualization.charts import (
     create_line_chart, 
-    create_pmi_component_chart,
+    create_copper_gold_yield_chart,
     THEME,
     apply_dark_theme
 )
@@ -580,3 +579,26 @@ def create_yield_curve_chart(yield_curve_data, periods=36):
     )
     
     return fig
+
+
+def create_indicator_chart(indicator_key, indicator_data, periods=None):
+    """Create an indicator chart via a centralized registry for easier extension."""
+    chart_builders = {
+        'hours_worked': create_hours_worked_chart,
+        'core_cpi': create_core_cpi_chart,
+        'claims': create_initial_claims_chart,
+        'pce': create_pce_chart,
+        'pmi': create_pmi_chart,
+        'usd_liquidity': create_usd_liquidity_chart,
+        'new_orders': create_new_orders_chart,
+        'yield_curve': create_yield_curve_chart,
+        'copper_gold_ratio': create_copper_gold_yield_chart,
+    }
+
+    builder = chart_builders.get(indicator_key)
+    if builder is None:
+        raise ValueError(f"Unsupported indicator chart: {indicator_key}")
+
+    if periods is not None:
+        return builder(indicator_data, periods=periods)
+    return builder(indicator_data)

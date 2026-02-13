@@ -3,17 +3,9 @@ Functions for creating the individual indicator cards with a modern finance-base
 """
 import streamlit as st
 from visualization.indicators import (
-    create_hours_worked_chart,
-    create_core_cpi_chart,
-    create_initial_claims_chart,
-    create_pce_chart,
-    create_pmi_chart,
-    create_pmi_components_table,
-    create_usd_liquidity_chart,
-    create_new_orders_chart,
-    create_yield_curve_chart
+    create_indicator_chart,
+    create_pmi_components_table
 )
-from visualization.charts import create_copper_gold_yield_chart
 from visualization.warning_signals import (
     generate_hours_worked_warning,
     generate_core_cpi_warning,
@@ -70,7 +62,7 @@ def display_hours_worked_card(hours_data, fred_client=None):
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{current_hours:.1f} hours</div>", unsafe_allow_html=True)
         
         # Create and display the chart
-        fig_hours = create_hours_worked_chart(hours_data)
+        fig_hours = create_indicator_chart('hours_worked', hours_data)
         st.plotly_chart(fig_hours, use_container_width=True, height=250)
         
         # Expandable details section
@@ -126,7 +118,7 @@ def display_core_cpi_card(core_cpi_data, fred_client=None):
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{current_cpi_mom:.2f}%</div>", unsafe_allow_html=True)
         
         # Create and display the chart
-        fig_cpi = create_core_cpi_chart(core_cpi_data)
+        fig_cpi = create_indicator_chart('core_cpi', core_cpi_data)
         st.plotly_chart(fig_cpi, use_container_width=True, height=250)
         
         # Expandable details section
@@ -181,7 +173,7 @@ def display_initial_claims_card(claims_data, fred_client=None):
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{int(current_claims):,}</div>", unsafe_allow_html=True)
         
         # Create and display the chart
-        fig_claims = create_initial_claims_chart(claims_data)
+        fig_claims = create_indicator_chart('claims', claims_data)
         st.plotly_chart(fig_claims, use_container_width=True, height=250)
         
         # Expandable details section
@@ -234,7 +226,7 @@ def display_pce_card(pce_data, fred_client=None):
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{current_pce_mom:.2f}%</div>", unsafe_allow_html=True)
         
         # Create and display the chart
-        fig_pce = create_pce_chart(pce_data)
+        fig_pce = create_indicator_chart('pce', pce_data)
         st.plotly_chart(fig_pce, use_container_width=True, height=250)
         
         # Expandable details section
@@ -282,7 +274,7 @@ def display_pmi_card(pmi_data, fred_client=None):
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{latest_pmi:.1f}</div>", unsafe_allow_html=True)
         
         # Create and display the chart
-        fig_pmi = create_pmi_chart(pmi_data)
+        fig_pmi = create_indicator_chart('pmi', pmi_data)
         st.plotly_chart(fig_pmi, use_container_width=True, height=250)
         
         # Expandable details section
@@ -331,7 +323,7 @@ def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{formatted_value}</div>", unsafe_allow_html=True)
         
         # Create and display the chart
-        fig_liquidity = create_usd_liquidity_chart(usd_liquidity_data)
+        fig_liquidity = create_indicator_chart('usd_liquidity', usd_liquidity_data)
         st.plotly_chart(fig_liquidity, use_container_width=True, height=250)
         
         # Expandable details section
@@ -469,7 +461,7 @@ def display_new_orders_card(new_orders_data, fred_client=None):
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{latest_value:.1f}%</div>", unsafe_allow_html=True)
         
         # Add chart
-        fig = create_new_orders_chart(new_orders_data)
+        fig = create_indicator_chart('new_orders', new_orders_data)
         st.plotly_chart(fig, use_container_width=True, height=250)
         
         # Expandable details section
@@ -503,7 +495,7 @@ def display_yield_curve_card(yield_curve_data, fred_client=None):
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{current_spread:.2f}%</div>", unsafe_allow_html=True)
 
         # Create and display chart
-        fig = create_yield_curve_chart(yield_curve_data)
+        fig = create_indicator_chart('yield_curve', yield_curve_data)
         st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT)
 
         # Expandable details section - use same label as USD Liquidity
@@ -538,7 +530,7 @@ def display_copper_gold_ratio_card(copper_gold_data, fred_client=None):
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>Ratio: {current_ratio:.2f} | Yield: {current_yield:.2f}%</div>", unsafe_allow_html=True)
 
         # Create and display chart
-        fig = create_copper_gold_yield_chart(copper_gold_data)
+        fig = create_indicator_chart('copper_gold_ratio', copper_gold_data)
         st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT)
 
         # Expandable details section

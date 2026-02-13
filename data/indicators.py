@@ -5,8 +5,10 @@ import pandas as pd
 import numpy as np
 import datetime
 import logging
+import os
 import streamlit as st
 from data.fred_client import FredClient
+from data.yahoo_client import YahooClient
 from data.processing import calculate_pct_change, check_consecutive_increase, check_consecutive_decrease, count_consecutive_changes
 
 # Set up logging
@@ -50,6 +52,7 @@ class IndicatorData:
             self.fred_client = None
         else:
             self.fred_client = fred_client if fred_client else FredClient()
+        self.yahoo_client = YahooClient()
     
     @st.cache_data(ttl=3600) # Cache for 1 hour
     def get_initial_claims(_self, periods=52):
@@ -374,15 +377,16 @@ class IndicatorData:
             # For sample data, don't cache
             result = _self._get_usd_liquidity_impl(periods, use_sample_data)
 
-        # Export CSV every time the app runs, even with cached data
-        try:
-            csv_data = result['all_series'].copy()
-            csv_data['Date'] = csv_data['Date'].dt.strftime('%Y-%m-%d')
-            filename = 'usd_liquidity_data_sample.csv' if use_sample_data else 'usd_liquidity_data.csv'
-            csv_data.to_csv(filename, index=False)
-            print(f"Exported USD liquidity data to {filename}")
-        except Exception as e:
-            print(f"Failed to export data to CSV: {e}")
+        export_csv = os.getenv('EXPORT_USD_LIQUIDITY_CSV', 'false').lower() == 'true'
+        if export_csv:
+            try:
+                csv_data = result['all_series'].copy()
+                csv_data['Date'] = csv_data['Date'].dt.strftime('%Y-%m-%d')
+                filename = 'usd_liquidity_data_sample.csv' if use_sample_data else 'usd_liquidity_data.csv'
+                csv_data.to_csv(filename, index=False)
+                logger.info(f"Exported USD liquidity data to {filename}")
+            except Exception as e:
+                logger.warning(f"Failed to export data to CSV: {e}")
 
         return result
 
@@ -469,46 +473,19 @@ class IndicatorData:
             all_series['Quarter'] = all_series['Date'].dt.to_period('Q')
 
             # Fetch CURRCIR separately to ensure we get historical data
-            # Temporarily disable cache to force fresh historical data
-            original_cache = _self.fred_client.cache_enabled
-            _self.fred_client.cache_enabled = False
-            try:
-                currcir_data = _self.fred_client.get_series('CURRCIR', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
-            finally:
-                _self.fred_client.cache_enabled = original_cache
+            currcir_data = _self.fred_client.get_series('CURRCIR', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
 
             if not currcir_data.empty:
                 currcir_data['Quarter'] = currcir_data['Date'].dt.to_period('Q')
                 all_series = pd.merge(all_series, currcir_data[['Quarter', 'CURRCIR']], on='Quarter', how='left')
 
             # Fetch GDPC1 separately with explicit start_date to ensure we get historical data
-            # Temporarily disable cache to force fresh data
-            original_cache = _self.fred_client.cache_enabled
-            _self.fred_client.cache_enabled = False
-            try:
-                gdp_data = _self.fred_client.get_series('GDPC1', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
-            finally:
-                _self.fred_client.cache_enabled = original_cache
+            gdp_data = _self.fred_client.get_series('GDPC1', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
 
             if not gdp_data.empty:
-                # Save GDPC1 data for debugging
-                gdp_debug = gdp_data.copy()
-                gdp_debug['Date'] = gdp_debug['Date'].dt.strftime('%Y-%m-%d')
-                gdp_debug.to_csv('gdp_debug.csv', index=False)
-
-                # Debug: save all_series dates before merge
-                dates_debug = all_series[['Date']].copy()
-                dates_debug['Date'] = dates_debug['Date'].dt.strftime('%Y-%m-%d')
-                dates_debug.to_csv('dates_debug.csv', index=False)
-
                 gdp_data['Quarter'] = gdp_data['Date'].dt.to_period('Q')
 
                 all_series = pd.merge(all_series, gdp_data[['Quarter', 'GDPC1']], on='Quarter', how='left')
-
-                # Debug: save merged data
-                merged_debug = all_series[['Date', 'GDPC1']].copy()
-                merged_debug['Date'] = merged_debug['Date'].dt.strftime('%Y-%m-%d')
-                merged_debug.to_csv('merged_debug.csv', index=False)
             
             # Fetch WTREGEN data separately to ensure we get the latest value
             # This is a critical component of the USD Liquidity calculation
@@ -834,69 +811,51 @@ class IndicatorData:
             dict: Dictionary with merged data and analysis
         """
         try:
-            from data.yahoo_client import YahooClient
+            start_date = '2000-01-01'
+            end_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
-            # Initialize Yahoo client for commodity data
-            yahoo_client = YahooClient()
+            yield_df = _self.fred_client.get_series('DGS10', start_date=start_date, frequency='D')
+            yield_series = yield_df.set_index('Date')['DGS10'].rename('yield')
 
-            # Fetch Copper data using HG=F ticker only
-            copper_df = None
-            try:
-                copper_df = yahoo_client.get_historical_prices(ticker='HG=F', periods=periods, frequency='1d')
-                copper_df = copper_df.rename(columns={'value': 'copper'})
-                logger.info("Successfully fetched copper data using HG=F ticker")
-            except Exception as e:
-                logger.warning(f"Failed to fetch copper data with HG=F ticker: {e}")
-                # Don't raise, return empty data instead
+            copper_df = _self.fred_client.get_series('PCOPPUSDM', start_date=start_date, frequency='M')
+            copper_series = copper_df.set_index('Date')['PCOPPUSDM'].rename('copper')
 
-            # Fetch Gold COMEX data using GC=F ticker only
-            gold_df = None
-            try:
-                gold_df = yahoo_client.get_historical_prices(ticker='GC=F', periods=periods, frequency='1d')
-                gold_df = gold_df.rename(columns={'value': 'gold'})
-                logger.info("Successfully fetched gold data using GC=F ticker")
-            except Exception as e:
-                logger.warning(f"Failed to fetch gold data with GC=F ticker: {e}")
-                # Don't raise, return empty data instead
+            gold_df = _self.yahoo_client.get_historical_prices(
+                ticker='GC=F',
+                start_date=start_date,
+                end_date=end_date,
+                frequency='1d'
+            )
+            if gold_df is None or gold_df.empty:
+                raise ValueError("Gold price download returned no data")
 
-            # Fetch US 10-year Treasury yield data
-            try:
-                yield_df = _self.fred_client.get_series('DGS10', periods=periods, frequency='D')
-                yield_df.columns = ['Date', 'yield']
-                logger.info("Successfully fetched treasury yield data")
-            except Exception as e:
-                logger.warning(f"Failed to fetch treasury yield data: {e}")
-                # Create empty yield data as fallback
-                yield_df = pd.DataFrame(columns=['Date', 'yield'])
+            gold_series = gold_df.set_index('Date')['value'].rename('gold')
+            gold_series.index = pd.to_datetime(gold_series.index).tz_localize(None)
 
-            # Normalize Date columns to remove timezone info for merging
-            copper_df['Date'] = pd.to_datetime(copper_df['Date']).dt.tz_localize(None)
-            gold_df['Date'] = pd.to_datetime(gold_df['Date']).dt.tz_localize(None)
-            if not yield_df.empty:
-                yield_df['Date'] = pd.to_datetime(yield_df['Date']).dt.tz_localize(None)
+            df = pd.concat([yield_series, copper_series, gold_series], axis=1, sort=False)
+            df.index = pd.to_datetime(df.index).tz_localize(None)
+            df = df.sort_index()
+            df['copper'] = df['copper'].ffill()
+            df = df.dropna(subset=['yield', 'copper', 'gold'])
 
-            # Merge Copper and Gold data first
-            merged_df = pd.merge(copper_df, gold_df, on='Date', how='outer')
+            if df.empty:
+                raise ValueError("No overlapping copper, gold, and yield data available")
 
-            # Handle missing data: forward-fill, then drop any remaining NaNs
-            merged_df = merged_df.sort_values('Date').ffill().dropna()
+            df['ratio'] = df['copper'] / df['gold']
 
-            # Compute Copper/Gold ratio
-            merged_df['ratio'] = merged_df['copper'] / merged_df['gold']
+            weekly_df = df.resample('W').last()
+            weekly_df['ratio_ret'] = weekly_df['ratio'].pct_change()
+            weekly_df['yield_ret'] = weekly_df['yield'].pct_change()
+            weekly_df['corr'] = weekly_df['ratio_ret'].rolling(window=60).corr(weekly_df['yield_ret'])
 
-            # Merge with yield data (if available)
-            if not yield_df.empty:
-                final_df = pd.merge(merged_df[['Date', 'ratio']], yield_df[['Date', 'yield']], on='Date', how='inner')
-            else:
-                final_df = merged_df[['Date', 'ratio']].copy()
-                final_df['yield'] = None
+            if periods is not None and periods > 0:
+                weekly_df = weekly_df.tail(periods)
 
-            # Sort by date
-            final_df = final_df.sort_values('Date')
+            final_df = weekly_df[['ratio', 'yield', 'corr']].dropna(subset=['ratio', 'yield']).reset_index()
+            final_df.columns = ['Date', 'ratio', 'yield', 'corr']
 
-            # Get latest values
             latest_ratio = final_df['ratio'].iloc[-1]
-            latest_yield = final_df['yield'].iloc[-1] if 'yield' in final_df.columns and final_df['yield'].iloc[-1] is not None else 'N/A'
+            latest_yield = final_df['yield'].iloc[-1]
 
             return {
                 'data': final_df,
@@ -907,7 +866,7 @@ class IndicatorData:
             logger.error(f"Error fetching Copper/Gold Ratio data: {str(e)}")
             # Return empty data structure instead of raising exception
             return {
-                'data': pd.DataFrame(columns=['Date', 'ratio', 'yield']),
+                'data': pd.DataFrame(columns=['Date', 'ratio', 'yield', 'corr']),
                 'latest_ratio': 'N/A',
                 'latest_yield': 'N/A'
             }

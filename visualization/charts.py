@@ -4,6 +4,7 @@ Functions for creating charts and visualizations with a modern finance-based the
 
 import plotly.graph_objects as go
 import plotly.express as px
+from plotly.subplots import make_subplots
 import pandas as pd
 
 
@@ -213,72 +214,68 @@ def create_copper_gold_yield_chart(copper_gold_data):
     Returns:
         go.Figure: Plotly figure object with dual y-axes
     """
-    # Get the merged data
-    final_df = copper_gold_data['data']
+    final_df = copper_gold_data.get('data', pd.DataFrame())
+    if final_df.empty:
+        return go.Figure()
 
-    fig = go.Figure()
-
-    # Add Copper/Gold Ratio trace (primary y-axis)
-    fig.add_trace(go.Scatter(
-        x=final_df['Date'],
-        y=final_df['ratio'],
-        name='Copper/Gold Ratio',
-        mode='lines+markers',
-        line=dict(color='#ff8c00', width=2),  # Dark yellow color
-        marker=dict(color='#ff8c00', size=6),  # Dark yellow color
-        hovertemplate='%{x|%Y-%m-%d}<br>Copper/Gold Ratio: %{y:.4f}<extra></extra>'
-    ))
-
-    # Add US 10-year Treasury yield trace (secondary y-axis)
-    fig.add_trace(go.Scatter(
-        x=final_df['Date'],
-        y=final_df['yield'],
-        name='US 10Y Treasury Yield',
-        mode='lines+markers',
-        line=dict(color=THEME['line_colors']['primary'], width=2),
-        marker=dict(color=THEME['line_colors']['primary'], size=6),
-        yaxis='y2',
-        hovertemplate='%{x|%Y-%m-%d}<br>10Y Yield: %{y:.2f}%<extra></extra>'
-    ))
-
-    # Update layout for dual y-axes
-    fig.update_layout(
-        title=dict(
-            text='Copper/Gold Ratio vs US 10-Year Treasury Yield',
-            font=dict(size=14)
-        ),
-        yaxis=dict(
-            title=dict(
-                text="Copper/Gold Ratio",
-                font=dict(size=10, color=THEME['line_colors']['primary'])
-            ),
-            tickfont=dict(size=9)
-        ),
-        yaxis2=dict(
-            title=dict(
-                text="10Y Treasury Yield (%)",
-                font=dict(size=10, color=THEME['line_colors']['primary'])
-            ),
-            tickfont=dict(size=9),
-            overlaying='y',
-            side='right'
-        ),
-        xaxis=dict(
-            title=None,
-            tickangle=-45,
-            tickfont=dict(size=9),
-            type='date'
-        ),
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            y=1.02,
-            x=0.5,
-            xanchor="center",
-            font=dict(size=10)
-        ),
-        height=250
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.08,
+        row_heights=[0.7, 0.3],
+        specs=[[{"secondary_y": True}], [{"secondary_y": False}]]
     )
 
-    # Apply dark theme
-    return apply_dark_theme(fig)
+    fig.add_trace(
+        go.Scatter(
+            x=final_df['Date'],
+            y=final_df['ratio'],
+            name='Copper/Gold Ratio',
+            line=dict(color='#1f77b4', width=2),
+            hovertemplate='%{x|%Y-%m-%d}<br>Copper/Gold Ratio: %{y:.4f}<extra></extra>'
+        ),
+        row=1,
+        col=1
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=final_df['Date'],
+            y=final_df['yield'],
+            name='10Y Yield (%)',
+            line=dict(color='#d62728', width=2),
+            hovertemplate='%{x|%Y-%m-%d}<br>10Y Yield: %{y:.2f}%<extra></extra>'
+        ),
+        row=1,
+        col=1,
+        secondary_y=True
+    )
+
+    if 'corr' in final_df.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=final_df['Date'],
+                y=final_df['corr'],
+                name='60-Week Correlation',
+                fill='tozeroy',
+                line=dict(color='#ff7f0e'),
+                hovertemplate='%{x|%Y-%m-%d}<br>Corr: %{y:.2f}<extra></extra>'
+            ),
+            row=2,
+            col=1
+        )
+
+    fig.update_layout(
+        title=dict(text='Copper/Gold Ratio vs 10Y Treasury + 60W Correlation', font=dict(size=14)),
+        height=520,
+        template='plotly_white',
+        yaxis=dict(title=dict(text='Copper/Gold Ratio', font=dict(color='#1f77b4')), tickfont=dict(color='#1f77b4')),
+        yaxis2=dict(title=dict(text='10Y Yield (%)', font=dict(color='#d62728')), tickfont=dict(color='#d62728'), overlaying='y', side='right'),
+        yaxis3=dict(title=dict(text='Correlation'), range=[-1, 1], gridcolor='#eee'),
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+        hovermode='x unified',
+        margin=dict(l=10, r=10, t=40, b=10)
+    )
+
+    return fig

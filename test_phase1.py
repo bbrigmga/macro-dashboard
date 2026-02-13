@@ -61,11 +61,7 @@ def test_standalone_scripts():
 
     # Test that scripts can at least import their dependencies
     script_tests = [
-        ('fetch_copper.py', 'data.yahoo_client'),
-        ('fetch_gold.py', 'data.yahoo_client'),
-        ('fetch_treasury.py', 'data.fred_client'),
-        ('calculate_copper_gold_ratio.py', 'data.yahoo_client'),
-        ('create_copper_gold_yield_chart.py', 'visualization.charts')
+        ('app.py', 'ui.dashboard')
     ]
 
     all_passed = True

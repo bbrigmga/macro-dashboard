@@ -10,6 +10,8 @@ import pandas as pd
 
 from src.config.settings import get_settings
 from src.core.caching.cache_manager import CacheManager
+from data.fred_client import FredClient
+from data.indicators import IndicatorData
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +29,16 @@ class IndicatorResult:
 class IndicatorService:
     """Service layer for economic indicator operations."""
 
+    CACHE_SCHEMA_VERSION = "v2"
+
     def __init__(self, settings=None):
         self.settings = settings or get_settings()
         self.cache_manager = CacheManager(self.settings)
+        self.fred_client = FredClient(
+            cache_enabled=self.settings.cache.enabled,
+            max_cache_size=self.settings.cache.max_memory_size
+        )
+        self.indicator_data = IndicatorData(self.fred_client)
         self._indicators_config = self._load_indicators_config()
 
     def _load_indicators_config(self) -> Dict[str, Any]:
@@ -75,7 +84,7 @@ class IndicatorService:
 
     def _get_cache_key(self, indicator_name: str, **kwargs) -> str:
         """Generate cache key for indicator."""
-        key_parts = [indicator_name]
+        key_parts = [self.CACHE_SCHEMA_VERSION, indicator_name]
 
         # Add relevant parameters to cache key
         relevant_params = ['periods', 'frequency', 'start_date', 'end_date']
@@ -117,13 +126,13 @@ class IndicatorService:
             logger.info(f"Cache miss for {indicator_name}, fetching fresh data")
 
             if indicator_name == 'usd_liquidity':
-                result = await self._get_usd_liquidity_data(**kwargs)
+                result = await asyncio.to_thread(self._get_usd_liquidity_data, **kwargs)
             elif indicator_name == 'pmi':
-                result = await self._get_pmi_data(**kwargs)
+                result = await asyncio.to_thread(self._get_pmi_data, **kwargs)
             elif indicator_name == 'copper_gold_ratio':
-                result = await self._get_copper_gold_ratio_data(**kwargs)
+                result = await asyncio.to_thread(self._get_copper_gold_ratio_data, **kwargs)
             else:
-                result = await self._get_basic_indicator_data(indicator_name, **kwargs)
+                result = await asyncio.to_thread(self._get_basic_indicator_data, indicator_name, **kwargs)
 
             if result.success:
                 # Cache the result
@@ -192,24 +201,43 @@ class IndicatorService:
                 execution_time=time.time() - start_time
             )
 
-    async def _get_basic_indicator_data(self, indicator_name: str, **kwargs) -> IndicatorResult:
+    def _get_basic_indicator_data(self, indicator_name: str, **kwargs) -> IndicatorResult:
         """Get basic FRED indicator data."""
         try:
-            from data.fred_client import FredClient
+            indicator_methods = {
+                'claims': lambda: self.indicator_data.get_initial_claims(
+                    periods=kwargs.get('periods', self._indicators_config['claims']['default_periods'])
+                ),
+                'pce': lambda: self.indicator_data.get_pce(
+                    periods=kwargs.get('periods', self._indicators_config['pce']['default_periods'])
+                ),
+                'core_cpi': lambda: self.indicator_data.get_core_cpi(
+                    periods=kwargs.get('periods', self._indicators_config['core_cpi']['default_periods'])
+                ),
+                'hours_worked': lambda: self.indicator_data.get_hours_worked(
+                    periods=kwargs.get('periods', self._indicators_config['hours_worked']['default_periods'])
+                ),
+                'new_orders': lambda: self.indicator_data.get_new_orders(
+                    periods=kwargs.get('periods', self._indicators_config['new_orders']['default_periods'])
+                ),
+                'yield_curve': lambda: self.indicator_data.get_yield_curve(
+                    periods=kwargs.get('periods', self._indicators_config['yield_curve']['default_periods']),
+                    frequency=kwargs.get('frequency', self._indicators_config['yield_curve']['frequency'])
+                )
+            }
+
+            method = indicator_methods.get(indicator_name)
+            if method:
+                return IndicatorResult(success=True, data=method())
 
             config = self._indicators_config.get(indicator_name)
             if not config:
                 return IndicatorResult(success=False, error=f"Unknown indicator: {indicator_name}")
 
-            fred_client = FredClient(
-                cache_enabled=self.settings.cache.enabled,
-                max_cache_size=self.settings.cache.max_memory_size
-            )
-
             periods = kwargs.get('periods', config.get('default_periods', 24))
             frequency = kwargs.get('frequency', config.get('frequency', 'M'))
 
-            df = fred_client.get_series(
+            df = self.fred_client.get_series(
                 config['series_id'],
                 periods=periods,
                 frequency=frequency
@@ -223,19 +251,10 @@ class IndicatorService:
         except Exception as e:
             return IndicatorResult(success=False, error=str(e))
 
-    async def _get_usd_liquidity_data(self, **kwargs) -> IndicatorResult:
+    def _get_usd_liquidity_data(self, **kwargs) -> IndicatorResult:
         """Get USD liquidity data."""
         try:
-            from data.indicators import IndicatorData
-            from data.fred_client import FredClient
-
-            fred_client = FredClient(
-                cache_enabled=self.settings.cache.enabled,
-                max_cache_size=self.settings.cache.max_memory_size
-            )
-
-            indicator_data = IndicatorData(fred_client)
-            result = indicator_data.get_usd_liquidity(
+            result = self.indicator_data.get_usd_liquidity(
                 periods=kwargs.get('periods', 120),
                 use_sample_data=kwargs.get('use_sample_data', False)
             )
@@ -245,19 +264,10 @@ class IndicatorService:
         except Exception as e:
             return IndicatorResult(success=False, error=str(e))
 
-    async def _get_pmi_data(self, **kwargs) -> IndicatorResult:
+    def _get_pmi_data(self, **kwargs) -> IndicatorResult:
         """Get PMI proxy data."""
         try:
-            from data.indicators import IndicatorData
-            from data.fred_client import FredClient
-
-            fred_client = FredClient(
-                cache_enabled=self.settings.cache.enabled,
-                max_cache_size=self.settings.cache.max_memory_size
-            )
-
-            indicator_data = IndicatorData(fred_client)
-            result = indicator_data.calculate_pmi_proxy(
+            result = self.indicator_data.calculate_pmi_proxy(
                 periods=kwargs.get('periods', 36)
             )
 
@@ -266,19 +276,10 @@ class IndicatorService:
         except Exception as e:
             return IndicatorResult(success=False, error=str(e))
 
-    async def _get_copper_gold_ratio_data(self, **kwargs) -> IndicatorResult:
+    def _get_copper_gold_ratio_data(self, **kwargs) -> IndicatorResult:
         """Get copper/gold ratio data."""
         try:
-            from data.indicators import IndicatorData
-            from data.fred_client import FredClient
-
-            fred_client = FredClient(
-                cache_enabled=self.settings.cache.enabled,
-                max_cache_size=self.settings.cache.max_memory_size
-            )
-
-            indicator_data = IndicatorData(fred_client)
-            result = indicator_data.get_copper_gold_ratio(
+            result = self.indicator_data.get_copper_gold_ratio(
                 periods=kwargs.get('periods', 365)
             )
 

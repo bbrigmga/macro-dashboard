@@ -59,6 +59,10 @@ macro_dashboard/
 ├── .gitignore                      # Git ignore rules
 ├── Macro Dashboard.code-workspace  # VS Code workspace configuration
 │
+├── archive/                        # Archived utilities and generated artifacts
+│   ├── legacy_tools/               # Standalone legacy helper scripts
+│   └── generated/                  # Generated debug/HTML artifacts
+│
 ├── src/                            # 🚀 Optimized source package (NEW)
 │   ├── __init__.py                 # Package initialization & exports
 │   ├── config/
@@ -98,11 +102,7 @@ macro_dashboard/
 ├── test_phase1.py                  # Phase 1 optimization tests
 ├── test_phase2.py                  # Phase 2 architecture tests
 ├── test_phase3.py                  # Phase 3 algorithm tests
-├── fetch_copper.py                 # Script for fetching copper price data
-├── fetch_gold.py                   # Script for fetching gold price data
-├── calculate_copper_gold_ratio.py  # Copper/gold ratio calculation script
-├── create_copper_gold_yield_chart.py # Chart creation script
-└── copper_gold_yield_chart.html    # Generated HTML chart output
+└── test_service_layer.py           # Service layer compatibility test
 ```
 
 ### 🏗️ Architecture Highlights
@@ -189,6 +189,7 @@ USE_SERVICE_LAYER=true python app.py
 - **Parallel Processing**: Async operations for concurrent data fetching
 - **Performance Monitoring**: Real-time tracking of algorithm performance
 - **Memory Optimization**: Reduced memory usage with efficient data structures
+- **Optional CSV Export**: Set `EXPORT_USD_LIQUIDITY_CSV=true` to export liquidity CSV snapshots only when needed
 
 ## Deployment on Streamlit Cloud
 
