@@ -386,13 +386,8 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=120):
             yaxis='y2'
         ))
     
-    # Determine dynamic ranges for axes
-    liquidity_min = max(0, plot_data['USD_Liquidity_T'].min() * 0.95) if not plot_data.empty else 0
-    liquidity_max = plot_data['USD_Liquidity_T'].max() * 1.05 if not plot_data.empty else 25
-    sp500_min = 3200 # Keep floor for SP500
-    sp500_max = plot_data['SP500'].max() * 1.05 if 'SP500' in plot_data.columns and not plot_data['SP500'].isnull().all() else 5000
-
-    # Remove manual tick calculation
+    # Use Plotly autorange for both y-axes so the chart always opens with the
+    # full USD Liquidity series visible (including negative values).
 
     # Update layout for dual y-axes - Use date type for x-axis
     fig.update_layout(
@@ -407,7 +402,7 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=120):
             ),
             tickfont=dict(size=9),
             tickformat='.2f',
-            range=[liquidity_min, liquidity_max]
+            autorange=True
         ),
         xaxis=dict(
             title=None, # Remove X-axis title
@@ -438,12 +433,13 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=120):
                 tickfont=dict(size=9),
                 overlaying='y',
                 side='right',
-                range=[sp500_min, sp500_max]
+                autorange=True
             )
         )
     
     # Apply dark theme
     fig = apply_dark_theme(fig)
+    fig.update_layout(height=520)
     
     return fig
 
@@ -575,7 +571,8 @@ def create_yield_curve_chart(yield_curve_data, periods=36):
             tickangle=45,
             tickfont=dict(size=9),
             type='category'  # Set type to category for proper ordering
-        )
+        ),
+        height=520
     )
     
     return fig

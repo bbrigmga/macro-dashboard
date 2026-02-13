@@ -18,6 +18,8 @@ from visualization.warning_signals import (
 from data.release_schedule import get_next_release_date, format_release_date
 from data.fred_client import FredClient
 
+CARD_CHART_HEIGHT = 360
+
 
 def display_hours_worked_card(hours_data, fred_client=None):
     """
@@ -324,7 +326,7 @@ def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
         
         # Create and display the chart
         fig_liquidity = create_indicator_chart('usd_liquidity', usd_liquidity_data)
-        st.plotly_chart(fig_liquidity, use_container_width=True, height=250)
+        st.plotly_chart(fig_liquidity, use_container_width=True, height=CARD_CHART_HEIGHT)
         
         # Expandable details section
         with st.expander("View Details"):
@@ -338,7 +340,7 @@ def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
                 rrponttld = usd_liquidity_data['details'].get('RRPONTTLD', 0)
                 wtregen = usd_liquidity_data['details'].get('WTREGEN', 0)
                 currcir = usd_liquidity_data['details'].get('CURRCIR', 0)
-                gdpc1 = usd_liquidity_data['details'].get('GDPC1', 1)
+                gdp = usd_liquidity_data['details'].get('GDP', usd_liquidity_data['details'].get('GDPC1', 1))
                 tariff_flow = usd_liquidity_data['details'].get('Tariff_Flow', 0)
 
                 # Check for NaN values and replace with zeros
@@ -347,21 +349,21 @@ def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
                 rrponttld = 0 if np.isnan(rrponttld) else rrponttld
                 wtregen = 0 if np.isnan(wtregen) else wtregen
                 currcir = 0 if np.isnan(currcir) else currcir
-                gdpc1 = 1 if np.isnan(gdpc1) or gdpc1 == 0 else gdpc1
+                gdp = 1 if np.isnan(gdp) or gdp == 0 else gdp
 
                 # Format the values for display
                 walcl_formatted = f"{walcl/1000000:.2f}T"  # WALCL in millions, display as trillions
                 rrponttld_formatted = f"{rrponttld:.2f}B"  # RRPONTTLD in billions
                 wtregen_formatted = f"{wtregen:.2f}B"  # WTREGEN in billions
                 currcir_formatted = f"{currcir:.2f}B"  # CURRCIR in billions
-                gdpc1_formatted = f"{gdpc1:.2f}T"  # GDPC1 in billions, display as trillions
+                gdp_formatted = f"{gdp:.2f}B"  # GDP in billions
 
                 # Calculate the intermediate result before GDP division
                 intermediate = walcl - (rrponttld * 1000) - (wtregen * 1000) - currcir + (tariff_flow * 1000)
                 intermediate_formatted = f"{intermediate/1000000:.2f}T"  # Display as trillions
 
                 # Calculate the final result (should match current_liquidity)
-                final_result = (intermediate / gdpc1) / 1000  # Divide by GDP and by 1000 to get % of GDP
+                final_result = (intermediate / gdp) / 1000  # Divide by GDP and by 1000 to get liquidity/GDP ratio
                 final_formatted = f"{final_result:.2f}"
 
                 # Format tariff flow
@@ -377,21 +379,21 @@ def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
                 - Currency in Circulation: {} <br>
                 + Tariff Receipts: {} <br>
                 = Pre-GDP Adjustment: {} <br>
-                ÷ GDP: {} <br>
-                = USD Liquidity (% of GDP): {}
+                ÷ Nominal GDP: {} <br>
+                = USD Liquidity (ratio to GDP): {}
                 </div>
                 """.format(walcl_formatted, rrponttld_formatted, wtregen_formatted, currcir_formatted, tariff_flow_formatted,
-                          intermediate_formatted, gdpc1_formatted, final_formatted),
+                          intermediate_formatted, gdp_formatted, final_formatted),
                 unsafe_allow_html=True)
             
             st.markdown("""
             FRED Data Sources:
             [WALCL](https://fred.stlouisfed.org/series/WALCL) - Fed Balance Sheet (millions),
             [RRPONTTLD](https://fred.stlouisfed.org/series/RRPONTTLD) - Reverse Repo (billions),
-            [WTREGEN](https://fred.stlouisfed.org/series/WTREGEN) - Treasury General Account (billions),
+            [WTREGEN](https://fred.stlouisfed.org/series/WTREGEN) - Treasury General Account (millions),
             [CURRCIR](https://fred.stlouisfed.org/series/CURRCIR) - Currency in Circulation (billions),
             [B235RC1Q027SBEA](https://fred.stlouisfed.org/series/B235RC1Q027SBEA) - Tariff Receipts (billions, SAAR),
-            [GDPC1](https://fred.stlouisfed.org/series/GDPC1) - Real Gross Domestic Product (billions),
+            [GDP](https://fred.stlouisfed.org/series/GDP) - Gross Domestic Product, nominal SAAR (billions),
             [SP500](https://fred.stlouisfed.org/series/SP500) - S&P 500 Index
             """)
             
@@ -479,7 +481,7 @@ def display_yield_curve_card(yield_curve_data, fred_client=None):
         fred_client (FredClient, optional): FRED API client for getting release dates
     """
     # Global chart height constant for the entire row
-    CHART_HEIGHT = 250  # Same height as USD Liquidity chart
+    CHART_HEIGHT = CARD_CHART_HEIGHT
 
     # Calculate current value
     if 'data' in yield_curve_data and not yield_curve_data['data'].empty:
@@ -512,7 +514,7 @@ def display_copper_gold_ratio_card(copper_gold_data, fred_client=None):
         fred_client (FredClient, optional): FRED API client for getting release dates
     """
     # Global chart height constant for the entire row
-    CHART_HEIGHT = 250  # Same height as other charts
+    CHART_HEIGHT = CARD_CHART_HEIGHT
 
     # Calculate current values
     if 'data' in copper_gold_data and not copper_gold_data['data'].empty:

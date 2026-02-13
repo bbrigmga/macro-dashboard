@@ -479,13 +479,20 @@ class IndicatorData:
                 currcir_data['Quarter'] = currcir_data['Date'].dt.to_period('Q')
                 all_series = pd.merge(all_series, currcir_data[['Quarter', 'CURRCIR']], on='Quarter', how='left')
 
-            # Fetch GDPC1 separately with explicit start_date to ensure we get historical data
-            gdp_data = _self.fred_client.get_series('GDPC1', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
+            # Fetch nominal GDP separately with explicit start_date to ensure we get historical data
+            # GDP (nominal, SAAR, billions) is a better denominator for nominal balance-sheet liquidity components
+            gdp_data = _self.fred_client.get_series('GDP', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
 
             if not gdp_data.empty:
                 gdp_data['Quarter'] = gdp_data['Date'].dt.to_period('Q')
 
-                all_series = pd.merge(all_series, gdp_data[['Quarter', 'GDPC1']], on='Quarter', how='left')
+                all_series = pd.merge(all_series, gdp_data[['Quarter', 'GDP']], on='Quarter', how='left')
+            else:
+                # Fallback to real GDP if nominal GDP is unavailable
+                gdpc1_data = _self.fred_client.get_series('GDPC1', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
+                if not gdpc1_data.empty:
+                    gdpc1_data['Quarter'] = gdpc1_data['Date'].dt.to_period('Q')
+                    all_series = pd.merge(all_series, gdpc1_data[['Quarter', 'GDPC1']], on='Quarter', how='left')
             
             # Fetch WTREGEN data separately to ensure we get the latest value
             # This is a critical component of the USD Liquidity calculation
@@ -517,7 +524,7 @@ class IndicatorData:
                     if len(wtregen_data) > 0:
                         wtregen_latest_value = wtregen_data.iloc[-1, 1]  # Get the value from the last row
                         latest_date = wtregen_data.iloc[-1, 0]  # Get the date from the last row
-                        logger.info(f"Latest WTREGEN value from API: {wtregen_latest_value} billion as of {latest_date}")
+                        logger.info(f"Latest WTREGEN value from API: {wtregen_latest_value} million as of {latest_date}")
 
                     # Add to all_series by merging on Quarter
                     all_series = pd.merge(all_series, wtregen_data[['Quarter', 'WTREGEN']], on='Quarter', how='left')
@@ -547,18 +554,18 @@ class IndicatorData:
             # Handle missing GDP data: fetch latest GDPC1 separately to ensure we have the most recent
             if not use_sample_data:
                 try:
-                    latest_gdp_data = _self.fred_client.get_series('GDPC1', periods=1, frequency='Q')  # Get latest
+                    latest_gdp_data = _self.fred_client.get_series('GDP', periods=1, frequency='Q')  # Get latest nominal GDP
                     if not latest_gdp_data.empty:
                         latest_gdp_date = latest_gdp_data['Date'].iloc[-1]
-                        latest_gdp_value = latest_gdp_data['GDPC1'].iloc[-1]
+                        latest_gdp_value = latest_gdp_data['GDP'].iloc[-1]
                         # Check if this is newer than what's in all_series
-                        if 'GDPC1' in all_series.columns and not all_series['GDPC1'].dropna().empty:
-                            last_gdp_date = all_series['Date'].iloc[-1] if all_series['GDPC1'].isna().iloc[-1] else all_series[all_series['GDPC1'].notna()]['Date'].iloc[-1]
+                        if 'GDP' in all_series.columns and not all_series['GDP'].dropna().empty:
+                            last_gdp_date = all_series['Date'].iloc[-1] if all_series['GDP'].isna().iloc[-1] else all_series[all_series['GDP'].notna()]['Date'].iloc[-1]
                             if latest_gdp_date > last_gdp_date:
                                 # Add the new GDP data point
                                 new_row = all_series.iloc[-1].copy()
                                 new_row['Date'] = latest_gdp_date
-                                new_row['GDPC1'] = latest_gdp_value
+                                new_row['GDP'] = latest_gdp_value
                                 # Fill other columns with last known values
                                 for col in ['WALCL', 'RRPONTTLD', 'WTREGEN', 'CURRCIR']:
                                     if col in all_series.columns:
@@ -566,7 +573,7 @@ class IndicatorData:
                                 all_series = pd.concat([all_series, pd.DataFrame([new_row])], ignore_index=True)
                                 all_series = all_series.drop_duplicates(subset='Date', keep='last').sort_values('Date').reset_index(drop=True)
                 except Exception as e:
-                    logger.warning(f"Failed to fetch latest GDPC1: {e}")
+                    logger.warning(f"Failed to fetch latest GDP: {e}")
 
             # This section is now handled above with better error handling
             
@@ -592,15 +599,17 @@ class IndicatorData:
                 all_series['USD_Liquidity'] = all_series['WALCL']
 
                 if 'RRPONTTLD' in all_series.columns:
-                    all_series['RRPONTTLD'] = all_series['RRPONTTLD'].fillna(0)
-                    all_series['USD_Liquidity'] -= all_series['RRPONTTLD'] * 1000
+                    rrp_for_calc = all_series['RRPONTTLD'].ffill().fillna(0)
+                    all_series['USD_Liquidity'] -= rrp_for_calc * 1000
 
                 if 'WTREGEN' in all_series.columns:
-                    all_series['USD_Liquidity'] -= all_series['WTREGEN'] * 1000
+                    # WTREGEN is already in millions, same unit as WALCL
+                    all_series['USD_Liquidity'] -= all_series['WTREGEN']
 
                 if 'CURRCIR' in all_series.columns:
-                    all_series['CURRCIR'] = all_series['CURRCIR'].fillna(0)
-                    all_series['USD_Liquidity'] -= all_series['CURRCIR']
+                    # CURRCIR is in billions, convert to millions for consistency with WALCL
+                    currcir_for_calc = all_series['CURRCIR'].ffill().fillna(0)
+                    all_series['USD_Liquidity'] -= currcir_for_calc * 1000
 
                 # Add back tariff flow (treat tariffs as not a real drain like taxes)
                 if 'B235RC1Q027SBEA' in all_series.columns:
@@ -609,12 +618,18 @@ class IndicatorData:
                     all_series['Tariff_Flow'] = all_series['Tariff_Flow'].fillna(0)
                     all_series['USD_Liquidity'] += all_series['Tariff_Flow'] * 1000
 
-                if 'GDPC1' in all_series.columns:
-                    # Forward fill missing GDPC1, then use mean of available values as fallback
-                    available_gdp = all_series['GDPC1'].dropna()
-                    gdp_mean = available_gdp.mean() if not available_gdp.empty else 22000  # Fallback to approximate current GDP
-                    all_series['GDPC1'] = all_series['GDPC1'].fillna(method='ffill').fillna(gdp_mean)
-                    all_series['USD_Liquidity'] = all_series['USD_Liquidity'] / all_series['GDPC1']
+                # Choose GDP denominator: nominal GDP preferred, fallback to GDPC1
+                gdp_col = None
+                if 'GDP' in all_series.columns:
+                    gdp_col = 'GDP'
+                elif 'GDPC1' in all_series.columns:
+                    gdp_col = 'GDPC1'
+
+                if gdp_col is not None:
+                    available_gdp = all_series[gdp_col].dropna()
+                    gdp_mean = available_gdp.mean() if not available_gdp.empty else 22000
+                    all_series[gdp_col] = all_series[gdp_col].ffill().fillna(gdp_mean)
+                    all_series['USD_Liquidity'] = all_series['USD_Liquidity'] / all_series[gdp_col]
 
                 # Apply final division by 1000 to convert to trillions
                 all_series['USD_Liquidity'] = all_series['USD_Liquidity'] / 1000
@@ -626,7 +641,8 @@ class IndicatorData:
                 last_valid_walcl = all_series['WALCL'].dropna().iloc[-1] if not all_series['WALCL'].dropna().empty else 0
                 last_valid_rrp = all_series['RRPONTTLD'].dropna().iloc[-1] if not all_series['RRPONTTLD'].dropna().empty else 0
                 last_valid_currcir = all_series['CURRCIR'].dropna().iloc[-1] if 'CURRCIR' in all_series.columns and not all_series['CURRCIR'].dropna().empty else 0
-                last_valid_gdpc1 = all_series['GDPC1'].dropna().iloc[-1] if 'GDPC1' in all_series.columns and not all_series['GDPC1'].dropna().empty else 1
+                gdp_col = 'GDP' if 'GDP' in all_series.columns else ('GDPC1' if 'GDPC1' in all_series.columns else None)
+                last_valid_gdp = all_series[gdp_col].dropna().iloc[-1] if gdp_col and not all_series[gdp_col].dropna().empty else 1
                 last_valid_tariff = all_series['B235RC1Q027SBEA'].dropna().iloc[-1] if 'B235RC1Q027SBEA' in all_series.columns and not all_series['B235RC1Q027SBEA'].dropna().empty else 0
                 last_valid_tariff_flow = last_valid_tariff / 4
 
@@ -634,19 +650,19 @@ class IndicatorData:
                 if wtregen_latest_value is not None:
                     # Use the latest value we got directly
                     last_valid_tga = wtregen_latest_value
-                    logger.info(f"Using latest TGA value from API: {last_valid_tga} billion")
+                    logger.info(f"Using latest TGA value from API: {last_valid_tga} million")
                 # Fallback to data in the DataFrame if available
                 elif 'WTREGEN' in all_series.columns and not all_series['WTREGEN'].dropna().empty:
                     # Use the last valid value from the data
                     last_valid_tga = all_series['WTREGEN'].dropna().iloc[-1]
-                    logger.info(f"Using TGA value from merged data: {last_valid_tga} billion")
+                    logger.info(f"Using TGA value from merged data: {last_valid_tga} million")
                 else:
                     # Fallback to a known recent value if API fails
                     last_valid_tga = 595.741  # Example value from FRED as of 2025-04-30
                     logger.warning(f"WTREGEN data not available from API, using fallback value: {last_valid_tga} billion")
 
                 # Calculate current liquidity based on last valid points
-                current_liquidity_calc = ((last_valid_walcl - (last_valid_rrp * 1000) - (last_valid_tga * 1000) - last_valid_currcir + (last_valid_tariff_flow * 1000)) / last_valid_gdpc1) / 1000
+                current_liquidity_calc = ((last_valid_walcl - (last_valid_rrp * 1000) - last_valid_tga - (last_valid_currcir * 1000) + (last_valid_tariff_flow * 1000)) / last_valid_gdp) / 1000
 
                 latest_data = all_series.iloc[-1]
 
@@ -655,7 +671,8 @@ class IndicatorData:
                     'RRPONTTLD': last_valid_rrp,
                     'WTREGEN': last_valid_tga,
                     'CURRCIR': last_valid_currcir,
-                    'GDPC1': last_valid_gdpc1,
+                    'GDP': last_valid_gdp,
+                    'GDPC1': last_valid_gdp,
                     'B235RC1Q027SBEA': last_valid_tariff,
                     'Tariff_Flow': last_valid_tariff_flow
                 }

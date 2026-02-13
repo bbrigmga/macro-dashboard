@@ -202,17 +202,18 @@ def create_dashboard(indicators, fred_client):
     with col3:
         display_new_orders_card(indicators['new_orders'], fred_client)
     
-    # Third row - 3 indicators (reorganized for consistent sizing)
-    col1, col2, col3 = st.columns(3)
+    # Third row - USD liquidity alongside Copper/Gold vs 10Y yield
+    row_col1, row_col2 = st.columns(2)
 
-    with col1:
+    with row_col1:
         display_usd_liquidity_card(indicators['usd_liquidity'], fred_client)
 
-    with col2:
-        display_yield_curve_card(indicators['yield_curve'], fred_client)
-
-    with col3:
+    with row_col2:
         display_copper_gold_ratio_card(indicators['copper_gold_ratio'], fred_client)
+
+    # Take the full width for the 2-10 year spread so it sits below the pair
+    st.divider()
+    display_yield_curve_card(indicators['yield_curve'], fred_client)
 
     # Display footer
     display_footer()
