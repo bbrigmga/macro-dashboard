@@ -888,6 +888,54 @@ class IndicatorData:
                 'latest_yield': 'N/A'
             }
     
+    @st.cache_data(ttl=3600*24)
+    def get_pscf_price(_self, years=5):
+        """
+        Get historical price data for PSCF (Invesco S&P SmallCap Financials ETF).
+
+        Args:
+            years (int): Number of years of history to fetch (default 5)
+
+        Returns:
+            dict: Dictionary with price data and latest price
+        """
+        try:
+            import datetime as dt
+            start_date = (dt.datetime.now() - dt.timedelta(days=years * 365 + 10)).strftime('%Y-%m-%d')
+            end_date = (dt.datetime.now() + dt.timedelta(days=1)).strftime('%Y-%m-%d')
+
+            price_df = _self.yahoo_client.get_historical_prices(
+                ticker='PSCF',
+                start_date=start_date,
+                end_date=end_date,
+                frequency='1d'
+            )
+
+            if price_df is None or price_df.empty:
+                raise ValueError("PSCF price download returned no data")
+
+            price_df['Date'] = pd.to_datetime(price_df['Date'])
+            price_df = price_df.sort_values('Date').reset_index(drop=True)
+
+            latest_price = price_df['value'].iloc[-1]
+            price_change = price_df['value'].iloc[-1] - price_df['value'].iloc[-2]
+            price_change_pct = (price_change / price_df['value'].iloc[-2]) * 100
+
+            return {
+                'data': price_df,
+                'latest_price': latest_price,
+                'price_change': price_change,
+                'price_change_pct': price_change_pct
+            }
+        except Exception as e:
+            logger.error(f"Error fetching PSCF price data: {str(e)}")
+            return {
+                'data': pd.DataFrame(columns=['Date', 'value']),
+                'latest_price': 'N/A',
+                'price_change': 0,
+                'price_change_pct': 0
+            }
+
     def get_all_indicators(self):
         """
         Get all economic indicators and their analysis.

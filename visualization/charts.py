@@ -279,3 +279,51 @@ def create_copper_gold_yield_chart(copper_gold_data):
     )
 
     return fig
+
+
+def create_pscf_chart(pscf_data):
+    """
+    Create a price chart for PSCF (Invesco S&P SmallCap Financials ETF).
+
+    Args:
+        pscf_data (dict): Dictionary containing price data with 'Date' and 'value' columns
+
+    Returns:
+        go.Figure: Plotly figure object
+    """
+    df = pscf_data.get('data', pd.DataFrame())
+    if df.empty:
+        return go.Figure()
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df['Date'],
+        y=df['value'],
+        name='PSCF',
+        mode='lines',
+        line=dict(color=THEME['line_colors']['primary'], width=2),
+        fill='tozeroy',
+        fillcolor='rgba(26, 127, 224, 0.08)',
+        hovertemplate='%{x|%Y-%m-%d}<br>Price: $%{y:.2f}<extra></extra>'
+    ))
+
+    fig.update_layout(
+        title=dict(text='PSCF – Small Cap Financials ETF (5Y)', font=dict(size=14)),
+        height=520,
+        showlegend=False,
+        yaxis=dict(
+            title=dict(text='Price ($)', font=dict(size=10)),
+            tickfont=dict(size=9),
+            tickprefix='$'
+        ),
+        xaxis=dict(
+            title=None,
+            tickfont=dict(size=9),
+            type='date'
+        ),
+        hovermode='x unified',
+        margin=dict(l=10, r=10, t=40, b=10)
+    )
+
+    return apply_dark_theme(fig)

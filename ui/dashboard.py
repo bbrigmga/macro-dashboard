@@ -15,7 +15,8 @@ from .indicators import (
     display_core_principles_card,
     display_new_orders_card,
     display_yield_curve_card,
-    display_copper_gold_ratio_card
+    display_copper_gold_ratio_card,
+    display_pscf_card
 )
 from data.fred_client import FredClient
 
@@ -211,9 +212,15 @@ def create_dashboard(indicators, fred_client):
     with row_col2:
         display_copper_gold_ratio_card(indicators['copper_gold_ratio'], fred_client)
 
-    # Take the full width for the 2-10 year spread so it sits below the pair
+    # Fourth row - 2-10Y spread alongside PSCF small cap financials
     st.divider()
-    display_yield_curve_card(indicators['yield_curve'], fred_client)
+    spread_col, pscf_col = st.columns(2)
+
+    with spread_col:
+        display_yield_curve_card(indicators['yield_curve'], fred_client)
+
+    with pscf_col:
+        display_pscf_card(indicators['pscf'], fred_client)
 
     # Display footer
     display_footer()

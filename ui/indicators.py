@@ -544,3 +544,49 @@ def display_copper_gold_ratio_card(copper_gold_data, fred_client=None):
             Higher ratios typically indicate bullish sentiment, lower yields suggest accommodative monetary policy
             </small>
             """, unsafe_allow_html=True)
+
+
+def display_pscf_card(pscf_data, fred_client=None):
+    """
+    Display a card with the PSCF (Invesco S&P SmallCap Financials ETF) 5-year price chart.
+
+    Args:
+        pscf_data (dict): Dictionary with price data from get_pscf_price()
+        fred_client (FredClient, optional): Unused, kept for interface consistency
+    """
+    CHART_HEIGHT = CARD_CHART_HEIGHT
+
+    latest_price = pscf_data.get('latest_price', 'N/A')
+    price_change = pscf_data.get('price_change', 0)
+    price_change_pct = pscf_data.get('price_change_pct', 0)
+
+    if isinstance(latest_price, float):
+        change_sign = '+' if price_change >= 0 else ''
+        change_color = '#00c853' if price_change >= 0 else '#f44336'
+        price_str = f"${latest_price:.2f}"
+        change_str = f"{change_sign}{price_change:.2f} ({change_sign}{price_change_pct:.2f}%)"
+    else:
+        change_color = '#333333'
+        price_str = 'N/A'
+        change_str = ''
+
+    with st.container():
+        st.subheader("🏦 PSCF – Small Cap Financials")
+        st.markdown(
+            f"<div style='color: #000000; font-size: 0.9rem;'>"
+            f"{price_str} <span style='color: {change_color};'>{change_str}</span>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+
+        fig = create_indicator_chart('pscf', pscf_data)
+        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT)
+
+        with st.expander("View Details"):
+            st.markdown("""
+            <small>
+            PSCF: Invesco S&P SmallCap Financials ETF<br>
+            Tracks small-cap US financial sector stocks — banks, insurance, and diversified financials.<br>
+            5-year daily price history from Yahoo Finance.
+            </small>
+            """, unsafe_allow_html=True)
