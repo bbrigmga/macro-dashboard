@@ -30,7 +30,8 @@ class YahooClient:
         if os.path.exists(cache_file):
             try:
                 df = pd.read_csv(cache_file)
-                df['Date'] = pd.to_datetime(df['Date'])
+                # Parse dates with utc=True to handle any tz-aware strings, then strip tz
+                df['Date'] = pd.to_datetime(df['Date'], utc=True).dt.tz_localize(None).dt.normalize()
                 logger.info(f"Loaded {len(df)} cached records for {ticker}")
                 return df
             except Exception as e:
@@ -142,8 +143,8 @@ class YahooClient:
             df = df[['Close']].reset_index()
             df.columns = ['Date', 'value']
 
-            # Ensure Date is datetime
-            df['Date'] = pd.to_datetime(df['Date'])
+            # Ensure Date is tz-naive datetime (Yahoo returns tz-aware dates)
+            df['Date'] = pd.to_datetime(df['Date'], utc=True).dt.tz_localize(None).dt.normalize()
 
             # Use processing utility to convert dates
             df = convert_dates(df.set_index('Date')).reset_index()
