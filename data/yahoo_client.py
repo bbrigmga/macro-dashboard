@@ -108,7 +108,9 @@ class YahooClient:
             if cached_start <= requested_start:
                 # Cache covers the requested period, return from cache
                 cached_df = cached_df.sort_values('Date').reset_index(drop=True)
-                result_df = cached_df[cached_df['Date'] >= requested_start].copy() if start_date else cached_df.tail(periods).copy()
+                # cached_df['Date'] is datetime64; compare against a Timestamp to avoid dtype/date comparison errors
+                requested_start_dt = pd.Timestamp(requested_start) if start_date else None
+                result_df = cached_df[cached_df['Date'] >= requested_start_dt].copy() if start_date else cached_df.tail(periods).copy()
                 logger.info(f"Using cached data for {ticker} - {len(result_df)} records")
                 return result_df
             else:

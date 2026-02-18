@@ -53,6 +53,12 @@ class IndicatorData:
         else:
             self.fred_client = fred_client if fred_client else FredClient()
         self.yahoo_client = YahooClient()
+
+    def _fred(self) -> "FredClient":
+        """Return the FRED client, raising if not available (sample-data mode)."""
+        if self.fred_client is None:
+            raise RuntimeError("FRED client is not available in sample-data mode")
+        return self.fred_client
     
     @st.cache_data(ttl=3600) # Cache for 1 hour
     def get_initial_claims(_self, periods=52):
@@ -67,7 +73,7 @@ class IndicatorData:
         """
         try:
             # Fetch claims data with weekly frequency
-            claims_data = _self.fred_client.get_series('ICSA', periods=periods, frequency='W')
+            claims_data = _self._fred().get_series('ICSA', periods=periods, frequency='W')
             claims_data.columns = ['Date', 'Claims']
             
             # Get recent claims for analysis
@@ -104,7 +110,7 @@ class IndicatorData:
         """
         try:
             # Fetch PCE data with monthly frequency
-            pce_data = _self.fred_client.get_series('PCE', periods=periods, frequency='M')
+            pce_data = _self._fred().get_series('PCE', periods=periods, frequency='M')
             pce_data.columns = ['Date', 'PCE']
             
             # Calculate year-over-year and month-over-month percentage changes
@@ -150,7 +156,7 @@ class IndicatorData:
         """
         try:
             # Fetch Core CPI data with monthly frequency
-            core_cpi_data = _self.fred_client.get_series('CPILFESL', periods=periods, frequency='M')
+            core_cpi_data = _self._fred().get_series('CPILFESL', periods=periods, frequency='M')
             core_cpi_data.columns = ['Date', 'CPI']
             
             # Calculate year-over-year and month-over-month percentage changes
@@ -192,7 +198,7 @@ class IndicatorData:
         """
         try:
             # Fetch Hours Worked data with monthly frequency
-            hours_data = _self.fred_client.get_series('AWHAETP', periods=periods, frequency='M')
+            hours_data = _self._fred().get_series('AWHAETP', periods=periods, frequency='M')
             hours_data.columns = ['Date', 'Hours']
             
             # Get recent hours for analysis
@@ -244,7 +250,7 @@ class IndicatorData:
             }
             
             # Get all series in one batch request
-            all_series = _self.fred_client.get_multiple_series(
+            all_series = _self._fred().get_multiple_series(
                 list(series_ids.values()),
                 start_date=start_date,
                 periods=periods if start_date is None else None,
@@ -463,35 +469,35 @@ class IndicatorData:
             # Fetch WALCL, RRPONTTLD together
             series_ids = ['WALCL', 'RRPONTTLD', 'B235RC1Q027SBEA']
 
-            all_series = _self.fred_client.get_multiple_series(
+            all_series = _self._fred().get_multiple_series(
                 series_ids,
                 periods=num_quarters, # Use calculated quarters
                 frequency='Q' # Quarterly
             )
 
             # Add quarter column for merging
-            all_series['Quarter'] = all_series['Date'].dt.to_period('Q')
+            all_series['Quarter'] = pd.PeriodIndex(all_series['Date'], freq='Q')
 
             # Fetch CURRCIR separately to ensure we get historical data
-            currcir_data = _self.fred_client.get_series('CURRCIR', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
+            currcir_data = _self._fred().get_series('CURRCIR', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
 
             if not currcir_data.empty:
-                currcir_data['Quarter'] = currcir_data['Date'].dt.to_period('Q')
+                currcir_data['Quarter'] = pd.PeriodIndex(currcir_data['Date'], freq='Q')
                 all_series = pd.merge(all_series, currcir_data[['Quarter', 'CURRCIR']], on='Quarter', how='left')
 
             # Fetch nominal GDP separately with explicit start_date to ensure we get historical data
             # GDP (nominal, SAAR, billions) is a better denominator for nominal balance-sheet liquidity components
-            gdp_data = _self.fred_client.get_series('GDP', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
+            gdp_data = _self._fred().get_series('GDP', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
 
             if not gdp_data.empty:
-                gdp_data['Quarter'] = gdp_data['Date'].dt.to_period('Q')
+                gdp_data['Quarter'] = pd.PeriodIndex(gdp_data['Date'], freq='Q')
 
                 all_series = pd.merge(all_series, gdp_data[['Quarter', 'GDP']], on='Quarter', how='left')
             else:
                 # Fallback to real GDP if nominal GDP is unavailable
-                gdpc1_data = _self.fred_client.get_series('GDPC1', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
+                gdpc1_data = _self._fred().get_series('GDPC1', start_date='2000-01-01', end_date=None, periods=None, frequency='Q')
                 if not gdpc1_data.empty:
-                    gdpc1_data['Quarter'] = gdpc1_data['Date'].dt.to_period('Q')
+                    gdpc1_data['Quarter'] = pd.PeriodIndex(gdpc1_data['Date'], freq='Q')
                     all_series = pd.merge(all_series, gdpc1_data[['Quarter', 'GDPC1']], on='Quarter', how='left')
             
             # Fetch WTREGEN data separately to ensure we get the latest value
@@ -501,12 +507,12 @@ class IndicatorData:
 
             try:
                 # First try to get the latest value directly
-                wtregen_info = _self.fred_client.fred.get_series_info('WTREGEN')
+                wtregen_info = _self._fred().fred.get_series_info('WTREGEN')
                 if wtregen_info is not None:
                     logger.info(f"Got WTREGEN series info: Last updated {wtregen_info.get('last_updated', 'unknown')}")
 
                 # Now fetch the actual data series as weekly (since it releases Wednesdays)
-                wtregen_data = _self.fred_client.get_series('WTREGEN', periods=num_quarters * 13, frequency='W')  # ~13 weeks per quarter
+                wtregen_data = _self._fred().get_series('WTREGEN', periods=num_quarters * 13, frequency='W')  # ~13 weeks per quarter
 
                 if not wtregen_data.empty:
                     logger.info(f"Successfully fetched WTREGEN data with {len(wtregen_data)} rows")
@@ -518,7 +524,7 @@ class IndicatorData:
                     wtregen_data.reset_index(inplace=True)
 
                     # Add Quarter column for merging
-                    wtregen_data['Quarter'] = wtregen_data['Date'].dt.to_period('Q')
+                    wtregen_data['Quarter'] = pd.PeriodIndex(wtregen_data['Date'], freq='Q')
 
                     # Get the latest value from the resampled data
                     if len(wtregen_data) > 0:
@@ -554,7 +560,7 @@ class IndicatorData:
             # Handle missing GDP data: fetch latest GDPC1 separately to ensure we have the most recent
             if not use_sample_data:
                 try:
-                    latest_gdp_data = _self.fred_client.get_series('GDP', periods=1, frequency='Q')  # Get latest nominal GDP
+                    latest_gdp_data = _self._fred().get_series('GDP', periods=1, frequency='Q')  # Get latest nominal GDP
                     if not latest_gdp_data.empty:
                         latest_gdp_date = latest_gdp_data['Date'].iloc[-1]
                         latest_gdp_value = latest_gdp_data['GDP'].iloc[-1]
@@ -569,7 +575,7 @@ class IndicatorData:
                                 # Fill other columns with last known values
                                 for col in ['WALCL', 'RRPONTTLD', 'WTREGEN', 'CURRCIR']:
                                     if col in all_series.columns:
-                                        new_row[col] = all_series[col].fillna(method='ffill').iloc[-1]
+                                        new_row[col] = all_series[col].ffill().iloc[-1]
                                 all_series = pd.concat([all_series, pd.DataFrame([new_row])], ignore_index=True)
                                 all_series = all_series.drop_duplicates(subset='Date', keep='last').sort_values('Date').reset_index(drop=True)
                 except Exception as e:
@@ -580,7 +586,7 @@ class IndicatorData:
             # Fetch S&P 500 data separately to ensure we get it even if other data fails
             sp500_data = None
             try:
-                sp500_data = _self.fred_client.get_series('SP500', periods=num_quarters, frequency='Q')
+                sp500_data = _self._fred().get_series('SP500', periods=num_quarters, frequency='Q')
                 if not sp500_data.empty:
                     sp500_data.columns = ['Date', 'SP500']
                     # Resample SP500 to quarterly
@@ -662,7 +668,13 @@ class IndicatorData:
                     logger.warning(f"WTREGEN data not available from API, using fallback value: {last_valid_tga} billion")
 
                 # Calculate current liquidity based on last valid points
-                current_liquidity_calc = ((last_valid_walcl - (last_valid_rrp * 1000) - last_valid_tga - (last_valid_currcir * 1000) + (last_valid_tariff_flow * 1000)) / last_valid_gdp) / 1000
+                def _f(v) -> float:  # type: ignore[return]
+                    """Coerce a pandas/numpy scalar to plain float."""
+                    try:
+                        return float(v)  # type: ignore[arg-type]
+                    except Exception:
+                        return 0.0
+                current_liquidity_calc = ((_f(last_valid_walcl) - (_f(last_valid_rrp) * 1000) - _f(last_valid_tga) - (_f(last_valid_currcir) * 1000) + (_f(last_valid_tariff_flow) * 1000)) / _f(last_valid_gdp)) / 1000
 
                 latest_data = all_series.iloc[-1]
 
@@ -729,7 +741,7 @@ class IndicatorData:
         """
         try:
             # Fetch New Orders data with monthly frequency
-            new_orders_data = _self.fred_client.get_series('NEWORDER', periods=periods, frequency='M')
+            new_orders_data = _self._fred().get_series('NEWORDER', periods=periods, frequency='M')
             new_orders_data.columns = ['Date', 'NEWORDER']
             
             # Calculate month-over-month percentage change
@@ -780,7 +792,7 @@ class IndicatorData:
                 # For daily data, fetch ~3 years (756 trading days)
                 observation_period = 756
 
-            yield_curve_data = _self.fred_client.get_series('T10Y2Y', periods=observation_period, frequency=frequency)
+            yield_curve_data = _self._fred().get_series('T10Y2Y', periods=observation_period, frequency=frequency)
             yield_curve_data.columns = ['Date', 'T10Y2Y']
 
             # If daily data but we want monthly for display, aggregate to monthly
@@ -789,7 +801,7 @@ class IndicatorData:
                 yield_curve_data['Date'] = pd.to_datetime(yield_curve_data['Date'])
 
                 # Create a year-month column for grouping
-                yield_curve_data['YearMonth'] = yield_curve_data['Date'].dt.to_period('M')
+                yield_curve_data['YearMonth'] = pd.PeriodIndex(yield_curve_data['Date'], freq='M')
 
                 # Group by year-month and get last day of each month (or avg)
                 monthly_data = yield_curve_data.groupby('YearMonth').agg({
@@ -831,10 +843,10 @@ class IndicatorData:
             start_date = '2000-01-01'
             end_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
-            yield_df = _self.fred_client.get_series('DGS10', start_date=start_date, frequency='D')
+            yield_df = _self._fred().get_series('DGS10', start_date=start_date, frequency='D')
             yield_series = yield_df.set_index('Date')['DGS10'].rename('yield')
 
-            copper_df = _self.fred_client.get_series('PCOPPUSDM', start_date=start_date, frequency='M')
+            copper_df = _self._fred().get_series('PCOPPUSDM', start_date=start_date, frequency='M')
             copper_series = copper_df.set_index('Date')['PCOPPUSDM'].rename('copper')
 
             gold_df = _self.yahoo_client.get_historical_prices(
@@ -889,6 +901,57 @@ class IndicatorData:
             }
     
     @st.cache_data(ttl=3600*24)
+    def get_credit_spread(_self, years=5):
+        """
+        Get ICE BofA US High Yield Option-Adjusted Spread (BAMLH0A0HYM2) from FRED.
+
+        Args:
+            years (int): Number of years of daily history to fetch (default 5)
+
+        Returns:
+            dict: Dictionary with spread data and latest reading
+        """
+        try:
+            import datetime as dt
+            start_date = (dt.datetime.now() - dt.timedelta(days=years * 365 + 10)).strftime('%Y-%m-%d')
+
+            df = _self._fred().get_series('BAMLH0A0HYM2', start_date=start_date, frequency='D')
+
+            if df is None or df.empty:
+                raise ValueError("BAMLH0A0HYM2 returned no data")
+
+            df['Date'] = pd.to_datetime(df['Date'])
+            # FredClient.get_series returns a column named after the series_id
+            if 'value' not in df.columns:
+                if 'BAMLH0A0HYM2' in df.columns:
+                    df = df.rename(columns={'BAMLH0A0HYM2': 'value'})
+                else:
+                    # Fallback: assume the second column is the value column
+                    value_col = [c for c in df.columns if c != 'Date']
+                    if not value_col:
+                        raise ValueError("BAMLH0A0HYM2 returned no value column")
+                    df = df.rename(columns={value_col[0]: 'value'})
+
+            df = df.dropna(subset=['value'])
+            df = df.sort_values('Date').reset_index(drop=True)
+
+            latest_spread = float(df['value'].iloc[-1])
+            prev_spread = float(df['value'].iloc[-2]) if len(df) >= 2 else latest_spread
+            spread_change = latest_spread - prev_spread
+
+            return {
+                'data': df,
+                'latest_spread': latest_spread,
+                'spread_change': spread_change,
+            }
+        except Exception as e:
+            logger.error(f"Error fetching credit spread data: {str(e)}")
+            return {
+                'data': pd.DataFrame(columns=['Date', 'value']),
+                'latest_spread': 'N/A',
+                'spread_change': 0,
+            }
+
     def get_pscf_price(_self, years=5):
         """
         Get historical price data for PSCF (Invesco S&P SmallCap Financials ETF).

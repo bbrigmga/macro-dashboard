@@ -103,6 +103,7 @@ else:
             yield_curve_data = indicator_data.get_yield_curve(periods=36, frequency='D')
             copper_gold_ratio_data = indicator_data.get_copper_gold_ratio()
             pscf_data = indicator_data.get_pscf_price(years=5)
+            credit_spread_data = indicator_data.get_credit_spread(years=5)
             # Combine all indicators
             indicators = {
                 'claims': claims_data,
@@ -114,11 +115,12 @@ else:
                 'new_orders': new_orders_data,
                 'yield_curve': yield_curve_data,
                 'copper_gold_ratio': copper_gold_ratio_data,
-                'pscf': pscf_data
+                'pscf': pscf_data,
+                'credit_spread': credit_spread_data
             }
 
         # Create and display the dashboard (pass shared fred_client)
         create_dashboard(indicators, fred_client=fred_client)
     except Exception as e:
-        logger.error(f"Error in dashboard initialization: {str(e)}")
+        logger.exception("Error in dashboard initialization")
         st.error(f"An error occurred while initializing the dashboard: {str(e)}")

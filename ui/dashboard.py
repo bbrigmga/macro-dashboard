@@ -16,7 +16,8 @@ from .indicators import (
     display_new_orders_card,
     display_yield_curve_card,
     display_copper_gold_ratio_card,
-    display_pscf_card
+    display_pscf_card,
+    display_credit_spread_card
 )
 from data.fred_client import FredClient
 
@@ -221,6 +222,13 @@ def create_dashboard(indicators, fred_client):
 
     with pscf_col:
         display_pscf_card(indicators['pscf'], fred_client)
+
+    # Fifth row - Credit Spreads
+    st.divider()
+    credit_col, _ = st.columns(2)
+
+    with credit_col:
+        display_credit_spread_card(indicators['credit_spread'], fred_client)
 
     # Display footer
     display_footer()

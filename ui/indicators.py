@@ -65,7 +65,7 @@ def display_hours_worked_card(hours_data, fred_client=None):
         
         # Create and display the chart
         fig_hours = create_indicator_chart('hours_worked', hours_data)
-        st.plotly_chart(fig_hours, use_container_width=True, height=250)
+        st.plotly_chart(fig_hours, use_container_width=True, height=250, key="chart_hours_worked")
         
         # Expandable details section
         with st.expander("View Details"):
@@ -121,7 +121,7 @@ def display_core_cpi_card(core_cpi_data, fred_client=None):
         
         # Create and display the chart
         fig_cpi = create_indicator_chart('core_cpi', core_cpi_data)
-        st.plotly_chart(fig_cpi, use_container_width=True, height=250)
+        st.plotly_chart(fig_cpi, use_container_width=True, height=250, key="chart_core_cpi")
         
         # Expandable details section
         with st.expander("View Details"):
@@ -176,7 +176,7 @@ def display_initial_claims_card(claims_data, fred_client=None):
         
         # Create and display the chart
         fig_claims = create_indicator_chart('claims', claims_data)
-        st.plotly_chart(fig_claims, use_container_width=True, height=250)
+        st.plotly_chart(fig_claims, use_container_width=True, height=250, key="chart_initial_claims")
         
         # Expandable details section
         with st.expander("View Details"):
@@ -229,7 +229,7 @@ def display_pce_card(pce_data, fred_client=None):
         
         # Create and display the chart
         fig_pce = create_indicator_chart('pce', pce_data)
-        st.plotly_chart(fig_pce, use_container_width=True, height=250)
+        st.plotly_chart(fig_pce, use_container_width=True, height=250, key="chart_pce")
         
         # Expandable details section
         with st.expander("View Details"):
@@ -277,7 +277,7 @@ def display_pmi_card(pmi_data, fred_client=None):
         
         # Create and display the chart
         fig_pmi = create_indicator_chart('pmi', pmi_data)
-        st.plotly_chart(fig_pmi, use_container_width=True, height=250)
+        st.plotly_chart(fig_pmi, use_container_width=True, height=250, key="chart_pmi")
         
         # Expandable details section
         with st.expander("View Details"):
@@ -326,7 +326,7 @@ def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
         
         # Create and display the chart
         fig_liquidity = create_indicator_chart('usd_liquidity', usd_liquidity_data)
-        st.plotly_chart(fig_liquidity, use_container_width=True, height=CARD_CHART_HEIGHT)
+        st.plotly_chart(fig_liquidity, use_container_width=True, height=CARD_CHART_HEIGHT, key="chart_usd_liquidity")
         
         # Expandable details section
         with st.expander("View Details"):
@@ -464,7 +464,7 @@ def display_new_orders_card(new_orders_data, fred_client=None):
         
         # Add chart
         fig = create_indicator_chart('new_orders', new_orders_data)
-        st.plotly_chart(fig, use_container_width=True, height=250)
+        st.plotly_chart(fig, use_container_width=True, height=250, key="chart_new_orders")
         
         # Expandable details section
         with st.expander("View Details"):
@@ -498,7 +498,7 @@ def display_yield_curve_card(yield_curve_data, fred_client=None):
 
         # Create and display chart
         fig = create_indicator_chart('yield_curve', yield_curve_data)
-        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT)
+        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT, key="chart_yield_curve")
 
         # Expandable details section - use same label as USD Liquidity
         with st.expander("View Details"):
@@ -533,7 +533,7 @@ def display_copper_gold_ratio_card(copper_gold_data, fred_client=None):
 
         # Create and display chart
         fig = create_indicator_chart('copper_gold_ratio', copper_gold_data)
-        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT)
+        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT, key="chart_copper_gold_ratio")
 
         # Expandable details section
         with st.expander("View Details"):
@@ -580,7 +580,7 @@ def display_pscf_card(pscf_data, fred_client=None):
         )
 
         fig = create_indicator_chart('pscf', pscf_data)
-        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT)
+        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT, key="chart_pscf")
 
         with st.expander("View Details"):
             st.markdown("""
@@ -588,5 +588,56 @@ def display_pscf_card(pscf_data, fred_client=None):
             PSCF: Invesco S&P SmallCap Financials ETF<br>
             Tracks small-cap US financial sector stocks — banks, insurance, and diversified financials.<br>
             5-year daily price history from Yahoo Finance.
+            </small>
+            """, unsafe_allow_html=True)
+
+
+def display_credit_spread_card(credit_spread_data, fred_client=None):
+    """
+    Display a card with the ICE BofA US High Yield Option-Adjusted Spread (BAMLH0A0HYM2).
+
+    Args:
+        credit_spread_data (dict): Dictionary with spread data from get_credit_spread()
+        fred_client (FredClient, optional): Unused, kept for interface consistency
+    """
+    CHART_HEIGHT = CARD_CHART_HEIGHT
+
+    latest_spread = credit_spread_data.get('latest_spread', 'N/A')
+    spread_change = credit_spread_data.get('spread_change', 0)
+
+    if isinstance(latest_spread, float):
+        change_sign = '+' if spread_change >= 0 else ''
+        change_color = '#f44336' if spread_change >= 0 else '#00c853'  # wider = red, tighter = green
+        spread_str = f"{latest_spread:.2f}%"
+        change_str = f"{change_sign}{spread_change:.2f}%"
+    else:
+        change_color = '#333333'
+        spread_str = 'N/A'
+        change_str = ''
+
+    with st.container():
+        st.subheader("📉 HY Credit Spreads – OAS")
+        st.markdown(
+            f"<div style='color: #000000; font-size: 0.9rem;'>"
+            f"{spread_str} <span style='color: {change_color};'>{change_str}</span>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+
+        fig = create_indicator_chart('credit_spread', credit_spread_data)
+        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT, key="chart_credit_spread")
+
+        with st.expander("View Details"):
+            st.markdown("""
+            <small>
+            <b>FRED series:</b> BAMLH0A0HYM2 — ICE BofA US High Yield Option-Adjusted Spread<br>
+            Tracks below-investment-grade (BB and lower) corporate bonds vs. Treasuries.
+            Option-adjusted to remove the effect of embedded call/put options.<br>
+            <b>Why it matters:</b> Junk bond issuers feel funding stress earliest when the economy
+            starts cracking (slower growth, rising defaults). Sharp widening has anticipated every
+            major U.S. recession since the 1970s.<br>
+            <b>Ranges:</b> Calm: ~3–5% &nbsp;|&nbsp; Warning: 6–8%+ &nbsp;|&nbsp;
+            Crisis peaks: 10–20%+ (e.g., 2008, 2020).<br>
+            Daily data from FRED — updated with each business-day release.
             </small>
             """, unsafe_allow_html=True)

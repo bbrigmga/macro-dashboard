@@ -26,7 +26,7 @@ def convert_dates(df):
     return df
 
 
-def calculate_pct_change(df, column, periods=1, annualize=False, fill_method='ffill'):
+def calculate_pct_change(df, column, periods=1, annualize=False, fill_method=None):
     """
     Calculate percentage change for a column in a DataFrame.
     

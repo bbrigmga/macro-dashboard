@@ -281,6 +281,54 @@ def create_copper_gold_yield_chart(copper_gold_data):
     return fig
 
 
+def create_credit_spread_chart(credit_spread_data):
+    """
+    Create a chart for the ICE BofA US High Yield OAS (BAMLH0A0HYM2).
+
+    Args:
+        credit_spread_data (dict): Dictionary containing spread data with 'Date' and 'value' columns
+
+    Returns:
+        go.Figure: Plotly figure object
+    """
+    df = credit_spread_data.get('data', pd.DataFrame())
+    if df.empty:
+        return go.Figure()
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df['Date'],
+        y=df['value'],
+        name='HY OAS',
+        mode='lines',
+        line=dict(color='#e85d4a', width=2),
+        fill='tozeroy',
+        fillcolor='rgba(232, 93, 74, 0.08)',
+        hovertemplate='%{x|%Y-%m-%d}<br>Spread: %{y:.2f}%<extra></extra>'
+    ))
+
+    fig.update_layout(
+        title=dict(text='US High Yield OAS – Credit Spreads (5Y)', font=dict(size=14)),
+        height=520,
+        showlegend=False,
+        yaxis=dict(
+            title=dict(text='Spread (%)', font=dict(size=10)),
+            tickfont=dict(size=9),
+            ticksuffix='%'
+        ),
+        xaxis=dict(
+            title=None,
+            tickfont=dict(size=9),
+            type='date'
+        ),
+        hovermode='x unified',
+        margin=dict(l=10, r=10, t=40, b=10)
+    )
+
+    return apply_dark_theme(fig)
+
+
 def create_pscf_chart(pscf_data):
     """
     Create a price chart for PSCF (Invesco S&P SmallCap Financials ETF).

@@ -6,6 +6,7 @@ import plotly.graph_objects as go  # This is imported as go
 from visualization.charts import (
     create_line_chart, 
     create_copper_gold_yield_chart,
+    create_credit_spread_chart,
     create_pscf_chart,
     THEME,
     apply_dark_theme
@@ -591,6 +592,7 @@ def create_indicator_chart(indicator_key, indicator_data, periods=None):
         'new_orders': create_new_orders_chart,
         'yield_curve': create_yield_curve_chart,
         'copper_gold_ratio': create_copper_gold_yield_chart,
+        'credit_spread': create_credit_spread_chart,
         'pscf': create_pscf_chart,
     }
 
