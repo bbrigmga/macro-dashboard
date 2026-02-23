@@ -52,7 +52,8 @@ class ChartConfig:
             'warning': '#ff9800',
             'danger': '#f44336',
             'neutral': '#78909c'
-        }
+        },
+        'colorscale': [[0, '#f44336'], [0.5, '#ff9800'], [1, '#00c853']]
     })
     default_periods: int = 36
 

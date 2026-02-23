@@ -6,19 +6,10 @@ import datetime
 import streamlit as st
 import pandas as pd
 from .indicators import (
-    display_hours_worked_card,
-    display_core_cpi_card,
-    display_initial_claims_card,
-    display_pce_card,
-    display_pmi_card,
-    display_usd_liquidity_card,
-    display_core_principles_card,
-    display_new_orders_card,
-    display_yield_curve_card,
-    display_copper_gold_ratio_card,
-    display_pscf_card,
-    display_credit_spread_card
+    display_indicator_card,
+    display_core_principles_card
 )
+from src.config.indicator_registry import INDICATOR_REGISTRY
 from data.fred_client import FredClient
 
 
@@ -184,51 +175,58 @@ def create_dashboard(indicators, fred_client):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        display_hours_worked_card(indicators['hours_worked'], fred_client)
+        if 'hours_worked' in indicators:
+            display_indicator_card('hours_worked', indicators['hours_worked'], fred_client)
     
     with col2:
-        display_core_cpi_card(indicators['core_cpi'], fred_client)
+        if 'core_cpi' in indicators:
+            display_indicator_card('core_cpi', indicators['core_cpi'], fred_client)
     
     with col3:
-        display_initial_claims_card(indicators['claims'], fred_client)
+        if 'claims' in indicators:  # Note: data key is 'claims' but registry key is 'initial_claims'
+            display_indicator_card('initial_claims', indicators['claims'], fred_client)
     
     # Second row - 3 indicators
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        display_pce_card(indicators['pce'], fred_client)
+        if 'pce' in indicators:
+            display_indicator_card('pce', indicators['pce'], fred_client)
     
     with col2:
-        display_pmi_card(indicators['pmi'], fred_client)
+        if 'pmi' in indicators:  # Note: data key is 'pmi' but registry key is 'pmi_proxy'
+            display_indicator_card('pmi_proxy', indicators['pmi'], fred_client)
     
     with col3:
-        display_new_orders_card(indicators['new_orders'], fred_client)
+        if 'new_orders' in indicators:
+            display_indicator_card('new_orders', indicators['new_orders'], fred_client)
     
     # Third row - USD liquidity alongside Copper/Gold vs 10Y yield
     row_col1, row_col2 = st.columns(2)
 
     with row_col1:
-        display_usd_liquidity_card(indicators['usd_liquidity'], fred_client)
+        if 'usd_liquidity' in indicators:
+            display_indicator_card('usd_liquidity', indicators['usd_liquidity'], fred_client)
 
     with row_col2:
-        display_copper_gold_ratio_card(indicators['copper_gold_ratio'], fred_client)
+        if 'copper_gold_ratio' in indicators:  # Note: data key matches registry key 'copper_gold_yield'
+            display_indicator_card('copper_gold_yield', indicators['copper_gold_ratio'], fred_client)
 
-    # Fourth row - 2-10Y spread alongside PSCF small cap financials
+    # Fourth row - 2-10Y spread, High Yield Credit Spread, and PSCF small cap financials
     st.divider()
-    spread_col, pscf_col = st.columns(2)
+    spread_col, credit_col, pscf_col = st.columns(3)
 
     with spread_col:
-        display_yield_curve_card(indicators['yield_curve'], fred_client)
-
-    with pscf_col:
-        display_pscf_card(indicators['pscf'], fred_client)
-
-    # Fifth row - Credit Spreads
-    st.divider()
-    credit_col, _ = st.columns(2)
+        if 'yield_curve' in indicators:
+            display_indicator_card('yield_curve', indicators['yield_curve'], fred_client)
 
     with credit_col:
-        display_credit_spread_card(indicators['credit_spread'], fred_client)
+        if 'credit_spread' in indicators:
+            display_indicator_card('credit_spread', indicators['credit_spread'], fred_client)
+
+    with pscf_col:
+        if 'pscf' in indicators:  # Note: data key matches registry key 'pscf_price'
+            display_indicator_card('pscf_price', indicators['pscf'], fred_client)
 
     # Display footer
     display_footer()

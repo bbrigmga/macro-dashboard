@@ -14,6 +14,44 @@ WARNING_COLORS = {
 }
 
 
+def _coerce_scalar(value):
+    """Coerce array-like inputs to a single scalar value."""
+    if isinstance(value, pd.Series):
+        if value.empty:
+            return None
+        return value.iloc[-1]
+
+    if isinstance(value, np.ndarray):
+        if value.size == 0:
+            return None
+        return value.reshape(-1)[-1]
+
+    if isinstance(value, (list, tuple)):
+        if not value:
+            return None
+        return value[-1]
+
+    if isinstance(value, np.generic):
+        return value.item()
+
+    return value
+
+
+def _is_missing(value) -> bool:
+    """Return True for None/NaN-like values."""
+    if value is None:
+        return True
+    return bool(pd.isna(value))
+
+
+def _coerce_bool(value) -> bool:
+    """Safely convert possibly array-like truthy values to bool."""
+    scalar_value = _coerce_scalar(value)
+    if _is_missing(scalar_value):
+        return False
+    return bool(scalar_value)
+
+
 def create_warning_indicator(value, threshold, higher_is_bad=True, neutral=False):
     """
     Create a warning signal indicator.
@@ -131,205 +169,213 @@ def format_warning_message(status, message, details=None):
     return formatted_message
 
 
+def generate_indicator_warning(data: dict, config) -> dict:
+    """
+    Generic warning signal generator driven by config.
+    
+    Args:
+        data: Dictionary containing indicator data
+        config: IndicatorConfig object with signal configuration
+        
+    Returns:
+        dict: {"status": str, "details": str}
+    """
+    from src.config.indicator_registry import IndicatorConfig
+    
+    if not isinstance(config, IndicatorConfig):
+        raise TypeError("config must be an IndicatorConfig object")
+    
+    # Handle custom status functions
+    if config.bullish_condition == "custom" and config.custom_status_fn:
+        # Import and call the custom function
+        module_path, function_name = config.custom_status_fn.rsplit('.', 1)
+        import importlib
+        module = importlib.import_module(module_path)
+        custom_function = getattr(module, function_name)
+        
+        # Custom functions return formatted warning messages, but we need dict format
+        warning_message = custom_function(data)
+        
+        # Inject warning description if not already present
+        if config.warning_description and config.warning_description not in warning_message:
+            warning_message = f"<div style='margin-bottom: 1rem;'><strong>Signal Description:</strong><br/>{config.warning_description}</div>\n\n" + warning_message
+            
+        # Extract status from the message (simple heuristic based on content)
+        if "Bearish" in warning_message:
+            status = "Bearish"
+        elif "Bullish" in warning_message:
+            status = "Bullish"
+        else:
+            status = "Neutral"
+            
+        return {"status": status, "details": warning_message}
+    
+    # Get the latest value from data
+    latest_value = None
+    
+    # Try different ways to get the latest value
+    if 'current_value' in data:
+        latest_value = data['current_value']
+    elif config.value_column in data and hasattr(data[config.value_column], 'iloc'):
+        # DataFrame case
+        latest_value = data[config.value_column].iloc[-1]
+    elif isinstance(data, dict) and 'latest_value' in data:
+        latest_value = data['latest_value']
+    elif f'current_{config.key}' in data:
+        # Try current_<indicator_name> format
+        latest_value = data[f'current_{config.key}']
+
+    latest_value = _coerce_scalar(latest_value)
+    
+    # Final fallback: look inside the nested 'data' DataFrame using config.value_column
+    if latest_value is None:
+        nested_df = data.get('data')
+        if isinstance(nested_df, pd.DataFrame) and not nested_df.empty:
+            if config.value_column in nested_df.columns:
+                vals = nested_df[config.value_column].dropna()
+                if not vals.empty:
+                    latest_value = _coerce_scalar(vals.iloc[-1])
+    
+    # Handle threshold-based conditions
+    if config.bullish_condition == "below_threshold" and config.threshold is not None:
+        if _is_missing(latest_value):
+            status = "Neutral"
+            status_emoji = create_warning_indicator(False, 0.5, neutral=True)
+        elif latest_value < config.threshold:
+            status = "Bullish"
+            status_emoji = create_warning_indicator(False, 0.5)
+        else:
+            status = "Bearish" 
+            status_emoji = create_warning_indicator(True, 0.5)
+            
+    elif config.bullish_condition == "above_threshold" and config.threshold is not None:
+        if _is_missing(latest_value):
+            status = "Neutral"
+            status_emoji = create_warning_indicator(False, 0.5, neutral=True)
+        elif latest_value > config.threshold:
+            status = "Bullish"
+            status_emoji = create_warning_indicator(False, 0.5)
+        else:
+            status = "Bearish"
+            status_emoji = create_warning_indicator(True, 0.5)
+            
+    elif config.bullish_condition == "decreasing":
+        # Check for consecutive increases/decreases
+        increasing_key = f"{config.key}_increasing"
+        decreasing_key = f"{config.key}_decreasing"
+        
+        is_increasing = _coerce_bool(data.get(increasing_key, False))
+        is_decreasing = _coerce_bool(data.get(decreasing_key, False))
+        
+        if is_increasing:
+            # For indicators where increasing is bearish (inflation, claims, etc.)
+            # Exception: hours_worked, new_orders, pscf_price where increasing is bullish
+            if config.key in ["hours_worked", "new_orders", "pscf_price"]:
+                status = "Bullish"
+                status_emoji = create_warning_indicator(False, 0.5)
+            else:
+                status = "Bearish" 
+                status_emoji = create_warning_indicator(True, 0.5)
+        elif is_decreasing:
+            # For indicators where decreasing is bullish (inflation, claims, etc.)
+            # Exception: hours_worked, new_orders, pscf_price where decreasing is bearish
+            if config.key in ["hours_worked", "new_orders", "pscf_price"]:
+                status = "Bearish"
+                status_emoji = create_warning_indicator(True, 0.5)
+            else:
+                status = "Bullish"
+                status_emoji = create_warning_indicator(False, 0.5)
+        else:
+            status = "Neutral"
+            status_emoji = create_warning_indicator(False, 0.5, neutral=True)
+    else:
+        # Default fallback
+        status = "Neutral"
+        status_emoji = create_warning_indicator(False, 0.5, neutral=True)
+    
+    # Create details section
+    if latest_value is not None:
+        try:
+            fv = float(latest_value)
+            if abs(fv) < 0.01:
+                _display_value = f"{fv:.5f}"
+            elif abs(fv) < 10:
+                _display_value = f"{fv:.2f}"
+            elif abs(fv) < 1000:
+                _display_value = f"{fv:.2f}"
+            else:
+                _display_value = f"{fv:,.0f}"
+        except (TypeError, ValueError):
+            _display_value = str(latest_value)
+    else:
+        _display_value = "N/A"
+
+    details = f"""
+<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
+Current {config.display_name}: {_display_value}
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Signal Description:</strong><br/>
+{config.warning_description}
+</div>
+"""
+    
+    # Append indicator-specific extra context derived from the thread
+    _per_indicator_notes = {
+        "initial_claims": """
+<div style='margin-top:0.75rem; padding:0.5rem; background:#f0f4ff; border-left:3px solid #1a7fe0;'>
+<strong>Playbook for rising claims:</strong>
+<ul style='margin:0.25rem 0 0 1.25rem;'>
+  <li>Scale back aggressive positions</li>
+  <li>Shift toward defensive sectors</li>
+  <li>Build cash reserves</li>
+</ul>
+<em>"Small moves early beat big moves late."</em>
+</div>""",
+        "core_cpi": """
+<div style='margin-top:0.75rem; padding:0.5rem; background:#fff8f0; border-left:3px solid #ff9800;'>
+<strong>When services inflation drops:</strong> Growth stocks outperform · Bonds rally · Tech leads<br/>
+<strong>When it rises:</strong> Value stocks win · Real assets dominate · Tech struggles
+</div>""",
+        "pce": """
+<div style='margin-top:0.75rem; padding:0.5rem; background:#f0fff4; border-left:3px solid #00c853;'>
+<strong>PCE framework:</strong>
+<ul style='margin:0.25rem 0 0 1.25rem;'>
+  <li>PCE dropping + Stable jobs = <strong>Add risk</strong></li>
+  <li>PCE rising + Rising claims = <strong>Get defensive</strong></li>
+</ul>
+<em>PCE is the Fed's preferred inflation measure and guides policy decisions.</em>
+</div>""",
+        "hours_worked": """
+<div style='margin-top:0.75rem; padding:0.5rem; background:#f5f5f5; border-left:3px solid #78909c;'>
+<strong>Why hours matter before payrolls:</strong> Employers reduce hours before cutting headcount. Watching this leading signal gives you advance warning before the headlines catch up.
+</div>""",
+        "yield_curve": """
+<div style='margin-top:0.75rem; padding:0.5rem; background:#fff0f0; border-left:3px solid #f44336;'>
+<strong>Recession track record:</strong> Yield curve inversion has preceded every U.S. recession since 1950. Extended inversion (6+ months) significantly raises recession probability. Watch the re-steepening as it often marks the start of the downturn, not the recovery.
+</div>""",
+        "credit_spread": """
+<div style='margin-top:0.75rem; padding:0.5rem; background:#f8f0ff; border-left:3px solid #9c27b0;'>
+<strong>Why credit spreads matter:</strong> Rapidly widening high-yield spreads signal that institutional money is pricing in elevated default risk — a leading indicator for equity stress and liquidity crunches.
+</div>""",
+        "new_orders": """
+<div style='margin-top:0.75rem; padding:0.5rem; background:#f0f7ff; border-left:3px solid #607d8b;'>
+<strong>Forward-looking signal:</strong> New orders represent future production commitments. Consecutive monthly declines often foreshadow ISM Manufacturing weakness and can precede broader economic slowdowns by 2–3 months.
+</div>""",
+    }
+    
+    extra = _per_indicator_notes.get(config.key, "")
+    if extra:
+        details += extra
+    
+    # Format the final message
+    formatted_message = format_warning_message(status_emoji, status, details)
+    
+    return {"status": status, "details": formatted_message}
+
+
 # Indicator-specific warning functions
-
-def generate_hours_worked_warning(hours_data):
-    """
-    Generate warning signals for hours worked data with modern styling.
-    
-    Args:
-        hours_data (dict): Dictionary with hours worked data
-        
-    Returns:
-        str: Formatted warning message
-    """
-    consecutive_declines = hours_data['consecutive_declines']
-    consecutive_increases = hours_data['consecutive_increases']
-    
-    # Determine warning status
-    if consecutive_declines >= 3:
-        status = create_warning_indicator(True, 0.5)  # Red indicator
-        message = "Bearish"
-    elif consecutive_increases >= 3:
-        status = create_warning_indicator(False, 0.5)  # Green indicator
-        message = "Bullish"
-    else:
-        status = create_warning_indicator(False, 0.5, neutral=True)  # Grey indicator
-        message = "No Trend"
-    
-    # Add details
-    current_hours = hours_data['recent_hours'][-1]
-    
-    details = f"""
-<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
-Current Avg Weekly Hours: {current_hours:.1f}
-</div>
-
-<div style='margin-top: 0.5rem;'>
-<strong>Key Signals to Watch:</strong>
-<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>Three or more consecutive months of declining hours (Bearish)</li>
-    <li>Three or more consecutive months of increasing hours (Bullish)</li>
-</ul>
-</div>
-"""
-    
-    return format_warning_message(status, message, details)
-
-
-def generate_core_cpi_warning(core_cpi_data):
-    """
-    Generate warning signals for Core CPI data with modern styling.
-    
-    Args:
-        core_cpi_data (dict): Dictionary with Core CPI data
-        
-    Returns:
-        str: Formatted warning message
-    """
-    recent_cpi_mom = core_cpi_data['recent_cpi_mom']
-    current_cpi_mom = core_cpi_data['current_cpi_mom']
-    
-    # Check for consecutive increases and decreases
-    cpi_increasing = core_cpi_data.get('cpi_increasing', False)
-    cpi_decreasing = core_cpi_data.get('cpi_decreasing', False)
-    
-    # Determine warning status
-    if cpi_increasing:
-        status = create_warning_indicator(True, 0.5)  # Red indicator
-        message = "Bearish"
-    elif cpi_decreasing:
-        status = create_warning_indicator(False, 0.5)  # Green indicator
-        message = "Bullish"
-    else:
-        status = create_warning_indicator(False, 0.5, neutral=True)  # Grey indicator
-        message = "No Trend"
-    
-    # Add details
-    details = f"""
-<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
-Current Core CPI MoM: {current_cpi_mom:.2f}%
-</div>
-
-<div style='margin-top: 0.5rem;'>
-<strong>Key Signals to Watch:</strong>
-<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>Four consecutive months of increasing MoM inflation (Bearish)</li>
-    <li>Four consecutive months of decreasing MoM inflation (Bullish)</li>
-</ul>
-</div>
-"""
-    
-    return format_warning_message(status, message, details)
-
-
-def generate_initial_claims_warning(claims_data):
-    """
-    Generate warning signals for initial claims data with modern styling.
-    
-    Args:
-        claims_data (dict): Dictionary with claims data
-        
-    Returns:
-        str: Formatted warning message
-    """
-    claims_increasing = claims_data.get('claims_increasing', False)
-    claims_decreasing = claims_data.get('claims_decreasing', False)
-    
-    # Determine warning status
-    if claims_increasing:
-        status = create_warning_indicator(True, 0.5)  # Red indicator
-        message = "Bearish"
-    elif claims_decreasing:
-        status = create_warning_indicator(False, 0.5)  # Green indicator
-        message = "Bullish"
-    else:
-        status = create_warning_indicator(False, 0.5, neutral=True)  # Grey indicator
-        message = "No Trend"
-    
-    # Add details
-    details = f"""
-<div style='margin-top: 0.5rem;'>
-<strong>Key Warning Signals to Watch:</strong>
-<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>Four consecutive weeks of rising claims (Bearish)</li>
-    <li>Four consecutive weeks of falling claims (Bullish)</li>
-    <li>Sudden spike in claims (>10% week-over-week)</li>
-</ul>
-</div>
-
-<div style='margin-top: 0.5rem;'>
-<strong>Playbook for Rising Claims:</strong>
-<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>Scale back aggressive positions</li>
-    <li>Shift toward defensive sectors</li>
-    <li>Build cash reserves</li>
-</ul>
-</div>
-
-<div style='font-style: italic; margin-top: 0.5rem;'>
-"Small moves early beat big moves late"
-</div>
-"""
-    
-    return format_warning_message(status, message, details)
-
-
-def generate_pce_warning(pce_data):
-    """
-    Generate warning signals for PCE data with modern styling.
-    
-    Args:
-        pce_data (dict): Dictionary with PCE data
-        
-    Returns:
-        str: Formatted warning message
-    """
-    current_pce = pce_data['current_pce']
-    current_pce_mom = pce_data['current_pce_mom']
-    pce_increasing = pce_data['pce_increasing']
-    pce_decreasing = pce_data['pce_decreasing']
-    
-    # Determine warning status
-    if pce_increasing:
-        status = create_warning_indicator(True, 0.5)  # Red indicator
-        message = "Bearish"
-    elif pce_decreasing:
-        status = create_warning_indicator(False, 0.5)  # Green indicator
-        message = "Bullish"
-    else:
-        status = create_warning_indicator(False, 0.5, neutral=True)  # Grey indicator
-        message = "No Trend"
-    
-    # Add details
-    details = f"""
-<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
-Current PCE MoM: {current_pce_mom:.2f}%
-</div>
-
-<div style='margin-top: 0.5rem;'>
-<strong>Key Signals to Watch:</strong>
-<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>Four consecutive months of increasing MoM inflation (Bearish)</li>
-    <li>Four consecutive months of decreasing MoM inflation (Bullish)</li>
-</ul>
-</div>
-
-<div style='margin-top: 0.5rem;'>
-<strong>Key Framework:</strong>
-<ul style='margin-top: 0.25rem; padding-left: 1.5rem;'>
-    <li>PCE dropping + Stable jobs = Add risk</li>
-    <li>PCE rising + Rising claims = Get defensive</li>
-</ul>
-</div>
-
-<div style='font-style: italic; margin-top: 0.5rem;'>
-"Everyone watches CPI, but PCE guides policy."
-</div>
-"""
-    
-    return format_warning_message(status, message, details)
-
 
 def generate_usd_liquidity_warning(usd_liquidity_data):
     """
@@ -341,9 +387,9 @@ def generate_usd_liquidity_warning(usd_liquidity_data):
     Returns:
         str: Formatted warning message
     """
-    current_liquidity = usd_liquidity_data['current_liquidity']
-    liquidity_increasing = usd_liquidity_data['liquidity_increasing']
-    liquidity_decreasing = usd_liquidity_data['liquidity_decreasing']
+    current_liquidity = _coerce_scalar(usd_liquidity_data.get('current_liquidity'))
+    liquidity_increasing = _coerce_bool(usd_liquidity_data.get('liquidity_increasing', False))
+    liquidity_decreasing = _coerce_bool(usd_liquidity_data.get('liquidity_decreasing', False))
     
     # For USD Liquidity, increasing is generally bullish for markets
     if liquidity_increasing:
@@ -356,8 +402,11 @@ def generate_usd_liquidity_warning(usd_liquidity_data):
         status = create_warning_indicator(False, 0.5, neutral=True)  # Grey indicator
         message = "No Trend"
     
-    # Format the current liquidity value for display in trillions
-    formatted_value = f"{current_liquidity/1000000:.2f}T"  # Convert from millions to trillions
+    # Format the current liquidity value for display (value is already a ratio = Liquidity/GDP)
+    if _is_missing(current_liquidity):
+        formatted_value = "N/A"
+    else:
+        formatted_value = f"{current_liquidity * 100:.1f}% of GDP"
     
     # Add details
     details = f"""
@@ -440,8 +489,8 @@ def generate_pmi_warning(pmi_data):
         
         **Interpretation:** 
         - PMI below 50 suggests economic contraction in the manufacturing sector
-        - Potential indicators of economic slowdown
-        - May signal reduced industrial activity and economic challenges
+        - Watch trends, not just levels
+        - ⚠️ **Danger Combination:** PMI below 50 + Claims rising 3 weeks + Hours worked dropping. "When these align, protect capital first."
         """
     else:
         description_text = f"""
@@ -453,8 +502,8 @@ def generate_pmi_warning(pmi_data):
         
         **Interpretation:**
         - PMI above 50 suggests economic expansion in the manufacturing sector
-        - Indicates positive industrial activity and economic growth
-        - Potential signs of increasing production and demand
+        - Watch trends, not just levels
+        - ⚠️ **Danger Combination:** PMI below 50 + Claims rising 3 weeks + Hours worked dropping. "When these align, protect capital first."
         """
     
     return description_text if latest_pmi >= 50 else warning_text

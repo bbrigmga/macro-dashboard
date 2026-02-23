@@ -29,7 +29,7 @@ class IndicatorResult:
 class IndicatorService:
     """Service layer for economic indicator operations."""
 
-    CACHE_SCHEMA_VERSION = "v2"
+    CACHE_SCHEMA_VERSION = "v4"
 
     def __init__(self, settings=None):
         self.settings = settings or get_settings()
@@ -79,6 +79,18 @@ class IndicatorService:
                 'frequency': 'D',
                 'cache_ttl': self.settings.cache.fred_ttl,
                 'default_periods': 36
+            },
+            'pscf_price': {
+                'series_id': 'PSCF',
+                'frequency': 'M',
+                'cache_ttl': self.settings.cache.fred_ttl,
+                'default_periods': 60  # 5 years monthly
+            },
+            'credit_spread': {
+                'series_id': 'BAMLH0A0HYM2',
+                'frequency': 'D',
+                'cache_ttl': self.settings.cache.fred_ttl,
+                'default_periods': 1825  # 5 years daily
             }
         }
 
@@ -164,7 +176,8 @@ class IndicatorService:
             # Define all indicators to fetch
             indicators = [
                 'claims', 'pce', 'core_cpi', 'hours_worked',
-                'pmi', 'usd_liquidity', 'new_orders', 'yield_curve', 'copper_gold_ratio'
+                'pmi', 'usd_liquidity', 'new_orders', 'yield_curve', 'copper_gold_ratio',
+                'pscf_price', 'credit_spread'
             ]
 
             # Fetch all indicators in parallel
@@ -223,6 +236,12 @@ class IndicatorService:
                 'yield_curve': lambda: self.indicator_data.get_yield_curve(
                     periods=kwargs.get('periods', self._indicators_config['yield_curve']['default_periods']),
                     frequency=kwargs.get('frequency', self._indicators_config['yield_curve']['frequency'])
+                ),
+                'pscf_price': lambda: self.indicator_data.get_pscf_price(
+                    years=kwargs.get('years', 5)
+                ),
+                'credit_spread': lambda: self.indicator_data.get_credit_spread(
+                    years=kwargs.get('years', 5)
                 )
             }
 

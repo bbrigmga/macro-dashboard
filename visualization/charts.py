@@ -6,23 +6,11 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 import pandas as pd
+from src.config.settings import Settings
 
-
-# Define theme colors
-THEME = {
-    'background': '#f5f7fa',  # Light gray-blue background
-    'paper_bgcolor': '#ffffff',  # White paper background
-    'font_color': '#333333',  # Dark text for contrast on light background
-    'grid_color': 'rgba(0, 0, 0, 0.1)',  # Subtle dark grid lines
-    'line_colors': {
-        'primary': '#1a7fe0',
-        'success': '#00c853',
-        'warning': '#ff9800',
-        'danger': '#f44336',
-        'neutral': '#78909c'
-    },
-    'colorscale': [[0, '#f44336'], [0.5, '#ff9800'], [1, '#00c853']]
-}
+# Initialize settings
+settings = Settings()
+THEME = settings.chart.theme_colors
 
 
 def apply_dark_theme(fig):
@@ -130,8 +118,7 @@ def create_line_chart(df, x_column, y_column, title, color=None, show_legend=Fal
             text=title,
             font=dict(size=14)
         ),
-        showlegend=show_legend,
-        xaxis=dict(type='category')  # Set type to category for proper ordering
+        showlegend=show_legend
     )
     
     return apply_dark_theme(fig)

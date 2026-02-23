@@ -7,397 +7,204 @@ from visualization.indicators import (
     create_pmi_components_table
 )
 from visualization.warning_signals import (
-    generate_hours_worked_warning,
-    generate_core_cpi_warning,
-    generate_initial_claims_warning,
-    generate_pce_warning,
     generate_pmi_warning,
     generate_usd_liquidity_warning,
-    create_warning_indicator
+    create_warning_indicator,
+    generate_indicator_warning
 )
 from data.release_schedule import get_next_release_date, format_release_date
 from data.fred_client import FredClient
+from data.processing import validate_indicator_data
+from src.config.indicator_registry import INDICATOR_REGISTRY
 
 CARD_CHART_HEIGHT = 360
 
 
-def display_hours_worked_card(hours_data, fred_client=None):
+def _render_status_badge(status: str) -> None:
     """
-    Display the Average Weekly Hours as a card.
+    Render colored status badge (Bullish/Bearish/Neutral).
     
     Args:
-        hours_data (dict): Dictionary with hours worked data
-        fred_client (FredClient, optional): FRED API client for getting release dates
+        status: The status to display ("Bullish", "Bearish", "Neutral")
     """
-    # Calculate current value and status
-    current_hours = hours_data['recent_hours'][-1]
-    consecutive_declines = hours_data['consecutive_declines']
+    colors = {"Bearish": "#f44336", "Bullish": "#00c853"}
+    arrows = {"Bearish": "↓", "Bullish": "↑"}
+    color = colors.get(status, "#78909c")  # Default to grey for Neutral
+    arrow = arrows.get(status, "→")  # Default to right arrow for Neutral
     
-    # Determine status
-    if consecutive_declines >= 3:
-        status = "Bearish"
-        delta_color = "inverse"
-    elif hours_data['consecutive_increases'] >= 3:
-        status = "Bullish"
-        delta_color = "normal"
-    else:
-        status = "Neutral"
-        delta_color = "off"
+    st.markdown(
+        f"<div style='color: {color}; margin: 0; font-size: 1.1rem; font-weight: 600;'>{arrow} {status}</div>", 
+        unsafe_allow_html=True
+    )
+
+
+def display_indicator_card(indicator_key: str, data: dict, fred_client=None) -> None:
+    """
+    Generic indicator card renderer driven by the registry.
+    
+    Args:
+        indicator_key: Key of the indicator in the registry (e.g., "initial_claims")
+        data: Dictionary containing indicator data
+        fred_client: Optional FRED client for release dates
+    """
+    config = INDICATOR_REGISTRY[indicator_key]
     
     with st.container():
         # Title at the top
-        st.subheader("🕒 Average Weekly Hours")
+        st.subheader(f"{config.emoji} {config.display_name}")
         
         # Add release date info
-        next_release = get_next_release_date('hours', fred_client)
+        next_release = get_next_release_date(indicator_key, fred_client)
         st.caption(format_release_date(next_release))
         
-        # Status below the title
-        if status == "Bearish":
-            st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
-        elif status == "Bullish":
-            st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
+        # Validate indicator data
+        if not validate_indicator_data(data, config):
+            st.warning("⚠️ Data unavailable or invalid for this indicator")
+            return
+        
+        # Generate warning/status information
+        warning = generate_indicator_warning(data, config)
+        status = warning["status"]
+        
+        # Render status badge
+        _render_status_badge(status)
+        
+        # Display current value - try to extract from data
+        current_value = None
+        if 'current_value' in data:
+            current_value = data['current_value']
+        elif f'current_{indicator_key}' in data:
+            current_value = data[f'current_{indicator_key}']
+        elif 'latest_value' in data:
+            current_value = data['latest_value']
+        elif f'latest_{indicator_key}' in data:
+            current_value = data[f'latest_{indicator_key}']
+        elif f'{indicator_key}_data' in data and isinstance(data[f'{indicator_key}_data'], dict):
+            inner_data = data[f'{indicator_key}_data']
+            if 'current_value' in inner_data:
+                current_value = inner_data['current_value']
+        
+        # Special handling for specific indicators based on their known data structure
+        if indicator_key == "initial_claims" and current_value is None:
+            current_value = data.get('current_value')
+        elif indicator_key == "hours_worked" and current_value is None:
+            recent_hours = data.get('recent_hours', [])
+            if len(recent_hours) > 0:
+                current_value = recent_hours[-1]
+        elif indicator_key == "core_cpi" and current_value is None:
+            current_value = data.get('current_cpi_mom')
+        elif indicator_key == "pce" and current_value is None:
+            current_value = data.get('current_pce_mom')
+        elif indicator_key == "pmi_proxy" and current_value is None:
+            current_value = data.get('latest_pmi')
+        elif indicator_key == "usd_liquidity" and current_value is None:
+            current_value = data.get('current_liquidity')
+        
+        # Format and display the current value
+        if current_value is not None:
+            if indicator_key == "initial_claims":
+                formatted_value = f"{int(current_value):,}"
+            elif indicator_key == "hours_worked":
+                formatted_value = f"{current_value:.1f} hours"
+            elif indicator_key in ["core_cpi", "pce"]:
+                formatted_value = f"{current_value:.2f}%"
+            elif indicator_key == "pmi_proxy":
+                formatted_value = f"{current_value:.1f}"
+            elif indicator_key == "usd_liquidity":
+                # Format large numbers
+                if current_value >= 1000000:
+                    formatted_value = f"{current_value/1000000:.2f}T"
+                elif current_value >= 1000:
+                    formatted_value = f"{current_value/1000:.2f}B"
+                else:
+                    formatted_value = f"{current_value:,.0f}M"
+            else:
+                formatted_value = f"{current_value:,.2f}"
         else:
-            st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
+            formatted_value = "N/A"
         
-        # Current value below the status in black text
-        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{current_hours:.1f} hours</div>", unsafe_allow_html=True)
-        
-        # Create and display the chart
-        fig_hours = create_indicator_chart('hours_worked', hours_data)
-        st.plotly_chart(fig_hours, use_container_width=True, height=250, key="chart_hours_worked")
-        
-        # Expandable details section
-        with st.expander("View Details"):
-            st.write("Average weekly hours of all employees in the private sector. Declining trend signals reduced economic activity.")
-            st.markdown(generate_hours_worked_warning(hours_data), unsafe_allow_html=True)
-            st.markdown("[FRED Data: AWHAETP - Average Weekly Hours](https://fred.stlouisfed.org/series/AWHAETP)")
-
-
-def display_core_cpi_card(core_cpi_data, fred_client=None):
-    """
-    Display the Core CPI as a card.
-    
-    Args:
-        core_cpi_data (dict): Dictionary with Core CPI data
-        fred_client (FredClient, optional): FRED API client for getting release dates
-    """
-    # Calculate current value and status
-    current_cpi_mom = core_cpi_data['current_cpi_mom']
-    recent_cpi_mom = core_cpi_data['recent_cpi_mom']
-    
-    # Determine status based on cpi_increasing and cpi_decreasing flags
-    cpi_increasing = core_cpi_data.get('cpi_increasing', False)
-    cpi_decreasing = core_cpi_data.get('cpi_decreasing', False)
-    
-    if cpi_increasing:
-        status = "Bearish"
-        delta_color = "inverse"
-    elif cpi_decreasing:
-        status = "Bullish"
-        delta_color = "normal"
-    else:
-        status = "Neutral"
-        delta_color = "off"
-    
-    with st.container():
-        # Title at the top
-        st.subheader("📊 Core CPI")
-        
-        # Add release date info
-        next_release = get_next_release_date('core_cpi', fred_client)
-        st.caption(format_release_date(next_release))
-        
-        # Status below the title
-        if status == "Bearish":
-            st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
-        elif status == "Bullish":
-            st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
-        
-        # Current value below the status in black text
-        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{current_cpi_mom:.2f}%</div>", unsafe_allow_html=True)
-        
-        # Create and display the chart
-        fig_cpi = create_indicator_chart('core_cpi', core_cpi_data)
-        st.plotly_chart(fig_cpi, use_container_width=True, height=250, key="chart_core_cpi")
-        
-        # Expandable details section
-        with st.expander("View Details"):
-            st.write("Core CPI measures inflation excluding volatile food and energy prices, providing a clearer picture of underlying inflation trends.")
-            st.markdown(generate_core_cpi_warning(core_cpi_data), unsafe_allow_html=True)
-            st.markdown("[FRED Data: CPILFESL - Core Consumer Price Index](https://fred.stlouisfed.org/series/CPILFESL)")
-
-
-def display_initial_claims_card(claims_data, fred_client=None):
-    """
-    Display the Initial Claims as a card.
-    
-    Args:
-        claims_data (dict): Dictionary with claims data
-        fred_client (FredClient, optional): FRED API client for getting release dates
-    """
-    # Calculate current value and status
-    current_claims = claims_data['current_value']
-    
-    # Determine status based on consecutive increases/decreases
-    claims_increasing = claims_data.get('claims_increasing', False)
-    claims_decreasing = claims_data.get('claims_decreasing', False)
-    
-    if claims_increasing:
-        status = "Bearish"
-        delta_color = "inverse"
-    elif claims_decreasing:
-        status = "Bullish"
-        delta_color = "normal"
-    else:
-        status = "Neutral"
-        delta_color = "off"
-    
-    with st.container():
-        # Title at the top
-        st.subheader("🏢 Initial Claims")
-        
-        # Add release date info
-        next_release = get_next_release_date('claims', fred_client)
-        st.caption(format_release_date(next_release))
-        
-        # Status below the title
-        if status == "Bearish":
-            st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
-        elif status == "Bullish":
-            st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
-        
-        # Current value below the status in black text
-        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{int(current_claims):,}</div>", unsafe_allow_html=True)
-        
-        # Create and display the chart
-        fig_claims = create_indicator_chart('claims', claims_data)
-        st.plotly_chart(fig_claims, use_container_width=True, height=250, key="chart_initial_claims")
-        
-        # Expandable details section
-        with st.expander("View Details"):
-            st.write("Initial Claims measures the number of people filing for unemployment benefits for the first time. Rising claims can signal a weakening job market.")
-            st.markdown(generate_initial_claims_warning(claims_data), unsafe_allow_html=True)
-            st.markdown("[FRED Data: ICSA - Initial Claims](https://fred.stlouisfed.org/series/ICSA)")
-
-
-def display_pce_card(pce_data, fred_client=None):
-    """
-    Display the PCE as a card.
-    
-    Args:
-        pce_data (dict): Dictionary with PCE data
-        fred_client (FredClient, optional): FRED API client for getting release dates
-    """
-    # Calculate current value and status
-    current_pce_mom = pce_data['current_pce_mom']
-    pce_increasing = pce_data['pce_increasing']
-    pce_decreasing = pce_data['pce_decreasing']
-    
-    if pce_increasing:
-        status = "Bearish"
-        delta_color = "inverse"
-    elif pce_decreasing:
-        status = "Bullish"
-        delta_color = "normal"
-    else:
-        status = "Neutral"
-        delta_color = "off"
-    
-    with st.container():
-        # Title at the top
-        st.subheader("💵 PCE")
-        
-        # Add release date info
-        next_release = get_next_release_date('pce', fred_client)
-        st.caption(format_release_date(next_release))
-        
-        # Status below the title
-        if status == "Bearish":
-            st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
-        elif status == "Bullish":
-            st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
-        
-        # Current value below the status in black text
-        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{current_pce_mom:.2f}%</div>", unsafe_allow_html=True)
-        
-        # Create and display the chart
-        fig_pce = create_indicator_chart('pce', pce_data)
-        st.plotly_chart(fig_pce, use_container_width=True, height=250, key="chart_pce")
-        
-        # Expandable details section
-        with st.expander("View Details"):
-            st.write("PCE is the Fed's preferred measure of inflation, tracking all spending across consumer, business, and government sectors.")
-            st.markdown(generate_pce_warning(pce_data), unsafe_allow_html=True)
-            st.markdown("[FRED Data: PCE - Personal Consumption Expenditures](https://fred.stlouisfed.org/series/PCE)")
-
-
-def display_pmi_card(pmi_data, fred_client=None):
-    """
-    Display the Manufacturing PMI Proxy as a card.
-    
-    Args:
-        pmi_data (dict): Dictionary with PMI data
-        fred_client (FredClient, optional): FRED API client for getting release dates
-    """
-    # Calculate current value and status
-    latest_pmi = pmi_data['latest_pmi']
-    
-    if latest_pmi < 50:
-        status = "Bearish"
-        delta_color = "inverse"
-    else:
-        status = "Bullish"
-        delta_color = "normal"
-    
-    with st.container():
-        # Title at the top
-        st.subheader("🏭 Manufacturing PMI Proxy")
-        
-        # Add release date info
-        next_release = get_next_release_date('pmi', fred_client)
-        st.caption(format_release_date(next_release))
-        
-        # Status below the title
-        if status == "Bearish":
-            st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
-        elif status == "Bullish":
-            st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
-        
-        # Current value below the status in black text
-        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{latest_pmi:.1f}</div>", unsafe_allow_html=True)
-        
-        # Create and display the chart
-        fig_pmi = create_indicator_chart('pmi', pmi_data)
-        st.plotly_chart(fig_pmi, use_container_width=True, height=250, key="chart_pmi")
-        
-        # Expandable details section
-        with st.expander("View Details"):
-            st.write("A proxy for the ISM Manufacturing PMI using FRED data. PMI values above 50 indicate expansion, below 50 indicate contraction.")
-            st.markdown(generate_pmi_warning(pmi_data), unsafe_allow_html=True)
-            
-            # Display PMI components in a compact table
-            st.subheader("PMI Components")
-            component_df = create_pmi_components_table(pmi_data)
-            st.write(component_df)
-            
-            st.markdown("""
-            FRED Data Sources: 
-            - [AMTMNO - Manufacturing: New Orders](https://fred.stlouisfed.org/series/AMTMNO)
-            - [IPMAN - Industrial Production: Manufacturing](https://fred.stlouisfed.org/series/IPMAN)
-            - [MANEMP - Manufacturing Employment](https://fred.stlouisfed.org/series/MANEMP)
-            - [AMDMUS - Manufacturing: Supplier Deliveries](https://fred.stlouisfed.org/series/AMDMUS)
-            - [MNFCTRIMSA - Manufacturing Inventories (Seasonally Adjusted)](https://fred.stlouisfed.org/series/MNFCTRIMSA)
-            """)
-
-
-def display_usd_liquidity_card(usd_liquidity_data, fred_client=None):
-    """
-    Display the USD Liquidity as a card.
-    
-    Args:
-        usd_liquidity_data (dict): Dictionary with USD Liquidity data
-        fred_client (FredClient, optional): FRED API client for getting release dates
-    """
-    # Calculate current value
-    current_liquidity = usd_liquidity_data['current_liquidity']
-    
-    with st.container():
-        # Title at the top
-        st.subheader("💵 USD Liquidity")
-        
-        # Current value below the title in black text
-        # Format large number with commas and B for billions or T for trillions
-        if current_liquidity >= 1000000:
-            formatted_value = f"{current_liquidity/1000000:.2f}T"  # Trillions
-        elif current_liquidity >= 1000:
-            formatted_value = f"{current_liquidity/1000:.2f}B"  # Billions
-        else:
-            formatted_value = f"{current_liquidity:,.0f}M"  # Millions
         st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{formatted_value}</div>", unsafe_allow_html=True)
         
         # Create and display the chart
-        fig_liquidity = create_indicator_chart('usd_liquidity', usd_liquidity_data)
-        st.plotly_chart(fig_liquidity, use_container_width=True, height=CARD_CHART_HEIGHT, key="chart_usd_liquidity")
+        fig = create_indicator_chart(indicator_key, data)
+        chart_height = getattr(config, 'card_chart_height', 250)
+        st.plotly_chart(fig, use_container_width=True, height=chart_height, key=f"chart_{indicator_key}")
         
         # Expandable details section
         with st.expander("View Details"):
-            st.write("USD Liquidity is calculated as: (Fed Balance Sheet - Reverse Repo - Treasury General Account - Currency in Circulation + Tariff Receipts) / GDP")
-            st.write("Tariff receipts are added back as they represent inflows that are parked in the Treasury General Account but are not a real drain on liquidity like taxes.")
-
-            # Display the actual values used in the calculation
-            if 'details' in usd_liquidity_data:
-                # Get the values from the details dictionary
-                walcl = usd_liquidity_data['details'].get('WALCL', 0)
-                rrponttld = usd_liquidity_data['details'].get('RRPONTTLD', 0)
-                wtregen = usd_liquidity_data['details'].get('WTREGEN', 0)
-                currcir = usd_liquidity_data['details'].get('CURRCIR', 0)
-                gdp = usd_liquidity_data['details'].get('GDP', usd_liquidity_data['details'].get('GDPC1', 1))
-                tariff_flow = usd_liquidity_data['details'].get('Tariff_Flow', 0)
-
-                # Check for NaN values and replace with zeros
-                import numpy as np
-                walcl = 0 if np.isnan(walcl) else walcl
-                rrponttld = 0 if np.isnan(rrponttld) else rrponttld
-                wtregen = 0 if np.isnan(wtregen) else wtregen
-                currcir = 0 if np.isnan(currcir) else currcir
-                gdp = 1 if np.isnan(gdp) or gdp == 0 else gdp
-
-                # Format the values for display
-                walcl_formatted = f"{walcl/1000000:.2f}T"  # WALCL in millions, display as trillions
-                rrponttld_formatted = f"{rrponttld:.2f}B"  # RRPONTTLD in billions
-                wtregen_formatted = f"{wtregen:.2f}B"  # WTREGEN in billions
-                currcir_formatted = f"{currcir:.2f}B"  # CURRCIR in billions
-                gdp_formatted = f"{gdp:.2f}B"  # GDP in billions
-
-                # Calculate the intermediate result before GDP division
-                intermediate = walcl - (rrponttld * 1000) - (wtregen * 1000) - currcir + (tariff_flow * 1000)
-                intermediate_formatted = f"{intermediate/1000000:.2f}T"  # Display as trillions
-
-                # Calculate the final result (should match current_liquidity)
-                final_result = (intermediate / gdp) / 1000  # Divide by GDP and by 1000 to get liquidity/GDP ratio
-                final_formatted = f"{final_result:.2f}"
-
-                # Format tariff flow
-                tariff_flow_formatted = f"{tariff_flow:.2f}B"  # Tariff flow in billions
-
-                # Display the calculation with actual values
+            st.markdown(warning["details"], unsafe_allow_html=True)
+            if config.fred_link:
+                st.markdown(f"[View on FRED]({config.fred_link})")
+            
+            # Special custom content for PMI
+            if indicator_key == "pmi_proxy":
+                st.subheader("PMI Components")
+                component_df = create_pmi_components_table(data)
+                st.write(component_df)
+                
                 st.markdown("""
-                <div style='background-color: #f5f5f5; padding: 10px; border-radius: 5px;'>
-                <b>Latest Data Point Calculation:</b><br>
-                Fed Balance Sheet: {} <br>
-                - Reverse Repo: {} <br>
-                - Treasury General Account: {} <br>
-                - Currency in Circulation: {} <br>
-                + Tariff Receipts: {} <br>
-                = Pre-GDP Adjustment: {} <br>
-                ÷ Nominal GDP: {} <br>
-                = USD Liquidity (ratio to GDP): {}
-                </div>
-                """.format(walcl_formatted, rrponttld_formatted, wtregen_formatted, currcir_formatted, tariff_flow_formatted,
-                          intermediate_formatted, gdp_formatted, final_formatted),
-                unsafe_allow_html=True)
+                FRED Data Sources: 
+                - [AMTMNO - Manufacturing: New Orders](https://fred.stlouisfed.org/series/AMTMNO)
+                - [IPMAN - Industrial Production: Manufacturing](https://fred.stlouisfed.org/series/IPMAN)
+                - [MANEMP - Manufacturing Employment](https://fred.stlouisfed.org/series/MANEMP)
+                - [AMDMUS - Manufacturing: Supplier Deliveries](https://fred.stlouisfed.org/series/AMDMUS)
+                - [MNFCTRIMSA - Manufacturing Inventories (Seasonally Adjusted)](https://fred.stlouisfed.org/series/MNFCTRIMSA)
+                """)
             
-            st.markdown("""
-            FRED Data Sources:
-            [WALCL](https://fred.stlouisfed.org/series/WALCL) - Fed Balance Sheet (millions),
-            [RRPONTTLD](https://fred.stlouisfed.org/series/RRPONTTLD) - Reverse Repo (billions),
-            [WTREGEN](https://fred.stlouisfed.org/series/WTREGEN) - Treasury General Account (millions),
-            [CURRCIR](https://fred.stlouisfed.org/series/CURRCIR) - Currency in Circulation (billions),
-            [B235RC1Q027SBEA](https://fred.stlouisfed.org/series/B235RC1Q027SBEA) - Tariff Receipts (billions, SAAR),
-            [GDP](https://fred.stlouisfed.org/series/GDP) - Gross Domestic Product, nominal SAAR (billions),
-            [SP500](https://fred.stlouisfed.org/series/SP500) - S&P 500 Index
-            """)
-            
-            st.write("The chart displays USD Liquidity (left axis) alongside the S&P 500 Index (right axis) to visualize the relationship between market liquidity and equity market performance.")
+            # Special custom content for USD Liquidity
+            elif indicator_key == "usd_liquidity":
+                st.write("Tariff receipts are added back as they represent inflows that are parked in the Treasury General Account but are not a real drain on liquidity like taxes.")
+                
+                # Display the actual values used in the calculation
+                if 'details' in data:
+                    import numpy as np
+                    details = data['details']
+                    walcl = details.get('WALCL', 0)
+                    rrponttld = details.get('RRPONTTLD', 0)
+                    wtregen = details.get('WTREGEN', 0)
+                    currcir = details.get('CURRCIR', 0)
+                    gdp = details.get('GDP', details.get('GDPC1', 1))
+                    tariff_flow = details.get('Tariff_Flow', 0)
+
+                    # Check for NaN values and replace with zeros
+                    walcl = 0 if np.isnan(walcl) else walcl
+                    rrponttld = 0 if np.isnan(rrponttld) else rrponttld
+                    wtregen = 0 if np.isnan(wtregen) else wtregen
+                    currcir = 0 if np.isnan(currcir) else currcir
+                    gdp = 1 if np.isnan(gdp) else gdp
+                    tariff_flow = 0 if np.isnan(tariff_flow) else tariff_flow
+
+                    st.write("**Calculation Details:**")
+                    st.write(f"Fed Balance Sheet (WALCL): ${walcl:,.0f}B")
+                    st.write(f"Reverse Repo (RRPONTTLD): ${rrponttld:,.0f}B")
+                    st.write(f"Treasury General Account (WTREGEN): ${wtregen:,.0f}B")
+                    st.write(f"Currency in Circulation (CURRCIR): ${currcir:,.0f}B")
+                    st.write(f"Tariff Flow: ${tariff_flow:,.0f}B")
+                    st.write(f"GDP: ${gdp:,.0f}T")
+                    
+                    # Calculate and display the intermediate steps
+                    numerator = walcl - rrponttld - wtregen - currcir + tariff_flow
+                    st.write(f"**Numerator:** {walcl:,.0f} - {rrponttld:,.0f} - {wtregen:,.0f} - {currcir:,.0f} + {tariff_flow:,.0f} = ${numerator:,.0f}B")
+                    result = numerator / gdp * 100
+                    st.write(f"**Result:** {numerator:,.0f} / {gdp:,.0f} × 100 = {result:.2f}%")
+
+
+# Replaced by generic display_indicator_card function
+
+
+# Replaced by generic display_indicator_card function
+
+
+# Replaced by generic display_indicator_card function
+
+
+# Replaced by generic display_indicator_card function
+
+
+# Replaced by generic display_indicator_card function
+
+
+# Replaced by generic display_indicator_card function
 
 
 def display_core_principles_card():
@@ -417,227 +224,23 @@ def display_core_principles_card():
         st.markdown("- Markets are driven by simple forces: Jobs, Spending, Business activity")
         st.markdown("- Like weather forecasting, you can't predict every storm")
         st.markdown("- But you can spot conditions that make storms likely")
-
-
-def display_new_orders_card(new_orders_data, fred_client=None):
-    """
-    Display a card with Non-Defense Durable Goods Orders data and chart.
-    
-    Args:
-        new_orders_data (dict): Dictionary with New Orders data
-        fred_client (FredClient, optional): FRED API client for getting release dates
-    """
-    with st.container():
-        # Title at the top
-        st.subheader("📦 Non-Defense Durable Goods")
         
-        # Add release date info
-        next_release = get_next_release_date('new_orders', fred_client)
-        st.caption(format_release_date(next_release))
-        
-        # Get latest value and determine status
-        latest_value = new_orders_data['latest_value']
-        previous_period = new_orders_data['recent_mom_values'][-2] if len(new_orders_data['recent_mom_values']) > 1 else 0
-        delta = latest_value - previous_period
-        
-        # Determine status based on latest value and trend
-        if latest_value > 0 and new_orders_data.get('mom_increasing', False):
-            status = "Bullish"
-            delta_color = "normal"
-        elif latest_value < 0 and new_orders_data.get('mom_decreasing', False):
-            status = "Bearish"
-            delta_color = "inverse"
-        else:
-            status = "Neutral"
-            delta_color = "off"
-        
-        # Status below the title
-        if status == "Bearish":
-            st.markdown(f"<div style='color: #f44336; margin: 0; font-size: 1.1rem; font-weight: 600;'>↓ {status}</div>", unsafe_allow_html=True)
-        elif status == "Bullish":
-            st.markdown(f"<div style='color: #00c853; margin: 0; font-size: 1.1rem; font-weight: 600;'>↑ {status}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div style='color: #78909c; margin: 0; font-size: 1.1rem; font-weight: 600;'>→ {status}</div>", unsafe_allow_html=True)
-        
-        # Current value below the status in black text
-        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{latest_value:.1f}%</div>", unsafe_allow_html=True)
-        
-        # Add chart
-        fig = create_indicator_chart('new_orders', new_orders_data)
-        st.plotly_chart(fig, use_container_width=True, height=250, key="chart_new_orders")
-        
-        # Expandable details section
-        with st.expander("View Details"):
-            st.write("Non-Defense Durable Goods Orders represents new orders placed with domestic manufacturers for delivery of non-defense capital goods. It's a leading indicator of manufacturing activity and business investment.")
-            st.markdown("[FRED Data: NEWORDER - Manufacturers' New Orders: Durable Goods](https://fred.stlouisfed.org/series/NEWORDER)")
+        st.markdown("**Defensive Playbook:**")
+        st.markdown("- Review tech holdings and shift to quality stocks")
+        st.markdown("- Keep dry powder (cash) ready")
+        st.markdown("- Wait for signals to clear before returning to growth")
 
 
-def display_yield_curve_card(yield_curve_data, fred_client=None):
-    """
-    Display a card with the 2-10 Year Treasury Yield Spread.
-
-    Args:
-        yield_curve_data (dict): Dictionary with yield curve data
-        fred_client (FredClient, optional): FRED API client for getting release dates
-    """
-    # Global chart height constant for the entire row
-    CHART_HEIGHT = CARD_CHART_HEIGHT
-
-    # Calculate current value
-    if 'data' in yield_curve_data and not yield_curve_data['data'].empty:
-        current_spread = yield_curve_data['data']['T10Y2Y'].iloc[-1]
-    else:
-        current_spread = 0
-
-    with st.container():
-        # Title at the top - use subheader like USD Liquidity
-        st.subheader("📈 2-10 Year Spread")
-
-        # Current value - use same styling as USD Liquidity
-        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>{current_spread:.2f}%</div>", unsafe_allow_html=True)
-
-        # Create and display chart
-        fig = create_indicator_chart('yield_curve', yield_curve_data)
-        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT, key="chart_yield_curve")
-
-        # Expandable details section - use same label as USD Liquidity
-        with st.expander("View Details"):
-            st.markdown("<small>10Y-2Y Treasury yield spread</small>", unsafe_allow_html=True)
+# Replaced by generic display_indicator_card function
 
 
-def display_copper_gold_ratio_card(copper_gold_data, fred_client=None):
-    """
-    Display a card with Copper/Gold Ratio vs US 10-year Treasury yield chart.
-
-    Args:
-        copper_gold_data (dict): Dictionary with copper/gold ratio and yield data
-        fred_client (FredClient, optional): FRED API client for getting release dates
-    """
-    # Global chart height constant for the entire row
-    CHART_HEIGHT = CARD_CHART_HEIGHT
-
-    # Calculate current values
-    if 'data' in copper_gold_data and not copper_gold_data['data'].empty:
-        current_ratio = copper_gold_data['data']['ratio'].iloc[-1]
-        current_yield = copper_gold_data['data']['yield'].iloc[-1]
-    else:
-        current_ratio = 0
-        current_yield = 0
-
-    with st.container():
-        # Title at the top
-        st.subheader("🥈 Copper/Gold vs 10Y Yield")
-
-        # Current values - display both ratio and yield
-        st.markdown(f"<div style='color: #000000; font-size: 0.9rem;'>Ratio: {current_ratio:.2f} | Yield: {current_yield:.2f}%</div>", unsafe_allow_html=True)
-
-        # Create and display chart
-        fig = create_indicator_chart('copper_gold_ratio', copper_gold_data)
-        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT, key="chart_copper_gold_ratio")
-
-        # Expandable details section
-        with st.expander("View Details"):
-            st.markdown("""
-            <small>
-            Copper/Gold Ratio: Copper COMEX price divided by Gold COMEX price<br>
-            US 10Y Treasury Yield: Daily yield data from FRED<br>
-            Higher ratios typically indicate bullish sentiment, lower yields suggest accommodative monetary policy
-            </small>
-            """, unsafe_allow_html=True)
+# Replaced by generic display_indicator_card function
 
 
-def display_pscf_card(pscf_data, fred_client=None):
-    """
-    Display a card with the PSCF (Invesco S&P SmallCap Financials ETF) 5-year price chart.
-
-    Args:
-        pscf_data (dict): Dictionary with price data from get_pscf_price()
-        fred_client (FredClient, optional): Unused, kept for interface consistency
-    """
-    CHART_HEIGHT = CARD_CHART_HEIGHT
-
-    latest_price = pscf_data.get('latest_price', 'N/A')
-    price_change = pscf_data.get('price_change', 0)
-    price_change_pct = pscf_data.get('price_change_pct', 0)
-
-    if isinstance(latest_price, float):
-        change_sign = '+' if price_change >= 0 else ''
-        change_color = '#00c853' if price_change >= 0 else '#f44336'
-        price_str = f"${latest_price:.2f}"
-        change_str = f"{change_sign}{price_change:.2f} ({change_sign}{price_change_pct:.2f}%)"
-    else:
-        change_color = '#333333'
-        price_str = 'N/A'
-        change_str = ''
-
-    with st.container():
-        st.subheader("🏦 PSCF – Small Cap Financials")
-        st.markdown(
-            f"<div style='color: #000000; font-size: 0.9rem;'>"
-            f"{price_str} <span style='color: {change_color};'>{change_str}</span>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-
-        fig = create_indicator_chart('pscf', pscf_data)
-        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT, key="chart_pscf")
-
-        with st.expander("View Details"):
-            st.markdown("""
-            <small>
-            PSCF: Invesco S&P SmallCap Financials ETF<br>
-            Tracks small-cap US financial sector stocks — banks, insurance, and diversified financials.<br>
-            5-year daily price history from Yahoo Finance.
-            </small>
-            """, unsafe_allow_html=True)
+# Replaced by generic display_indicator_card function
 
 
-def display_credit_spread_card(credit_spread_data, fred_client=None):
-    """
-    Display a card with the ICE BofA US High Yield Option-Adjusted Spread (BAMLH0A0HYM2).
+# Replaced by generic display_indicator_card function
 
-    Args:
-        credit_spread_data (dict): Dictionary with spread data from get_credit_spread()
-        fred_client (FredClient, optional): Unused, kept for interface consistency
-    """
-    CHART_HEIGHT = CARD_CHART_HEIGHT
 
-    latest_spread = credit_spread_data.get('latest_spread', 'N/A')
-    spread_change = credit_spread_data.get('spread_change', 0)
-
-    if isinstance(latest_spread, float):
-        change_sign = '+' if spread_change >= 0 else ''
-        change_color = '#f44336' if spread_change >= 0 else '#00c853'  # wider = red, tighter = green
-        spread_str = f"{latest_spread:.2f}%"
-        change_str = f"{change_sign}{spread_change:.2f}%"
-    else:
-        change_color = '#333333'
-        spread_str = 'N/A'
-        change_str = ''
-
-    with st.container():
-        st.subheader("📉 HY Credit Spreads – OAS")
-        st.markdown(
-            f"<div style='color: #000000; font-size: 0.9rem;'>"
-            f"{spread_str} <span style='color: {change_color};'>{change_str}</span>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-
-        fig = create_indicator_chart('credit_spread', credit_spread_data)
-        st.plotly_chart(fig, use_container_width=True, height=CHART_HEIGHT, key="chart_credit_spread")
-
-        with st.expander("View Details"):
-            st.markdown("""
-            <small>
-            <b>FRED series:</b> BAMLH0A0HYM2 — ICE BofA US High Yield Option-Adjusted Spread<br>
-            Tracks below-investment-grade (BB and lower) corporate bonds vs. Treasuries.
-            Option-adjusted to remove the effect of embedded call/put options.<br>
-            <b>Why it matters:</b> Junk bond issuers feel funding stress earliest when the economy
-            starts cracking (slower growth, rising defaults). Sharp widening has anticipated every
-            major U.S. recession since the 1970s.<br>
-            <b>Ranges:</b> Calm: ~3–5% &nbsp;|&nbsp; Warning: 6–8%+ &nbsp;|&nbsp;
-            Crisis peaks: 10–20%+ (e.g., 2008, 2020).<br>
-            Daily data from FRED — updated with each business-day release.
-            </small>
-            """, unsafe_allow_html=True)
+# Replaced by generic display_indicator_card function

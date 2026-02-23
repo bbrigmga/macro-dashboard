@@ -2,7 +2,9 @@
 Functions for creating visualizations for specific indicators with a modern finance-based theme.
 """
 import pandas as pd
-import plotly.graph_objects as go  # This is imported as go
+import plotly.graph_objects as go
+from src.config.indicator_registry import INDICATOR_REGISTRY, get_indicator_config
+from visualization.generic_chart import create_indicator_chart as create_generic_chart
 from visualization.charts import (
     create_line_chart, 
     create_copper_gold_yield_chart,
@@ -38,261 +40,7 @@ def prepare_date_for_display(df, date_column='Date', frequency='M'):
     return df
 
 
-def create_hours_worked_chart(hours_data, periods=18):
-    """
-    Create a chart for Average Weekly Hours data with modern styling.
-    
-    Args:
-        hours_data (dict): Dictionary with hours worked data
-        periods (int, optional): Number of periods to display
-        
-    Returns:
-        go.Figure: Plotly figure object
-    """
-    # Get the data and prepare for display
-    hours_plot_data = hours_data['data'].tail(periods).copy()
-    hours_plot_data = prepare_date_for_display(hours_plot_data)
-    
-    # Ensure data is sorted properly
-    hours_plot_data = hours_plot_data.sort_values('Date')
-    
-    # Fill any null values
-    hours_plot_data['Hours'] = hours_plot_data['Hours'].fillna(0)
-    
-    # Create the chart
-    fig = create_line_chart(
-        hours_plot_data,
-        'Date_Str',
-        'Hours',
-        'Average Weekly Hours',
-        color=THEME['line_colors']['primary'],
-        show_legend=False
-    )
-    
-    # Set y-axis title
-    fig.update_layout(
-        yaxis=dict(
-            title=dict(
-                text="Hours",
-                font=dict(size=10)
-            ),
-            tickfont=dict(size=9)
-        ),
-        xaxis=dict(
-            tickangle=45,
-            tickfont=dict(size=9),
-            type='category'  # Set type to category for proper ordering
-        )
-    )
-    
-    return fig
 
-
-def create_core_cpi_chart(core_cpi_data, periods=18):
-    """
-    Create a chart for Core CPI data with modern styling.
-    
-    Args:
-        core_cpi_data (dict): Dictionary with Core CPI data
-        periods (int, optional): Number of periods to display
-        
-    Returns:
-        go.Figure: Plotly figure object
-    """
-    # Get the data and prepare for display
-    cpi_plot_data = core_cpi_data['data'].tail(periods).copy()
-    cpi_plot_data = prepare_date_for_display(cpi_plot_data)
-    
-    # Ensure data is sorted properly
-    cpi_plot_data = cpi_plot_data.sort_values('Date')
-    
-    # Fill any null values
-    cpi_plot_data['CPI_MoM'] = cpi_plot_data['CPI_MoM'].fillna(0)
-    
-    # Create a figure with MoM as the main axis
-    fig = create_line_chart(
-        cpi_plot_data,
-        'Date_Str',
-        'CPI_MoM',
-        'Core CPI MoM % Change',
-        color=THEME['line_colors']['danger'],
-        show_legend=False
-    )
-    
-    # Update layout
-    fig.update_layout(
-        yaxis=dict(
-            title=dict(
-                text="MoM %",
-                font=dict(size=10, color=THEME['line_colors']['danger'])
-            ),
-            tickfont=dict(size=9)
-        ),
-        xaxis=dict(
-            tickangle=45,
-            tickfont=dict(size=9),
-            type='category'  # Set type to category for proper ordering
-        )
-    )
-    
-    return fig
-
-
-def create_initial_claims_chart(claims_data, periods=26):
-    """
-    Create a chart for Initial Jobless Claims data with modern styling.
-    
-    Args:
-        claims_data (dict): Dictionary with claims data
-        periods (int, optional): Number of periods to display (26 weeks = 6 months)
-        
-    Returns:
-        go.Figure: Plotly figure object
-    """
-    # Get the data and prepare for display
-    claims_plot_data = claims_data['data'].tail(periods).copy()
-    claims_plot_data = prepare_date_for_display(claims_plot_data, frequency='W')
-    
-    # Ensure data is sorted properly
-    claims_plot_data = claims_plot_data.sort_values('Date')
-    
-    # Fill any null values
-    claims_plot_data['Claims'] = claims_plot_data['Claims'].fillna(0)
-    
-    # Use create_line_chart for consistency with other charts
-    # Using 300,000 as a threshold which is a common benchmark for jobless claims
-    fig = create_line_chart(
-        claims_plot_data,
-        'Date_Str',
-        'Claims',
-        'Weekly Initial Jobless Claims',
-        color=THEME['line_colors']['primary'],  # Changed to primary color for consistency
-        show_legend=False
-    )
-    
-    # Update layout
-    fig.update_layout(
-        yaxis=dict(
-            title=dict(
-                text="Claims",
-                font=dict(size=10)
-            ),
-            tickfont=dict(size=9)
-        ),
-        xaxis=dict(
-            tickangle=45,
-            tickfont=dict(size=9),
-            type='category'  # Set type to category for proper ordering
-        )
-    )
-    
-    return fig
-
-
-def create_pce_chart(pce_data, periods=18):
-    """
-    Create a chart for PCE data with modern styling.
-    
-    Args:
-        pce_data (dict): Dictionary with PCE data
-        periods (int, optional): Number of periods to display
-        
-    Returns:
-        go.Figure: Plotly figure object
-    """
-    # Get the data and prepare for display
-    pce_plot_data = pce_data['data'].tail(periods).copy()
-    pce_plot_data = prepare_date_for_display(pce_plot_data)
-    
-    # Ensure data is sorted properly
-    pce_plot_data = pce_plot_data.sort_values('Date')
-    
-    # Fill any null values
-    pce_plot_data['PCE_MoM'] = pce_plot_data['PCE_MoM'].fillna(0)
-    
-    # Create the chart with our custom function instead of px.line
-    fig = create_line_chart(
-        pce_plot_data,
-        'Date_Str',
-        'PCE_MoM',
-        'PCE MoM % Change',
-        color=THEME['line_colors']['danger'],
-        show_legend=False
-    )
-    
-    # Update layout
-    fig.update_layout(
-        yaxis=dict(
-            title=dict(
-                text="MoM %",
-                font=dict(size=10)
-            ),
-            tickfont=dict(size=9)
-        ),
-        xaxis=dict(
-            tickangle=45,
-            tickfont=dict(size=9),
-            type='category'  # Set type to category for proper ordering
-        )
-    )
-    
-    return fig
-
-
-def create_pmi_chart(pmi_data, periods=18):
-    """
-    Create a chart for PMI data with modern styling.
-    
-    Args:
-        pmi_data (dict): Dictionary with PMI data
-        periods (int, optional): Number of periods to display
-        
-    Returns:
-        go.Figure: Plotly figure object
-    """
-    # First, convert the PMI series to a DataFrame with a date index
-    pmi_series = pmi_data['pmi_series']
-    pmi_df = pd.DataFrame(pmi_series)
-    pmi_df.reset_index(inplace=True)
-    pmi_df.columns = ['Date', 'PMI']
-    
-    # Get the last N months of data
-    pmi_plot_data = pmi_df.tail(periods).copy()
-    pmi_plot_data = prepare_date_for_display(pmi_plot_data)
-    
-    # Ensure data is sorted properly
-    pmi_plot_data = pmi_plot_data.sort_values('Date')
-    
-    # Fill any null values
-    pmi_plot_data['PMI'] = pmi_plot_data['PMI'].fillna(0)
-    
-    # Create the chart
-    fig = create_line_chart(
-        pmi_plot_data,
-        'Date_Str',
-        'PMI',
-        'Manufacturing PMI Proxy',
-        color=THEME['line_colors']['primary'],
-        show_legend=False
-    )
-    
-    # Update layout
-    fig.update_layout(
-        yaxis=dict(
-            title=dict(
-                text="PMI Value",
-                font=dict(size=10)
-            ),
-            tickfont=dict(size=9)
-        ),
-        xaxis=dict(
-            tickangle=45,
-            tickfont=dict(size=9),
-            type='category'  # Set type to category for proper ordering
-        )
-    )
-    
-    return fig
 
 
 def create_usd_liquidity_chart(usd_liquidity_data, periods=120):
@@ -411,7 +159,7 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=120):
             tickangle=-45, # Angle ticks for better readability
             tickfont=dict(size=9),
             type='date', # Use date type now that frequency is consistent
-            dtick="M3", # Show ticks every 3 months for quarterly data
+            dtick="M6", # Show ticks every 6 months for 5-year view
             tickformat="%b '%y" # Format as 'Jan '23'
         ),
         showlegend=True,
@@ -443,6 +191,60 @@ def create_usd_liquidity_chart(usd_liquidity_data, periods=120):
     fig = apply_dark_theme(fig)
     fig.update_layout(height=520)
     
+    return fig
+
+
+def create_pmi_chart(pmi_data, periods=24):
+    """
+    Create a line chart for the Manufacturing PMI Proxy.
+
+    Args:
+        pmi_data (dict): Dictionary returned by calculate_pmi_proxy(), containing
+                         'pmi_series' (pd.Series with DatetimeIndex).
+        periods (int): Number of months to display.
+
+    Returns:
+        go.Figure: Plotly figure object
+    """
+    pmi_series = pmi_data.get('pmi_series')
+    if pmi_series is None or pmi_series.empty:
+        fig = go.Figure()
+        fig.update_layout(title="Manufacturing PMI Proxy - No Data Available")
+        return apply_dark_theme(fig)
+
+    # Trim to the requested number of periods
+    plot_series = pmi_series.tail(periods)
+
+    dates = plot_series.index.tolist()
+    values = plot_series.values.tolist()
+
+    fig = go.Figure()
+
+    # Main PMI line
+    fig.add_trace(go.Scatter(
+        x=dates,
+        y=values,
+        name='PMI Proxy',
+        line=dict(color=THEME['line_colors']['success'], width=2),
+        hovertemplate='%{x|%b %Y}: %{y:.1f}<extra></extra>'
+    ))
+
+    # 50-threshold reference line (contraction/expansion boundary)
+    fig.add_hline(
+        y=50,
+        line_dash='dash',
+        line_color=THEME.get('grid_color', '#555555'),
+        annotation_text='50 (neutral)',
+        annotation_position='bottom right'
+    )
+
+    fig = apply_dark_theme(fig)
+    fig.update_layout(
+        yaxis_title='PMI',
+        yaxis=dict(range=[20, 80]),
+        height=350
+    )
+
     return fig
 
 
@@ -479,127 +281,54 @@ def create_pmi_components_table(pmi_data):
     })
 
 
-def create_new_orders_chart(new_orders_data, periods=18):
-    """
-    Create a chart for Non-Defense Durable Goods Orders month-over-month % change.
-    
-    Args:
-        new_orders_data (dict): Dictionary with New Orders data
-        periods (int, optional): Number of periods to display
-        
-    Returns:
-        go.Figure: Plotly figure object
-    """
-    # Get the data and prepare for display
-    orders_plot_data = new_orders_data['data'].tail(periods).copy()
-    orders_plot_data = prepare_date_for_display(orders_plot_data)
-    
-    # Ensure data is sorted properly
-    orders_plot_data = orders_plot_data.sort_values('Date')
-    
-    # Fill any null values
-    orders_plot_data['NEWORDER_MoM'] = orders_plot_data['NEWORDER_MoM'].fillna(0)
-    
-    # Create the chart - using 0 as threshold for growth vs contraction
-    fig = create_line_chart(
-        orders_plot_data,
-        'Date_Str',
-        'NEWORDER_MoM',
-        'Non-Defense Durable Goods',
-        color=THEME['line_colors']['primary'],
-        show_legend=False
-    )
-    
-    # Update layout
-    fig.update_layout(
-        yaxis=dict(
-            title=dict(
-                text="MoM % Change",
-                font=dict(size=10)
-            ),
-            tickfont=dict(size=9)
-        ),
-        xaxis=dict(
-            tickangle=45,
-            tickfont=dict(size=9),
-            type='category'  # Set type to category for proper ordering
-        )
-    )
-    
-    return fig
-
-
-def create_yield_curve_chart(yield_curve_data, periods=36):
-    """
-    Create a chart for the 10Y-2Y Treasury Yield Spread (yield curve).
-    
-    Args:
-        yield_curve_data (dict): Dictionary with yield curve data
-        periods (int, optional): Number of periods to display
-        
-    Returns:
-        go.Figure: Plotly figure object
-    """
-    # Get the data and prepare for display
-    curve_plot_data = yield_curve_data['data'].tail(periods).copy()
-    curve_plot_data = prepare_date_for_display(curve_plot_data)
-    
-    # Ensure data is sorted properly
-    curve_plot_data = curve_plot_data.sort_values('Date')
-    
-    # Fill any null values
-    curve_plot_data['T10Y2Y'] = curve_plot_data['T10Y2Y'].fillna(0)
-    
-    # Create the chart using the same function as durable goods
-    fig = create_line_chart(
-        curve_plot_data,
-        'Date_Str',
-        'T10Y2Y',
-        '10Y-2Y Treasury Yield Spread',
-        color=THEME['line_colors']['warning'],
-        show_legend=False
-    )
-    
-    # Update y-axis title
-    fig.update_layout(
-        yaxis=dict(
-            title=dict(
-                text="Spread (%)",
-                font=dict(size=10)
-            ),
-            tickfont=dict(size=9)
-        ),
-        xaxis=dict(
-            tickangle=45,
-            tickfont=dict(size=9),
-            type='category'  # Set type to category for proper ordering
-        ),
-        height=520
-    )
-    
-    return fig
-
-
 def create_indicator_chart(indicator_key, indicator_data, periods=None):
-    """Create an indicator chart via a centralized registry for easier extension."""
-    chart_builders = {
-        'hours_worked': create_hours_worked_chart,
-        'core_cpi': create_core_cpi_chart,
-        'claims': create_initial_claims_chart,
-        'pce': create_pce_chart,
-        'pmi': create_pmi_chart,
-        'usd_liquidity': create_usd_liquidity_chart,
-        'new_orders': create_new_orders_chart,
-        'yield_curve': create_yield_curve_chart,
-        'copper_gold_ratio': create_copper_gold_yield_chart,
-        'credit_spread': create_credit_spread_chart,
-        'pscf': create_pscf_chart,
+    """
+    Create an indicator chart using registry-driven approach.
+    
+    Args:
+        indicator_key (str): The indicator key from the registry
+        indicator_data (dict): Dictionary containing indicator data
+        periods (int, optional): Number of periods to display (overrides config default)
+        
+    Returns:
+        go.Figure: Plotly figure object
+    """
+    # Get the indicator configuration from registry
+    config = get_indicator_config(indicator_key)
+    if config is None:
+        raise ValueError(f"Indicator config not found for key: {indicator_key}")
+    
+    # Custom chart function mapping for complex charts
+    custom_chart_functions = {
+        'create_usd_liquidity_chart': create_usd_liquidity_chart,
+        'create_copper_gold_yield_chart': create_copper_gold_yield_chart,
+        'create_credit_spread_chart': create_credit_spread_chart,
+        'create_pscf_chart': create_pscf_chart,
+        'create_pmi_chart': create_pmi_chart,
     }
-
-    builder = chart_builders.get(indicator_key)
-    if builder is None:
-        raise ValueError(f"Unsupported indicator chart: {indicator_key}")
-
-    if periods is not None:
-        return builder(indicator_data, periods=periods)
-    return builder(indicator_data)
+    
+    # Use periods parameter if provided, otherwise use config default
+    chart_periods = periods if periods is not None else getattr(config, 'periods', None)
+    
+    # Check if this indicator has a custom chart function
+    custom_chart_fn = getattr(config, 'custom_chart_fn', None)
+    # Support both bare names ("create_foo_chart") and dotted paths ("visualization.indicators.create_foo_chart")
+    custom_chart_fn_key = custom_chart_fn.rsplit('.', 1)[-1] if custom_chart_fn else None
+    if custom_chart_fn_key and custom_chart_fn_key in custom_chart_functions:
+        # Call the custom chart function
+        import inspect
+        builder = custom_chart_functions[custom_chart_fn_key]
+        sig = inspect.signature(builder)
+        if chart_periods is not None and 'periods' in sig.parameters:
+            return builder(indicator_data, periods=chart_periods)
+        return builder(indicator_data)
+    
+    # Use the generic chart builder for standard indicators
+    if chart_periods is not None:
+        # Create a modified config with the override periods
+        import types
+        modified_config = types.SimpleNamespace(**vars(config))
+        modified_config.periods = chart_periods
+        return create_generic_chart(indicator_data, modified_config)
+    
+    return create_generic_chart(indicator_data, config)

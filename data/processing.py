@@ -128,3 +128,45 @@ def count_consecutive_changes(values, decreasing=True):
         else:
             break
     return count
+
+def validate_indicator_data(data: dict | None, config=None) -> bool:
+    """
+    Validate that indicator data contains required fields and valid values.
+    
+    Args:
+        data (dict): Dictionary containing indicator data
+        config: Optional IndicatorConfig for additional validation
+        
+    Returns:
+        bool: True if data is valid, False otherwise
+    """
+    if not data or not isinstance(data, dict):
+        return False
+    
+    # Check for error states
+    if 'error' in data or 'status' in data and data['status'] == 'data_error':
+        return False
+    
+    # Check for essential fields - at least one of these should exist and be valid
+    essential_fields = [
+        'latest_value', 'latest_ratio', 'latest_yield', 'latest_spread', 
+        'latest_price', 'latest_claims', 'latest_pce', 'latest_cpi',  
+        'latest_hours', 'latest_curve', 'pmi_score', 'latest_pmi', 'current_liquidity'
+    ]
+    
+    # Check if at least one essential field exists and is not None or empty
+    has_valid_data = False
+    for field in essential_fields:
+        if field in data:
+            value = data[field]
+            if value is not None and value != '' and (not isinstance(value, (int, float)) or not pd.isna(value)):
+                has_valid_data = True
+                break
+    
+    # Check for required DataFrame
+    if 'data' in data:
+        df = data['data']
+        if isinstance(df, pd.DataFrame) and not df.empty:
+            has_valid_data = True
+    
+    return has_valid_data

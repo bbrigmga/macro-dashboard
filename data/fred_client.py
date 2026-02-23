@@ -199,7 +199,9 @@ class FredClient:
                     return filtered_df
 
                 # If cache is missing recent data, fetch incremental
-                elif cached_end < requested_end:
+                # Only do incremental if the cache also covers the requested start date;
+                # otherwise fall through and do a full FRED refetch.
+                elif cached_end < requested_end and cached_start <= requested_start:
                     logger.info(f"Fetching incremental data for {series_id} from {(cached_end + timedelta(days=1)).date()} to {requested_end.date()}")
                     try:
                         new_start_date = (cached_end + timedelta(days=1)).strftime('%Y-%m-%d')

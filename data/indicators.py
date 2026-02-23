@@ -60,7 +60,6 @@ class IndicatorData:
             raise RuntimeError("FRED client is not available in sample-data mode")
         return self.fred_client
     
-    @st.cache_data(ttl=3600) # Cache for 1 hour
     def get_initial_claims(_self, periods=52):
         """
         Get initial jobless claims data.
@@ -97,7 +96,6 @@ class IndicatorData:
             logger.error(f"Failed to fetch or process claims data: {e}")
             raise
     
-    @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_pce(_self, periods=24):
         """
         Get Personal Consumption Expenditures (PCE) data.
@@ -109,14 +107,18 @@ class IndicatorData:
             dict: Dictionary with PCE data and analysis
         """
         try:
-            # Fetch PCE data with monthly frequency
-            pce_data = _self._fred().get_series('PCE', periods=periods, frequency='M')
+            # Fetch extra 12 months so YoY calculation has a full year of baseline
+            fetch_periods = periods + 12
+            pce_data = _self._fred().get_series('PCE', periods=fetch_periods, frequency='M')
             pce_data.columns = ['Date', 'PCE']
             
             # Calculate year-over-year and month-over-month percentage changes
             pce_data['PCE_YoY'] = calculate_pct_change(pce_data, 'PCE', periods=12, fill_method=None)
             pce_data['PCE_MoM'] = calculate_pct_change(pce_data, 'PCE', periods=1, fill_method=None)
             
+            # Drop rows without a valid YoY value, then keep only the requested periods
+            pce_data = pce_data.dropna(subset=['PCE_YoY']).tail(periods).reset_index(drop=True)
+
             # Get recent MoM values for trend analysis
             recent_pce_mom = pce_data['PCE_MoM'].tail(5).values
             
@@ -143,7 +145,6 @@ class IndicatorData:
             logger.error(f"Failed to fetch or process PCE data: {e}")
             raise
     
-    @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_core_cpi(_self, periods=24):
         """
         Get Core CPI (Consumer Price Index Less Food and Energy) data.
@@ -155,37 +156,41 @@ class IndicatorData:
             dict: Dictionary with CPI data and analysis
         """
         try:
-            # Fetch Core CPI data with monthly frequency
-            core_cpi_data = _self._fred().get_series('CPILFESL', periods=periods, frequency='M')
+            # Fetch extra 12 months so YoY calculation has a full year of baseline
+            fetch_periods = periods + 12
+            core_cpi_data = _self._fred().get_series('CPILFESL', periods=fetch_periods, frequency='M')
             core_cpi_data.columns = ['Date', 'CPI']
             
             # Calculate year-over-year and month-over-month percentage changes
             core_cpi_data['CPI_YoY'] = calculate_pct_change(core_cpi_data, 'CPI', periods=12, fill_method=None)
             core_cpi_data['CPI_MoM'] = calculate_pct_change(core_cpi_data, 'CPI', periods=1, fill_method=None)
             
-            # Get the last 5 months of MoM changes (to check for 4 consecutive changes)
-            recent_cpi_mom = core_cpi_data['CPI_MoM'].tail(5).values
+            # Drop rows without a valid YoY value, then keep only the requested periods
+            core_cpi_data = core_cpi_data.dropna(subset=['CPI_YoY']).tail(periods).reset_index(drop=True)
+
+            # Get the last 4 months of MoM changes (need 4 values to check 3 consecutive changes)
+            recent_cpi_mom = core_cpi_data['CPI_MoM'].tail(4).values
             
             # Get the corresponding dates for the recent values
-            recent_dates = core_cpi_data['Date'].tail(5).values
+            recent_dates = core_cpi_data['Date'].tail(4).values
             
-            # Check if MoM changes have been consistently increasing or decreasing (4 consecutive months)
-            cpi_increasing = check_consecutive_increase(recent_cpi_mom, 4)
-            cpi_decreasing = check_consecutive_decrease(recent_cpi_mom, 4)
+            # Check if MoM changes have been consistently increasing or decreasing (3 consecutive months)
+            core_cpi_increasing = check_consecutive_increase(recent_cpi_mom, 3)
+            core_cpi_decreasing = check_consecutive_decrease(recent_cpi_mom, 3)
             
             return {
                 'data': core_cpi_data,
                 'recent_cpi_mom': recent_cpi_mom,
-                'cpi_increasing': cpi_increasing,
-                'cpi_decreasing': cpi_decreasing,
+                'core_cpi_increasing': core_cpi_increasing,
+                'core_cpi_decreasing': core_cpi_decreasing,
                 'current_cpi': core_cpi_data['CPI_YoY'].iloc[-1],
-                'current_cpi_mom': core_cpi_data['CPI_MoM'].iloc[-1]
+                'current_cpi_mom': core_cpi_data['CPI_MoM'].iloc[-1],
+                'current_value': float(core_cpi_data['CPI_MoM'].iloc[-1])  # MoM % change
             }
         except Exception as e:
             logger.error(f"Failed to fetch or process CPI data: {e}")
             raise
     
-    @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_hours_worked(_self, periods=24):
         """
         Get Average Weekly Hours data.
@@ -212,13 +217,13 @@ class IndicatorData:
                 'data': hours_data,
                 'recent_hours': recent_hours,
                 'consecutive_declines': consecutive_declines,
-                'consecutive_increases': consecutive_increases
+                'consecutive_increases': consecutive_increases,
+                'current_value': float(hours_data['Hours'].iloc[-1])  # latest hours reading
             }
         except Exception as e:
             logger.error(f"Failed to fetch or process Aggregate Hours data: {e}")
             raise
     
-    @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def calculate_pmi_proxy(_self, periods=36, start_date=None):
         """
         Calculate a proxy for the ISM Manufacturing PMI using FRED data.
@@ -396,7 +401,6 @@ class IndicatorData:
 
         return result
 
-    @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def _get_usd_liquidity_cached(_self, periods=120, use_sample_data=False):
         return _self._get_usd_liquidity_impl(periods, use_sample_data)
 
@@ -663,9 +667,9 @@ class IndicatorData:
                     last_valid_tga = all_series['WTREGEN'].dropna().iloc[-1]
                     logger.info(f"Using TGA value from merged data: {last_valid_tga} million")
                 else:
-                    # Fallback to a known recent value if API fails
-                    last_valid_tga = 595.741  # Example value from FRED as of 2025-04-30
-                    logger.warning(f"WTREGEN data not available from API, using fallback value: {last_valid_tga} billion")
+                    # No valid TGA data available - return error state
+                    logger.error("WTREGEN (TGA) data not available from API or cached data")
+                    return {'error': 'TGA data unavailable', 'status': 'data_error'}
 
                 # Calculate current liquidity based on last valid points
                 def _f(v) -> float:  # type: ignore[return]
@@ -690,7 +694,7 @@ class IndicatorData:
                 }
 
                 # Get the most recent QoQ % change (can be NaN if latest liquidity is NaN)
-                current_liquidity_qoq = latest_data.get('USD_Liquidity_QoQ', 'N/A')
+                current_liquidity_qoq = latest_data.get('USD_Liquidity_QoQ', None)
 
                 # Prepare quarterly data for return
                 if 'SP500' in all_series.columns:
@@ -728,7 +732,6 @@ class IndicatorData:
             logger.error(f"Error fetching USD Liquidity data: {str(e)}")
             raise
     
-    @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_new_orders(_self, periods=24):
         """
         Get Non-Defense Durable Goods Orders data from FRED.
@@ -772,7 +775,6 @@ class IndicatorData:
             logger.error(f"Error fetching Non-Defense Durable Goods Orders data: {str(e)}")
             raise
     
-    @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_yield_curve(_self, periods=36, frequency='M'):
         """
         Get the 10Y-2Y Treasury Yield Spread data from FRED.
@@ -828,7 +830,6 @@ class IndicatorData:
             logger.error(f"Error fetching Yield Curve Spread data: {str(e)}")
             raise
 
-    @st.cache_data(ttl=3600*24) # Cache for 24 hours
     def get_copper_gold_ratio(_self, periods=365):
         """
         Get Copper/Gold Ratio vs US 10-year Treasury yield data.
@@ -889,18 +890,19 @@ class IndicatorData:
             return {
                 'data': final_df,
                 'latest_ratio': latest_ratio,
-                'latest_yield': latest_yield
+                'latest_yield': latest_yield,
+                'current_value': float(latest_ratio),  # copper/gold ratio
             }
         except Exception as e:
             logger.error(f"Error fetching Copper/Gold Ratio data: {str(e)}")
             # Return empty data structure instead of raising exception
             return {
                 'data': pd.DataFrame(columns=['Date', 'ratio', 'yield', 'corr']),
-                'latest_ratio': 'N/A',
-                'latest_yield': 'N/A'
+                'latest_ratio': None,
+                'latest_yield': None,
+                'current_value': None,
             }
     
-    @st.cache_data(ttl=3600*24)
     def get_credit_spread(_self, years=5):
         """
         Get ICE BofA US High Yield Option-Adjusted Spread (BAMLH0A0HYM2) from FRED.
@@ -943,13 +945,15 @@ class IndicatorData:
                 'data': df,
                 'latest_spread': latest_spread,
                 'spread_change': spread_change,
+                'current_value': latest_spread,  # high-yield spread in %
             }
         except Exception as e:
             logger.error(f"Error fetching credit spread data: {str(e)}")
             return {
                 'data': pd.DataFrame(columns=['Date', 'value']),
-                'latest_spread': 'N/A',
+                'latest_spread': None,
                 'spread_change': 0,
+                'current_value': None,
             }
 
     def get_pscf_price(_self, years=5):
@@ -994,7 +998,7 @@ class IndicatorData:
             logger.error(f"Error fetching PSCF price data: {str(e)}")
             return {
                 'data': pd.DataFrame(columns=['Date', 'value']),
-                'latest_price': 'N/A',
+                'latest_price': None,
                 'price_change': 0,
                 'price_change_pct': 0
             }
