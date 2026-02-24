@@ -6,10 +6,11 @@ import plotly.graph_objects as go
 from src.config.indicator_registry import INDICATOR_REGISTRY, get_indicator_config
 from visualization.generic_chart import create_indicator_chart as create_generic_chart
 from visualization.charts import (
-    create_line_chart, 
+    create_line_chart,
     create_copper_gold_yield_chart,
     create_credit_spread_chart,
     create_pscf_chart,
+    create_xlp_xly_ratio_chart,
     THEME,
     apply_dark_theme
 )
@@ -304,6 +305,7 @@ def create_indicator_chart(indicator_key, indicator_data, periods=None):
         'create_copper_gold_yield_chart': create_copper_gold_yield_chart,
         'create_credit_spread_chart': create_credit_spread_chart,
         'create_pscf_chart': create_pscf_chart,
+        'create_xlp_xly_ratio_chart': create_xlp_xly_ratio_chart,
         'create_pmi_chart': create_pmi_chart,
     }
     

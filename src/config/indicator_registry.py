@@ -125,7 +125,7 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         display_name="High Yield Credit Spread",
         emoji="💎",
         fred_series=["BAMLH0A0HYM2"],
-        chart_type="custom",
+        chart_type="line",
         value_column="value",
         periods=60,  # 5 years of monthly data
         frequency="M", 
@@ -133,10 +133,25 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         threshold=5.0,  # Above 5% indicates credit stress
         warning_description="Credit spreads above 5% indicate market stress and potential liquidity concerns. Rapid widening often precedes equity corrections as institutional money prices in elevated default risk. Monitor for sudden jumps that can signal credit market seizure.",
         chart_color="#9c27b0",
-        custom_chart_fn="visualization.charts.create_credit_spread_chart",
         fred_link="https://fred.stlouisfed.org/series/BAMLH0A0HYM2"
     ),
     
+    "xlp_xly_ratio": IndicatorConfig(
+        key="xlp_xly_ratio",
+        display_name="Staples/Discretionary Ratio",
+        emoji="🛒",
+        fred_series=[],
+        chart_type="line",
+        value_column="value",
+        periods=36,  # 3 years of monthly data
+        frequency="M",
+        bullish_condition="below_threshold",
+        threshold=1.0,  # Ratio > 1 means staples outperforming → risk-off / defensive rotation
+        warning_description="The XLP/XLY ratio compares Consumer Staples (defensive) to Consumer Discretionary (cyclical). A rising ratio signals defensive rotation and risk-off sentiment. A ratio above 1 or trending higher indicates investors are moving away from growth and into safety. Falling ratio signals consumer confidence and risk-on appetite.",
+        chart_color="#26a69a",
+        fred_link=None
+    ),
+
     "pscf_price": IndicatorConfig(
         key="pscf_price",
         display_name="Copper Price (PSCF)",

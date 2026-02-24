@@ -201,32 +201,36 @@ def create_dashboard(indicators, fred_client):
         if 'new_orders' in indicators:
             display_indicator_card('new_orders', indicators['new_orders'], fred_client)
     
-    # Third row - USD liquidity alongside Copper/Gold vs 10Y yield
-    row_col1, row_col2 = st.columns(2)
+    # Third row - USD liquidity, Copper/Gold vs 10Y yield, PSCF small cap financials
+    col1, col2, col3 = st.columns(3)
 
-    with row_col1:
+    with col1:
         if 'usd_liquidity' in indicators:
             display_indicator_card('usd_liquidity', indicators['usd_liquidity'], fred_client)
 
-    with row_col2:
+    with col2:
         if 'copper_gold_ratio' in indicators:  # Note: data key matches registry key 'copper_gold_yield'
             display_indicator_card('copper_gold_yield', indicators['copper_gold_ratio'], fred_client)
 
-    # Fourth row - 2-10Y spread, High Yield Credit Spread, and PSCF small cap financials
-    st.divider()
-    spread_col, credit_col, pscf_col = st.columns(3)
+    with col3:
+        if 'pscf' in indicators:  # Note: data key matches registry key 'pscf_price'
+            display_indicator_card('pscf_price', indicators['pscf'], fred_client)
 
-    with spread_col:
+    # Fourth row - 2-10Y spread, High Yield Credit Spread, XLP/XLY Ratio
+    st.divider()
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
         if 'yield_curve' in indicators:
             display_indicator_card('yield_curve', indicators['yield_curve'], fred_client)
 
-    with credit_col:
+    with col2:
         if 'credit_spread' in indicators:
             display_indicator_card('credit_spread', indicators['credit_spread'], fred_client)
 
-    with pscf_col:
-        if 'pscf' in indicators:  # Note: data key matches registry key 'pscf_price'
-            display_indicator_card('pscf_price', indicators['pscf'], fred_client)
+    with col3:
+        if 'xlp_xly_ratio' in indicators:
+            display_indicator_card('xlp_xly_ratio', indicators['xlp_xly_ratio'], fred_client)
 
     # Display footer
     display_footer()

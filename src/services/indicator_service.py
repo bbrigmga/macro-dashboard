@@ -91,6 +91,13 @@ class IndicatorService:
                 'frequency': 'D',
                 'cache_ttl': self.settings.cache.fred_ttl,
                 'default_periods': 1825  # 5 years daily
+            },
+            'xlp_xly_ratio': {
+                'source': 'yahoo',
+                'tickers': ['XLP', 'XLY'],
+                'frequency': 'D',
+                'cache_ttl': self.settings.cache.fred_ttl,
+                'default_years': 3
             }
         }
 
@@ -177,7 +184,7 @@ class IndicatorService:
             indicators = [
                 'claims', 'pce', 'core_cpi', 'hours_worked',
                 'pmi', 'usd_liquidity', 'new_orders', 'yield_curve', 'copper_gold_ratio',
-                'pscf_price', 'credit_spread'
+                'pscf_price', 'credit_spread', 'xlp_xly_ratio'
             ]
 
             # Fetch all indicators in parallel
@@ -242,6 +249,9 @@ class IndicatorService:
                 ),
                 'credit_spread': lambda: self.indicator_data.get_credit_spread(
                     years=kwargs.get('years', 5)
+                ),
+                'xlp_xly_ratio': lambda: self.indicator_data.get_xlp_xly_ratio(
+                    years=kwargs.get('years', 3)
                 )
             }
 

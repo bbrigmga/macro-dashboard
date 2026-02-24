@@ -941,6 +941,11 @@ class IndicatorData:
             prev_spread = float(df['value'].iloc[-2]) if len(df) >= 2 else latest_spread
             spread_change = latest_spread - prev_spread
 
+            # Resample to monthly (end-of-month mean) for display consistency
+            df['Date'] = pd.to_datetime(df['Date'])
+            df = df.set_index('Date').resample('ME')['value'].mean().reset_index()
+            df = df.dropna(subset=['value'])
+
             return {
                 'data': df,
                 'latest_spread': latest_spread,
@@ -1001,6 +1006,74 @@ class IndicatorData:
                 'latest_price': None,
                 'price_change': 0,
                 'price_change_pct': 0
+            }
+
+    def get_xlp_xly_ratio(_self, years=3):
+        """
+        Get the Consumer Staples / Consumer Discretionary ratio (XLP / XLY) from Yahoo Finance.
+
+        Args:
+            years (int): Number of years of history to fetch (default 3)
+
+        Returns:
+            dict: Dictionary with ratio data and latest ratio value
+        """
+        try:
+            import datetime as dt
+            start_date = (dt.datetime.now() - dt.timedelta(days=years * 365 + 10)).strftime('%Y-%m-%d')
+            end_date = (dt.datetime.now() + dt.timedelta(days=1)).strftime('%Y-%m-%d')
+
+            xlp_df = _self.yahoo_client.get_historical_prices(
+                ticker='XLP',
+                start_date=start_date,
+                end_date=end_date,
+                frequency='1d'
+            )
+            xly_df = _self.yahoo_client.get_historical_prices(
+                ticker='XLY',
+                start_date=start_date,
+                end_date=end_date,
+                frequency='1d'
+            )
+
+            if xlp_df is None or xlp_df.empty or xly_df is None or xly_df.empty:
+                raise ValueError("XLP or XLY price download returned no data")
+
+            xlp_df['Date'] = pd.to_datetime(xlp_df['Date'])
+            xly_df['Date'] = pd.to_datetime(xly_df['Date'])
+
+            merged = pd.merge(
+                xlp_df.rename(columns={'value': 'XLP'}),
+                xly_df.rename(columns={'value': 'XLY'}),
+                on='Date',
+                how='inner'
+            ).sort_values('Date').reset_index(drop=True)
+
+            merged['value'] = merged['XLP'] / merged['XLY']
+
+            # Resample to monthly (end-of-month mean) for display consistency
+            merged['Date'] = pd.to_datetime(merged['Date'])
+            ratio_df = merged.set_index('Date')[['value']].resample('ME').mean().reset_index()
+            ratio_df = ratio_df.dropna(subset=['value'])
+
+            latest_ratio = ratio_df['value'].iloc[-1]
+            prev_ratio = ratio_df['value'].iloc[-2]
+            change = latest_ratio - prev_ratio
+            change_pct = (change / prev_ratio) * 100
+
+            return {
+                'data': ratio_df,
+                'current_value': latest_ratio,
+                'ratio_change': change,
+                'ratio_change_pct': change_pct,
+            }
+        except Exception as e:
+            logger.error(f"Error fetching XLP/XLY ratio data: {str(e)}")
+            return {
+                'data': pd.DataFrame(columns=['Date', 'value']),
+                'current_value': None,
+                'ratio_change': 0,
+                'ratio_change_pct': 0,
             }
 
     def get_all_indicators(self):

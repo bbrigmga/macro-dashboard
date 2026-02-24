@@ -268,6 +268,69 @@ def create_copper_gold_yield_chart(copper_gold_data):
     return fig
 
 
+def create_yield_curve_chart(yield_curve_data):
+    """
+    Create a chart for the 2-10 Year Treasury Spread (T10Y2Y).
+
+    Args:
+        yield_curve_data (dict): Dictionary containing spread data with 'Date' and 'T10Y2Y' columns
+
+    Returns:
+        go.Figure: Plotly figure object
+    """
+    df = yield_curve_data.get('data', pd.DataFrame())
+    if df.empty:
+        return go.Figure()
+
+    df = df.copy()
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.sort_values('Date')
+
+    value_col = 'T10Y2Y' if 'T10Y2Y' in df.columns else 'value'
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df['Date'],
+        y=df[value_col],
+        name='2-10Y Spread',
+        mode='lines+markers',
+        line=dict(color='#f44336', width=2),
+        marker=dict(color='#f44336', size=4),
+        hovertemplate='%{x|%b %Y}<br>Spread: %{y:.2f}%<extra></extra>'
+    ))
+
+    # Zero line to mark inversion threshold
+    fig.add_hline(
+        y=0,
+        line_dash='dash',
+        line_color='rgba(255, 193, 7, 0.7)',
+        line_width=1
+    )
+
+    fig.update_layout(
+        title=dict(text='2-10 Year Treasury Spread', font=dict(size=14)),
+        height=360,
+        showlegend=False,
+        yaxis=dict(
+            title=dict(text='Spread (%)', font=dict(size=10)),
+            tickfont=dict(size=9),
+            ticksuffix='%'
+        ),
+        xaxis=dict(
+            title=None,
+            tickfont=dict(size=9),
+            type='date',
+            dtick='M12',
+            tickformat='%Y'
+        ),
+        hovermode='x unified',
+        margin=dict(l=10, r=10, t=40, b=10)
+    )
+
+    return apply_dark_theme(fig)
+
+
 def create_credit_spread_chart(credit_spread_data):
     """
     Create a chart for the ICE BofA US High Yield OAS (BAMLH0A0HYM2).
@@ -297,7 +360,7 @@ def create_credit_spread_chart(credit_spread_data):
 
     fig.update_layout(
         title=dict(text='US High Yield OAS – Credit Spreads (5Y)', font=dict(size=14)),
-        height=520,
+        height=360,
         showlegend=False,
         yaxis=dict(
             title=dict(text='Spread (%)', font=dict(size=10)),
@@ -351,6 +414,64 @@ def create_pscf_chart(pscf_data):
             title=dict(text='Price ($)', font=dict(size=10)),
             tickfont=dict(size=9),
             tickprefix='$'
+        ),
+        xaxis=dict(
+            title=None,
+            tickfont=dict(size=9),
+            type='date'
+        ),
+        hovermode='x unified',
+        margin=dict(l=10, r=10, t=40, b=10)
+    )
+
+    return apply_dark_theme(fig)
+
+
+def create_xlp_xly_ratio_chart(xlp_xly_data):
+    """
+    Create a chart for the XLP/XLY (Consumer Staples / Consumer Discretionary) ratio.
+
+    Args:
+        xlp_xly_data (dict): Dictionary containing ratio data with 'Date' and 'value' columns
+
+    Returns:
+        go.Figure: Plotly figure object
+    """
+    df = xlp_xly_data.get('data', pd.DataFrame())
+    if df.empty:
+        return go.Figure()
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df['Date'],
+        y=df['value'],
+        name='XLP/XLY',
+        mode='lines',
+        line=dict(color='#26a69a', width=2),
+        fill='tozeroy',
+        fillcolor='rgba(38, 166, 154, 0.08)',
+        hovertemplate='%{x|%Y-%m-%d}<br>Ratio: %{y:.4f}<extra></extra>'
+    ))
+
+    # Add a flat reference line at 1.0 (parity)
+    fig.add_hline(
+        y=1.0,
+        line_dash='dash',
+        line_color='rgba(255,255,255,0.35)',
+        annotation_text='Parity',
+        annotation_position='top right',
+        annotation_font_size=10
+    )
+
+    fig.update_layout(
+        title=dict(text='XLP/XLY – Staples vs Discretionary (3Y)', font=dict(size=14)),
+        height=360,
+        showlegend=False,
+        yaxis=dict(
+            title=dict(text='Ratio', font=dict(size=10)),
+            tickfont=dict(size=9),
+            tickformat='.3f'
         ),
         xaxis=dict(
             title=None,
