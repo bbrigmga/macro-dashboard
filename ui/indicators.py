@@ -55,7 +55,7 @@ def display_indicator_card(indicator_key: str, data: dict, fred_client=None) -> 
         
         # Add release date info
         next_release = get_next_release_date(indicator_key, fred_client)
-        st.caption(format_release_date(next_release))
+        st.caption(format_release_date(next_release, indicator_type=indicator_key))
         
         # Validate indicator data
         if not validate_indicator_data(data, config):

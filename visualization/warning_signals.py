@@ -481,7 +481,7 @@ def generate_pmi_warning(pmi_data):
     
     if latest_pmi < 50:
         warning_text = f"""
-        **Manufacturing Sector Alert** {status}
+        **Manufacturing Sector Alert — Bearish** {status}
         
         The Manufacturing PMI Proxy is currently **{latest_pmi:.1f}**, indicating the manufacturing sector is **contracting**.
         
@@ -494,7 +494,7 @@ def generate_pmi_warning(pmi_data):
         """
     else:
         description_text = f"""
-        **Manufacturing Sector Overview** {status}
+        **Manufacturing Sector Overview — Bullish** {status}
         
         The Manufacturing PMI Proxy is currently **{latest_pmi:.1f}**, indicating the manufacturing sector is **expanding**.
         

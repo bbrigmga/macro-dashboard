@@ -62,12 +62,12 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         emoji="💰",
         fred_series=["PCE"],
         chart_type="line",
-        value_column="PCE_YoY",
+        value_column="PCE_MoM",
         periods=24,  # 2 years of monthly data
         frequency="M",
-        bullish_condition="below_threshold",
-        threshold=3.5,  # Above 3.5% YoY is concerning
-        warning_description="Everyone watches CPI, but PCE guides Fed policy. Framework: PCE dropping + Stable jobs = Add risk. PCE rising + Rising claims = Get defensive. PCE is a window into rate trends, market conditions, and risk appetite.",
+        bullish_condition="decreasing",
+        threshold=None,
+        warning_description="Everyone watches CPI, but PCE guides Fed policy. Signal is based on MoM % change: 3 consecutive months of rising MoM PCE = Bearish (inflation re-accelerating, Fed stays tight). 3 consecutive months of falling MoM PCE = Bullish (inflation cooling, door opens for cuts). Framework: PCE dropping + Stable jobs = Add risk. PCE rising + Rising claims = Get defensive.",
         chart_color="#00c853",
         fred_link="https://fred.stlouisfed.org/series/PCE"
     ),
@@ -141,7 +141,7 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         display_name="Staples/Discretionary Ratio",
         emoji="🛒",
         fred_series=[],
-        chart_type="line",
+        chart_type="custom",
         value_column="value",
         periods=36,  # 3 years of monthly data
         frequency="M",
@@ -149,6 +149,7 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         threshold=1.0,  # Ratio > 1 means staples outperforming → risk-off / defensive rotation
         warning_description="The XLP/XLY ratio compares Consumer Staples (defensive) to Consumer Discretionary (cyclical). A rising ratio signals defensive rotation and risk-off sentiment. A ratio above 1 or trending higher indicates investors are moving away from growth and into safety. Falling ratio signals consumer confidence and risk-on appetite.",
         chart_color="#26a69a",
+        custom_chart_fn="visualization.charts.create_xlp_xly_ratio_chart",
         fred_link=None
     ),
 

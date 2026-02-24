@@ -22,8 +22,16 @@ INDICATOR_SERIES_MAP = {
         'series_id': 'ICSA',  # Initial Claims
         'release_id': 59  # Weekly Initial Claims
     },
+    'initial_claims': {
+        'series_id': 'ICSA',  # Initial Claims (alias for registry key)
+        'release_id': 59  # Weekly Initial Claims
+    },
     'hours': {
         'series_id': 'AWHNONAG',  # Average Weekly Hours
+        'release_id': 11  # Employment Situation
+    },
+    'hours_worked': {
+        'series_id': 'AWHNONAG',  # Average Weekly Hours (alias for registry key)
         'release_id': 11  # Employment Situation
     },
     'pmi': {  # PMI components
@@ -33,6 +41,15 @@ INDICATOR_SERIES_MAP = {
         'deliveries': 'AMDMUS',
         'inventories': 'MNFCTRIMSA',
         'release_id': 13  # G.17 Industrial Production and Capacity Utilization
+    },
+    'pmi_proxy': {  # Composite — next data point requires ALL components to have released
+        'series_ids': {
+            'new_orders': 'AMTMNO',       # M3 survey  ~25th of following month (bottleneck)
+            'production': 'IPMAN',        # Industrial Production ~15th of following month
+            'employment': 'MANEMP',       # Employment Situation  ~1st Friday of following month
+            'supplier_deliveries': 'AMDMUS',   # M3 survey  ~25th of following month
+            'inventories': 'MNFCTRIMSA'   # M3 survey  ~25th of following month
+        }
     },
     'new_orders': {
         'series_id': 'DGORDER',  # Durable Goods Orders
@@ -67,17 +84,21 @@ def get_next_release_date(indicator_type: str, _fred_client=None, current_date=N
                 if release_date:
                     return release_date
             elif 'series_ids' in indicator_info:
-                # For indicators that use multiple series
-                release_dates = _fred_client.get_multiple_release_dates(indicator_info['series_ids'])
+                # Composite indicator: a new data point is only computable once ALL components
+                # have released their data for the reference month.  The bottleneck is the LAST
+                # series to release, so we return max() rather than min().
+                release_dates = _fred_client.get_multiple_release_dates(
+                    list(indicator_info['series_ids'].values())
+                )
                 if release_dates:
-                    return min(release_dates.values())
+                    return max(release_dates.values())
             elif isinstance(indicator_info, dict) and 'release_id' not in indicator_info:
-                # For PMI-like indicators with multiple component series
+                # Legacy PMI-like indicators with multiple component series (flat dict)
                 release_dates = _fred_client.get_multiple_release_dates(list(
                     v for k, v in indicator_info.items() if k != 'release_id'
                 ))
                 if release_dates:
-                    return min(release_dates.values())
+                    return max(release_dates.values())
             # If series approach fails, try release ID as fallback
             if 'release_id' in indicator_info:
                 release_date = _fred_client.get_next_release_date_from_release(indicator_info['release_id'])
@@ -110,6 +131,12 @@ def get_next_release_date(indicator_type: str, _fred_client=None, current_date=N
             'offset': 1,  # 1 month lag
             'frequency': 'monthly'
         },
+        'hours_worked': {
+            'day': 1,  # First Friday of month
+            'weekday': 4,  # Friday
+            'offset': 1,  # 1 month lag
+            'frequency': 'monthly'
+        },
         'pmi': {
             'day': 1,  # First business day of month
             'offset': 0,  # Current month
@@ -119,6 +146,18 @@ def get_next_release_date(indicator_type: str, _fred_client=None, current_date=N
             'day': 25,  # Around 25th of each month
             'offset': 1,  # 1 month lag
             'frequency': 'monthly'
+        },
+        'pmi_proxy': {
+            # The bottleneck components (AMTMNO, AMDMUS, MNFCTRIMSA — M3 survey)
+            # are released around the 25th of the following month.
+            'day': 25,
+            'offset': 1,  # 1 month lag
+            'frequency': 'monthly'
+        },
+        'initial_claims': {
+            'weekday': 3,  # Thursday
+            'offset': 1,  # 1 week lag
+            'frequency': 'weekly'
         }
     }
     
@@ -135,7 +174,7 @@ def get_next_release_date(indicator_type: str, _fred_client=None, current_date=N
         next_date = current_date + timedelta(days=days_ahead)
         
         # For Initial Claims specifically, ensure we're getting the next Thursday
-        if indicator_type == 'claims' and next_date.weekday() != 3:  # 3 is Thursday
+        if indicator_type in ('claims', 'initial_claims') and next_date.weekday() != 3:  # 3 is Thursday
             # Find the next Thursday
             days_to_thursday = (3 - next_date.weekday()) % 7
             next_date = next_date + timedelta(days=days_to_thursday)
@@ -196,13 +235,19 @@ def format_release_date(date, indicator_type=None):
     Returns:
         str: Formatted date string
     """
+    # Choose the label prefix based on indicator type
+    if indicator_type == 'pmi_proxy':
+        label = "Next data point"
+    else:
+        label = "Next release"
+
     # Direct override for PCE on April 29, 2025
     today = datetime.datetime.now()
     if indicator_type == 'pce' and today.year == 2025 and today.month == 4 and today.day == 29:
-        return "Next release: Tomorrow"
+        return f"{label}: Tomorrow"
         
     if date is None:
-        return "Next release date not available"
+        return f"{label} date not available"
     
     # Convert to date objects for comparison to remove time components
     today_date = today.date()
@@ -223,10 +268,10 @@ def format_release_date(date, indicator_type=None):
             days_until = (release_date - today_date).days
     
     if days_until < 0:
-        return "Next release date not available"
+        return f"{label} date not available"
     elif days_until == 0:
-        return "Next release: Today"
+        return f"{label}: Today"
     elif days_until == 1:
-        return "Next release: Tomorrow"
+        return f"{label}: Tomorrow"
     else:
-        return f"Next release: {date.strftime('%B %d, %Y')} ({days_until} days)"
+        return f"{label}: {date.strftime('%B %d, %Y')} ({days_until} days)"

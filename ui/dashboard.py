@@ -10,6 +10,7 @@ from .indicators import (
     display_core_principles_card
 )
 from src.config.indicator_registry import INDICATOR_REGISTRY
+from visualization.warning_signals import generate_indicator_warning
 from data.fred_client import FredClient
 
 
@@ -88,31 +89,17 @@ def create_dashboard(indicators, fred_client):
     with col2:
         st.markdown("### 📈 Positioning")
     
-    # Determine status for each indicator
-    def get_indicator_status(data, key_func):
-        if key_func(data):
-            return "Bullish"
-        elif key_func(data, inverse=True):
-            return "Bearish"
-        else:
-            return "Neutral"
-    
+    # Compute statuses using the same logic as the chart indicators
+    pmi_status = generate_indicator_warning(indicators['pmi'], INDICATOR_REGISTRY['pmi_proxy'])['status']
+    initial_claims_status = generate_indicator_warning(indicators['claims'], INDICATOR_REGISTRY['initial_claims'])['status']
+    hours_status = generate_indicator_warning(indicators['hours_worked'], INDICATOR_REGISTRY['hours_worked'])['status']
+    pce_status = generate_indicator_warning(indicators['pce'], INDICATOR_REGISTRY['pce'])['status']
+
     status_data = [
-        ["Manufacturing PMI", 
-         "Bullish" if indicators['pmi']['latest_pmi'] >= 50 else "Bearish"],
-        ["Initial Claims", get_indicator_status(indicators['claims'], 
-            lambda d, inverse=False: d.get('claims_decreasing', False) if not inverse else d.get('claims_increasing', False))],
-        ["Hours Worked", get_indicator_status(indicators['hours_worked'], 
-            lambda d, inverse=False: d.get('consecutive_increases', 0) >= 3 if not inverse else d.get('consecutive_declines', 0) >= 3)]
+        ["Manufacturing PMI", pmi_status],
+        ["Initial Claims", initial_claims_status],
+        ["Hours Worked", hours_status],
     ]
-    
-    # Get PCE and Initial Claims status
-    pce_status = "Bullish" if indicators['pce'].get('pce_decreasing', False) else (
-        "Bearish" if indicators['pce'].get('pce_increasing', False) else "Neutral"
-    )
-    
-    initial_claims_status = get_indicator_status(indicators['claims'], 
-        lambda d, inverse=False: d.get('claims_decreasing', False) if not inverse else d.get('claims_increasing', False))
     
     # Determine positioning based on PCE and Initial Claims
     if pce_status == "Bullish" and (initial_claims_status == "Bullish" or initial_claims_status == "Neutral"):

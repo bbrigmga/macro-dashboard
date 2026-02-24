@@ -125,9 +125,9 @@ class IndicatorData:
             # Get the corresponding dates for the recent values
             recent_dates = pce_data['Date'].tail(5).values
             
-            # Check for consecutive increases and decreases (4 consecutive months)
-            pce_increasing = check_consecutive_increase(recent_pce_mom, 4)
-            pce_decreasing = check_consecutive_decrease(recent_pce_mom, 4)
+            # Check for consecutive increases and decreases (3 consecutive months)
+            pce_increasing = check_consecutive_increase(recent_pce_mom, 3)
+            pce_decreasing = check_consecutive_decrease(recent_pce_mom, 3)
             
             # Get current PCE values
             current_pce = pce_data['PCE_YoY'].iloc[-1]
@@ -139,7 +139,8 @@ class IndicatorData:
                 'pce_increasing': pce_increasing,
                 'pce_decreasing': pce_decreasing,
                 'current_pce': current_pce,
-                'current_pce_mom': current_pce_mom
+                'current_pce_mom': current_pce_mom,
+                'current_value': current_pce_mom  # MoM value used for display in details panel
             }
         except Exception as e:
             logger.error(f"Failed to fetch or process PCE data: {e}")
