@@ -507,3 +507,21 @@ def generate_pmi_warning(pmi_data):
         """
     
     return description_text if latest_pmi >= 50 else warning_text
+
+
+def generate_regime_quadrant_warning(data: dict, config=None) -> dict:
+    """Generate warning signal for the regime quadrant indicator."""
+    regime = data.get('current_regime', 'Unknown')
+    
+    status_map = {
+        'Goldilocks': 'Bullish',
+        'Reflation': 'Neutral',
+        'Stagflation': 'Bearish',
+        'Deflation': 'Bearish',
+    }
+    
+    return {
+        'status': status_map.get(regime, 'Neutral'),
+        'description': data.get('regime_description', f'Current regime: {regime}'),
+        'indicator': '🟢' if regime == 'Goldilocks' else ('🔴' if regime in ('Stagflation', 'Deflation') else '🟡'),
+    }

@@ -141,7 +141,7 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         display_name="Staples/Discretionary Ratio",
         emoji="🛒",
         fred_series=[],
-        chart_type="custom",
+        chart_type="line",
         value_column="value",
         periods=36,  # 3 years of monthly data
         frequency="M",
@@ -149,7 +149,6 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         threshold=1.0,  # Ratio > 1 means staples outperforming → risk-off / defensive rotation
         warning_description="The XLP/XLY ratio compares Consumer Staples (defensive) to Consumer Discretionary (cyclical). A rising ratio signals defensive rotation and risk-off sentiment. A ratio above 1 or trending higher indicates investors are moving away from growth and into safety. Falling ratio signals consumer confidence and risk-on appetite.",
         chart_color="#26a69a",
-        custom_chart_fn="visualization.charts.create_xlp_xly_ratio_chart",
         fred_link=None
     ),
 
@@ -259,6 +258,37 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         chart_color="#ff6f00",
         custom_chart_fn="visualization.indicators.create_copper_gold_yield_chart",
         fred_link="https://fred.stlouisfed.org/series/DGS10"
+    ),
+
+    "regime_quadrant": IndicatorConfig(
+        key="regime_quadrant",
+        display_name="Growth/Inflation Regime",
+        emoji="🧭",
+        fred_series=[],                    # No FRED data needed
+        yahoo_series=["TIP", "IEF", "CPER", "GLD"],
+        chart_type="custom",
+        value_column="growth_zscore",      # Primary display column
+        periods=504,                       # 2 years of daily data for warmup
+        frequency="D",
+        bullish_condition="custom",
+        threshold=None,
+        warning_description=(
+            "This chart shows the current macroeconomic regime using market-implied proxies. "
+            "The X-axis measures Growth Momentum (CPER/GLD ratio Z-Score) and the Y-axis measures "
+            "Inflation Momentum (TIP/IEF ratio Z-Score). The trailing 60-day path shows regime "
+            "migration. A dotted arrow projects the near-term trajectory based on the 5-day slope.\n\n"
+            "**Quadrants:**\n"
+            "- 🟥 **Top-Right (Reflation):** Growth ↑, Inflation ↑ → Commodities, Energy, Value\n"
+            "- 🟩 **Bottom-Right (Goldilocks):** Growth ↑, Inflation ↓ → Tech, Equities, Risk-on\n"
+            "- 🟧 **Top-Left (Stagflation):** Growth ↓, Inflation ↑ → Gold, Cash, Defensive\n"
+            "- 🟦 **Bottom-Left (Deflation):** Growth ↓, Inflation ↓ → Long Bonds (TLT), Utilities"
+        ),
+        chart_color="#ff6f00",
+        card_chart_height=500,             # Taller to accommodate square aspect ratio
+        custom_chart_fn="visualization.charts.create_regime_quadrant_chart",
+        custom_status_fn="visualization.warning_signals.generate_regime_quadrant_warning",
+        fred_link=None,
+        cache_ttl=3600,
     )
 }
 

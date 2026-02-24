@@ -9,7 +9,7 @@ import os
 import streamlit as st
 from data.fred_client import FredClient
 from data.yahoo_client import YahooClient
-from data.processing import calculate_pct_change, check_consecutive_increase, check_consecutive_decrease, count_consecutive_changes
+from data.processing import calculate_pct_change, check_consecutive_increase, check_consecutive_decrease, count_consecutive_changes, calculate_roc_zscore, apply_ema_smoothing
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -1075,6 +1075,136 @@ class IndicatorData:
                 'current_value': None,
                 'ratio_change': 0,
                 'ratio_change_pct': 0,
+            }
+
+    def get_regime_quadrant_data(self, lookback_days: int = 504, trail_days: int = 60) -> dict:
+        """
+        Get Growth/Inflation Regime Quadrant data using market-implied proxies.
+        
+        Args:
+            lookback_days: Total days of Yahoo data to fetch (≈ 2 years, needed for 252-day Z-Score window warmup)
+            trail_days: Number of trailing days to plot in the snail trail
+        
+        Returns:
+            dict: Dictionary with regime quadrant data and analysis
+        """
+        try:
+            # Define tickers for the proxies
+            tickers = ['TIP', 'IEF', 'CPER', 'GLD']
+            
+            # Calculate start date
+            start_date = (datetime.datetime.now() - datetime.timedelta(days=lookback_days)).strftime('%Y-%m-%d')
+            end_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+            
+            # Fetch data for all tickers
+            ticker_data = {}
+            for ticker in tickers:
+                df = self.yahoo_client.get_historical_prices(
+                    ticker=ticker,
+                    start_date=start_date,
+                    end_date=end_date,
+                    frequency='1d'
+                )
+                if df is None or df.empty:
+                    raise ValueError(f"{ticker} price download returned no data")
+                
+                # Rename value column to ticker name and set Date as index
+                df_indexed = df.set_index('Date')['value'].rename(ticker)
+                df_indexed.index = pd.to_datetime(df_indexed.index).tz_localize(None)
+                ticker_data[ticker] = df_indexed
+            
+            # Merge all ticker data using inner join to align dates
+            combined_df = pd.concat(list(ticker_data.values()), axis=1, join='inner')
+            combined_df = combined_df.sort_index().dropna()
+            
+            if combined_df.empty:
+                raise ValueError("No overlapping data available for all tickers")
+            
+            # Calculate ratios
+            combined_df['inflation_ratio'] = combined_df['TIP'] / combined_df['IEF']
+            combined_df['growth_ratio'] = combined_df['CPER'] / combined_df['GLD']
+            
+            # Calculate ROC Z-Scores
+            inflation_zscore = calculate_roc_zscore(combined_df['inflation_ratio'], roc_period=60, zscore_window=252)
+            growth_zscore = calculate_roc_zscore(combined_df['growth_ratio'], roc_period=60, zscore_window=252)
+            
+            # Apply EMA smoothing
+            inflation_zscore_smooth = apply_ema_smoothing(inflation_zscore, span=20)
+            growth_zscore_smooth = apply_ema_smoothing(growth_zscore, span=20)
+            
+            # Build output DataFrame
+            result_df = pd.DataFrame({
+                'Date': combined_df.index,
+                'growth_zscore': growth_zscore_smooth,
+                'inflation_zscore': inflation_zscore_smooth
+            }).dropna().reset_index(drop=True)
+            
+            if result_df.empty:
+                raise ValueError("No valid regime data after processing")
+            
+            # Get current values
+            current_growth = float(result_df['growth_zscore'].iloc[-1])
+            current_inflation = float(result_df['inflation_zscore'].iloc[-1])
+            
+            # Determine current regime
+            if current_growth >= 0 and current_inflation >= 0:
+                current_regime = "Reflation"
+            elif current_growth >= 0 and current_inflation < 0:
+                current_regime = "Goldilocks"
+            elif current_growth < 0 and current_inflation >= 0:
+                current_regime = "Stagflation"
+            else:
+                current_regime = "Deflation"
+            
+            # Calculate projected trajectory (5-day slope extrapolation)
+            if len(result_df) >= 6:
+                recent_data = result_df.tail(6)
+                growth_changes = recent_data['growth_zscore'].diff().dropna()
+                inflation_changes = recent_data['inflation_zscore'].diff().dropna()
+                
+                slope_x = growth_changes.tail(5).mean()
+                slope_y = inflation_changes.tail(5).mean()
+                
+                projected_growth = current_growth + slope_x * 10
+                projected_inflation = current_inflation + slope_y * 10
+            else:
+                projected_growth = current_growth
+                projected_inflation = current_inflation
+            
+            # Get trail data
+            trail_data = result_df.tail(min(trail_days, len(result_df))).copy()
+            
+            # Generate regime description
+            regime_descriptions = {
+                "Reflation": "Growth ↑, Inflation ↑ - Favors commodities, energy, and value stocks",
+                "Goldilocks": "Growth ↑, Inflation ↓ - Favors tech, equities, and risk-on assets", 
+                "Stagflation": "Growth ↓, Inflation ↑ - Favors gold, cash, and defensive assets",
+                "Deflation": "Growth ↓, Inflation ↓ - Favors long bonds (TLT) and utilities"
+            }
+            
+            return {
+                'data': result_df,
+                'trail_data': trail_data,
+                'current_regime': current_regime,
+                'current_growth': current_growth,
+                'current_inflation': current_inflation,
+                'projected_growth': projected_growth,
+                'projected_inflation': projected_inflation,
+                'regime_description': regime_descriptions.get(current_regime, f'Current regime: {current_regime}'),
+            }
+            
+        except Exception as e:
+            logger.error(f"Error fetching regime quadrant data: {str(e)}")
+            # Return empty data structure instead of raising exception
+            return {
+                'data': pd.DataFrame(columns=['Date', 'growth_zscore', 'inflation_zscore']),
+                'trail_data': pd.DataFrame(columns=['Date', 'growth_zscore', 'inflation_zscore']),
+                'current_regime': 'Unknown',
+                'current_growth': 0.0,
+                'current_inflation': 0.0,
+                'projected_growth': 0.0,
+                'projected_inflation': 0.0,
+                'regime_description': f'Unable to fetch regime data: {str(e)}',
             }
 
     def get_all_indicators(self):

@@ -98,6 +98,13 @@ class IndicatorService:
                 'frequency': 'D',
                 'cache_ttl': self.settings.cache.fred_ttl,
                 'default_years': 3
+            },
+            'regime_quadrant': {
+                'source': 'yahoo',
+                'tickers': ['TIP', 'IEF', 'CPER', 'GLD'],
+                'frequency': 'D',
+                'cache_ttl': self.settings.cache.yahoo_ttl,
+                'default_lookback_days': 504
             }
         }
 
@@ -150,6 +157,8 @@ class IndicatorService:
                 result = await asyncio.to_thread(self._get_pmi_data, **kwargs)
             elif indicator_name == 'copper_gold_ratio':
                 result = await asyncio.to_thread(self._get_copper_gold_ratio_data, **kwargs)
+            elif indicator_name == 'regime_quadrant':
+                result = await asyncio.to_thread(self._get_regime_quadrant_data, **kwargs)
             else:
                 result = await asyncio.to_thread(self._get_basic_indicator_data, indicator_name, **kwargs)
 
@@ -184,7 +193,7 @@ class IndicatorService:
             indicators = [
                 'claims', 'pce', 'core_cpi', 'hours_worked',
                 'pmi', 'usd_liquidity', 'new_orders', 'yield_curve', 'copper_gold_ratio',
-                'pscf_price', 'credit_spread', 'xlp_xly_ratio'
+                'pscf_price', 'credit_spread', 'xlp_xly_ratio', 'regime_quadrant'
             ]
 
             # Fetch all indicators in parallel
@@ -314,6 +323,17 @@ class IndicatorService:
 
             return IndicatorResult(success=True, data=result)
 
+        except Exception as e:
+            return IndicatorResult(success=False, error=str(e))
+    
+    def _get_regime_quadrant_data(self, **kwargs) -> IndicatorResult:
+        """Get regime quadrant data from Yahoo Finance proxies."""
+        try:
+            result = self.indicator_data.get_regime_quadrant_data(
+                lookback_days=kwargs.get('lookback_days', 504),
+                trail_days=kwargs.get('trail_days', 60)
+            )
+            return IndicatorResult(success=True, data=result)
         except Exception as e:
             return IndicatorResult(success=False, error=str(e))
 

@@ -345,38 +345,52 @@ def create_credit_spread_chart(credit_spread_data):
     if df.empty:
         return go.Figure()
 
+    df = df.copy()
+    df['Date_Str'] = pd.to_datetime(df['Date']).dt.strftime('%b %Y')
+
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=df['Date'],
+        x=df['Date_Str'],
         y=df['value'],
         name='HY OAS',
         mode='lines',
-        line=dict(color='#e85d4a', width=2),
+        line=dict(color='#9c27b0', width=2),
         fill='tozeroy',
-        fillcolor='rgba(232, 93, 74, 0.08)',
-        hovertemplate='%{x|%Y-%m-%d}<br>Spread: %{y:.2f}%<extra></extra>'
+        fillcolor='rgba(156, 39, 176, 0.08)',
+        hovertemplate='%{x}<br>Spread: %{y:.2f}%<extra></extra>'
     ))
+
+    # Add threshold line at 5%
+    fig.add_hline(
+        y=5.0,
+        line_dash='dash',
+        line_color='rgba(255, 165, 0, 0.6)',
+        annotation_text='Threshold (5.0)',
+        annotation_position='top right',
+        annotation_font_size=10
+    )
 
     fig.update_layout(
         title=dict(text='US High Yield OAS – Credit Spreads (5Y)', font=dict(size=14)),
-        height=360,
         showlegend=False,
         yaxis=dict(
-            title=dict(text='Spread (%)', font=dict(size=10)),
+            title=dict(text='value', font=dict(size=10)),
             tickfont=dict(size=9),
             ticksuffix='%'
         ),
         xaxis=dict(
             title=None,
             tickfont=dict(size=9),
-            type='date'
+            tickangle=45
         ),
         hovermode='x unified',
         margin=dict(l=10, r=10, t=40, b=10)
     )
 
-    return apply_dark_theme(fig)
+    fig = apply_dark_theme(fig)
+    fig.update_layout(height=360)
+    return fig
 
 
 def create_pscf_chart(pscf_data):
@@ -441,17 +455,19 @@ def create_xlp_xly_ratio_chart(xlp_xly_data):
     if df.empty:
         return go.Figure()
 
+    df = df.copy()
+    df['Date_Str'] = pd.to_datetime(df['Date']).dt.strftime('%b %Y')
+
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=df['Date'],
+        x=df['Date_Str'],
         y=df['value'],
         name='XLP/XLY',
-        mode='lines',
+        mode='lines+markers',
         line=dict(color='#26a69a', width=2),
-        fill='tozeroy',
-        fillcolor='rgba(38, 166, 154, 0.08)',
-        hovertemplate='%{x|%Y-%m-%d}<br>Ratio: %{y:.4f}<extra></extra>'
+        marker=dict(color='#26a69a', size=6),
+        hovertemplate='%{x}<br>Ratio: %{y:.4f}<extra></extra>'
     ))
 
     # Add a flat reference line at 1.0 (parity)
@@ -466,7 +482,6 @@ def create_xlp_xly_ratio_chart(xlp_xly_data):
 
     fig.update_layout(
         title=dict(text='XLP/XLY – Staples vs Discretionary (3Y)', font=dict(size=14)),
-        height=360,
         showlegend=False,
         yaxis=dict(
             title=dict(text='Ratio', font=dict(size=10)),
@@ -476,10 +491,192 @@ def create_xlp_xly_ratio_chart(xlp_xly_data):
         xaxis=dict(
             title=None,
             tickfont=dict(size=9),
-            type='date'
+            tickangle=45
         ),
         hovermode='x unified',
         margin=dict(l=10, r=10, t=40, b=10)
     )
 
-    return apply_dark_theme(fig)
+    fig = apply_dark_theme(fig)
+    # Override height after apply_dark_theme (which defaults to 250)
+    fig.update_layout(height=360)
+    return fig
+
+
+def create_regime_quadrant_chart(data: dict):
+    """
+    Create the Growth/Inflation Regime Quadrant Chart (Snail Trail).
+    
+    Args:
+        data: Dictionary with regime quadrant data from IndicatorData.get_regime_quadrant_data()
+        
+    Returns:
+        go.Figure: Plotly figure object
+    """
+    import numpy as np
+    
+    # Extract data
+    trail_data = data.get('trail_data', pd.DataFrame())
+    current_growth = data.get('current_growth', 0.0)
+    current_inflation = data.get('current_inflation', 0.0)
+    projected_growth = data.get('projected_growth', current_growth)
+    projected_inflation = data.get('projected_inflation', current_inflation)
+    current_regime = data.get('current_regime', 'Unknown')
+    
+    # Handle empty data case
+    if trail_data.empty or len(trail_data) == 0:
+        fig = go.Figure()
+        fig.add_annotation(
+            x=0.5, y=0.5,
+            text="No regime data available",
+            xref="paper", yref="paper",
+            showarrow=False,
+            font=dict(size=16, color="gray")
+        )
+        fig = apply_dark_theme(fig)
+        fig.update_layout(height=500)
+        return fig
+    
+    # Determine axis range (minimum ±3, expand if data exceeds)
+    if len(trail_data) > 0:
+        growth_min = min(trail_data['growth_zscore'].min(), current_growth, projected_growth)
+        growth_max = max(trail_data['growth_zscore'].max(), current_growth, projected_growth)
+        inflation_min = min(trail_data['inflation_zscore'].min(), current_inflation, projected_inflation)
+        inflation_max = max(trail_data['inflation_zscore'].max(), current_inflation, projected_inflation)
+        
+        x_range = [min(growth_min, -3), max(growth_max, 3)]
+        y_range = [min(inflation_min, -3), max(inflation_max, 3)]
+        
+        # Add some padding
+        x_padding = (x_range[1] - x_range[0]) * 0.1
+        y_padding = (y_range[1] - y_range[0]) * 0.1
+        x_range = [x_range[0] - x_padding, x_range[1] + x_padding]
+        y_range = [y_range[0] - y_padding, y_range[1] + y_padding]
+    else:
+        x_range = [-3, 3]
+        y_range = [-3, 3]
+    
+    fig = go.Figure()
+    
+    # Add quadrant background shading
+    fig.add_shape(type="rect", x0=0, x1=x_range[1], y0=0, y1=y_range[1],
+                  fillcolor="rgba(255, 152, 0, 0.08)", line=dict(width=0))  # Top-Right: Reflation
+    fig.add_shape(type="rect", x0=0, x1=x_range[1], y0=y_range[0], y1=0,
+                  fillcolor="rgba(76, 175, 80, 0.08)", line=dict(width=0))   # Bottom-Right: Goldilocks  
+    fig.add_shape(type="rect", x0=x_range[0], x1=0, y0=0, y1=y_range[1],
+                  fillcolor="rgba(244, 67, 54, 0.08)", line=dict(width=0))   # Top-Left: Stagflation
+    fig.add_shape(type="rect", x0=x_range[0], x1=0, y0=y_range[0], y1=0,
+                  fillcolor="rgba(33, 150, 243, 0.08)", line=dict(width=0))  # Bottom-Left: Deflation
+    
+    # Add zero lines
+    fig.add_hline(y=0, line=dict(color='rgba(128,128,128,0.5)', width=2))
+    fig.add_vline(x=0, line=dict(color='rgba(128,128,128,0.5)', width=2))
+    
+    # Add quadrant labels
+    label_offset = 0.1
+    fig.add_annotation(x=x_range[1] - label_offset, y=y_range[1] - label_offset,
+                      text="Reflation<br>Commodities, Energy", showarrow=False,
+                      xref="x", yref="y", xanchor="right", yanchor="top",
+                      font=dict(size=10, color="rgba(255, 152, 0, 0.8)"))
+    
+    fig.add_annotation(x=x_range[1] - label_offset, y=y_range[0] + label_offset,
+                      text="Goldilocks<br>Tech, Equities", showarrow=False,
+                      xref="x", yref="y", xanchor="right", yanchor="bottom",
+                      font=dict(size=10, color="rgba(76, 175, 80, 0.8)"))
+    
+    fig.add_annotation(x=x_range[0] + label_offset, y=y_range[1] - label_offset,
+                      text="Stagflation<br>Gold, Cash", showarrow=False,
+                      xref="x", yref="y", xanchor="left", yanchor="top",
+                      font=dict(size=10, color="rgba(244, 67, 54, 0.8)"))
+    
+    fig.add_annotation(x=x_range[0] + label_offset, y=y_range[0] + label_offset,
+                      text="Deflation<br>Long Bonds, Utilities", showarrow=False,
+                      xref="x", yref="y", xanchor="left", yanchor="bottom",
+                      font=dict(size=10, color="rgba(33, 150, 243, 0.8)"))
+    
+    # Create trail: marker sizes and colors with gradient effect
+    n_points = len(trail_data)
+    if n_points > 0:
+        # Marker sizes: grow from 3 to 14 toward the present
+        trail_sizes = np.linspace(3, 14, n_points)
+        
+        # Color gradient: start faded, end bright
+        trail_colors = np.linspace(0.15, 1.0, n_points)
+        
+        # Add the snail trail
+        fig.add_trace(go.Scatter(
+            x=trail_data['growth_zscore'],
+            y=trail_data['inflation_zscore'],
+            mode='lines+markers',
+            marker=dict(
+                size=trail_sizes,
+                color=trail_colors,
+                colorscale=[[0, 'rgba(255,111,0,0.15)'], [1, 'rgba(255,111,0,1.0)']],
+                showscale=False,
+            ),
+            line=dict(
+                color='rgba(255,111,0,0.4)',
+                width=1.5,
+            ),
+            hovertemplate='Date: %{text}<br>Growth: %{x:.2f}<br>Inflation: %{y:.2f}<extra></extra>',
+            text=trail_data['Date'].dt.strftime('%b %d, %Y') if hasattr(trail_data['Date'], 'dt') else trail_data['Date'],
+            name='Regime Trail',
+            showlegend=False,
+        ))
+    
+    # Add current point
+    fig.add_trace(go.Scatter(
+        x=[current_growth],
+        y=[current_inflation],
+        mode='markers+text',
+        marker=dict(size=18, color='#ff6f00', line=dict(color='white', width=2)),
+        text=[current_regime],
+        textposition='top center',
+        textfont=dict(size=12, color='#ff6f00'),
+        name='Current Regime',
+        showlegend=False,
+        hovertemplate=f'Current: {current_regime}<br>Growth: {current_growth:.2f}<br>Inflation: {current_inflation:.2f}<extra></extra>'
+    ))
+    
+    # Add projected arrow if different from current
+    if abs(projected_growth - current_growth) > 0.01 or abs(projected_inflation - current_inflation) > 0.01:
+        fig.add_annotation(
+            x=projected_growth,
+            y=projected_inflation,
+            ax=current_growth,
+            ay=current_inflation,
+            xref='x', yref='y',
+            axref='x', ayref='y',
+            showarrow=True,
+            arrowhead=3,
+            arrowsize=1.5,
+            arrowwidth=2,
+            arrowcolor='rgba(255,111,0,0.6)',
+            standoff=10,
+        )
+    
+    # Apply layout
+    fig.update_layout(
+        height=500,
+        xaxis=dict(
+            title="Growth Momentum (CPER/GLD Z-Score)",
+            zeroline=True, zerolinewidth=2, zerolinecolor='rgba(128,128,128,0.5)',
+            range=x_range,
+        ),
+        yaxis=dict(
+            title="Inflation Momentum (TIP/IEF Z-Score)",
+            zeroline=True, zerolinewidth=2, zerolinecolor='rgba(128,128,128,0.5)',
+            range=y_range,
+            scaleanchor="x",  # Force square aspect ratio
+            scaleratio=1,
+        ),
+        margin=dict(l=60, r=60, t=40, b=60),
+        hovermode='closest',
+        title=dict(text='Growth/Inflation Regime Quadrant', font=dict(size=14))
+    )
+    
+    # Apply dark theme
+    fig = apply_dark_theme(fig)
+    fig.update_layout(height=500)  # Override the default height from apply_dark_theme
+    
+    return fig

@@ -170,3 +170,44 @@ def validate_indicator_data(data: dict | None, config=None) -> bool:
             has_valid_data = True
     
     return has_valid_data
+
+
+def calculate_roc_zscore(series: pd.Series, roc_period: int = 60, zscore_window: int = 252) -> pd.Series:
+    """
+    Calculate the Z-Score of the Rate of Change for a time series.
+    
+    This normalizes momentum into a comparable scale (roughly -3 to +3).
+    Positive Z-Score = Accelerating. Negative Z-Score = Decelerating.
+    
+    Args:
+        series: Price/ratio time series (daily frequency expected)
+        roc_period: Lookback period for Rate of Change (default 60 ≈ 3 months of trading days)
+        zscore_window: Rolling window for Z-Score normalization (default 252 ≈ 1 year of trading days)
+    
+    Returns:
+        pd.Series: Z-Score of the ROC, same index as input (with leading NaNs)
+    """
+    # Step 1: Rate of Change (percentage)
+    roc = series.pct_change(periods=roc_period) * 100
+    
+    # Step 2: Rolling Z-Score of the ROC
+    rolling_mean = roc.rolling(window=zscore_window).mean()
+    rolling_std = roc.rolling(window=zscore_window).std()
+    
+    zscore = (roc - rolling_mean) / rolling_std
+    
+    return zscore
+
+
+def apply_ema_smoothing(series: pd.Series, span: int = 20) -> pd.Series:
+    """
+    Apply Exponential Moving Average smoothing to reduce noise in daily data.
+    
+    Args:
+        series: Input time series
+        span: EMA span (default 20 trading days ≈ 1 month)
+    
+    Returns:
+        pd.Series: Smoothed series
+    """
+    return series.ewm(span=span, adjust=False).mean()

@@ -158,6 +158,23 @@ def create_dashboard(indicators, fred_client):
         # Match height with the indicator status table
         st.dataframe(styled_positioning_df, use_container_width=True, height=150, hide_index=True)
     
+    # --- Regime Quadrant Chart (full-width) ---
+    if 'regime_quadrant' in indicators:
+        st.divider()
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            from visualization.charts import create_regime_quadrant_chart
+            fig = create_regime_quadrant_chart(indicators['regime_quadrant'])
+            st.plotly_chart(fig, use_container_width=True)
+        with col2:
+            regime = indicators['regime_quadrant'].get('current_regime', 'Unknown')
+            st.markdown(f"### 🧭 Current Regime: **{regime}**")
+            st.markdown(indicators['regime_quadrant'].get('regime_description', ''))
+            # Show the warning description from registry
+            config = INDICATOR_REGISTRY['regime_quadrant']
+            with st.expander("📖 How to read this chart"):
+                st.markdown(config.warning_description)
+
     # First row - 3 indicators
     col1, col2, col3 = st.columns(3)
     
@@ -188,23 +205,7 @@ def create_dashboard(indicators, fred_client):
         if 'new_orders' in indicators:
             display_indicator_card('new_orders', indicators['new_orders'], fred_client)
     
-    # Third row - USD liquidity, Copper/Gold vs 10Y yield, PSCF small cap financials
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        if 'usd_liquidity' in indicators:
-            display_indicator_card('usd_liquidity', indicators['usd_liquidity'], fred_client)
-
-    with col2:
-        if 'copper_gold_ratio' in indicators:  # Note: data key matches registry key 'copper_gold_yield'
-            display_indicator_card('copper_gold_yield', indicators['copper_gold_ratio'], fred_client)
-
-    with col3:
-        if 'pscf' in indicators:  # Note: data key matches registry key 'pscf_price'
-            display_indicator_card('pscf_price', indicators['pscf'], fred_client)
-
-    # Fourth row - 2-10Y spread, High Yield Credit Spread, XLP/XLY Ratio
-    st.divider()
+    # Third row - 2-10Y spread, High Yield Credit Spread, XLP/XLY Ratio
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -218,6 +219,22 @@ def create_dashboard(indicators, fred_client):
     with col3:
         if 'xlp_xly_ratio' in indicators:
             display_indicator_card('xlp_xly_ratio', indicators['xlp_xly_ratio'], fred_client)
+
+    # Fourth row (last) - PSCF, USD Liquidity, Copper/Gold Ratio
+    st.divider()
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        if 'pscf' in indicators:  # Note: data key matches registry key 'pscf_price'
+            display_indicator_card('pscf_price', indicators['pscf'], fred_client)
+
+    with col2:
+        if 'usd_liquidity' in indicators:
+            display_indicator_card('usd_liquidity', indicators['usd_liquidity'], fred_client)
+
+    with col3:
+        if 'copper_gold_ratio' in indicators:  # Note: data key matches registry key 'copper_gold_yield'
+            display_indicator_card('copper_gold_yield', indicators['copper_gold_ratio'], fred_client)
 
     # Display footer
     display_footer()
