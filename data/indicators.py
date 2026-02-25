@@ -1077,13 +1077,13 @@ class IndicatorData:
                 'ratio_change_pct': 0,
             }
 
-    def get_regime_quadrant_data(self, lookback_days: int = 504, trail_days: int = 60) -> dict:
+    def get_regime_quadrant_data(self, lookback_days: int = 504, trail_days: int = 252) -> dict:
         """
         Get Growth/Inflation Regime Quadrant data using market-implied proxies.
         
         Args:
             lookback_days: Total days of Yahoo data to fetch (≈ 2 years, needed for 252-day Z-Score window warmup)
-            trail_days: Number of trailing days to plot in the snail trail
+            trail_days: Number of trailing days to plot in the snail trail (252 ≈ 1 year)
         
         Returns:
             dict: Dictionary with regime quadrant data and analysis

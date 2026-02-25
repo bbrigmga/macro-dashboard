@@ -331,7 +331,7 @@ class IndicatorService:
         try:
             result = self.indicator_data.get_regime_quadrant_data(
                 lookback_days=kwargs.get('lookback_days', 504),
-                trail_days=kwargs.get('trail_days', 60)
+                trail_days=kwargs.get('trail_days', 252)
             )
             return IndicatorResult(success=True, data=result)
         except Exception as e:

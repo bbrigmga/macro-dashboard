@@ -275,7 +275,7 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         warning_description=(
             "This chart shows the current macroeconomic regime using market-implied proxies. "
             "The X-axis measures Growth Momentum (CPER/GLD ratio Z-Score) and the Y-axis measures "
-            "Inflation Momentum (TIP/IEF ratio Z-Score). The trailing 60-day path shows regime "
+            "Inflation Momentum (TIP/IEF ratio Z-Score). The trailing 12-month path shows regime "
             "migration. A dotted arrow projects the near-term trajectory based on the 5-day slope.\n\n"
             "**Quadrants:**\n"
             "- 🟥 **Top-Right (Reflation):** Growth ↑, Inflation ↑ → Commodities, Energy, Value\n"
