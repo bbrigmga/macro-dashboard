@@ -537,24 +537,9 @@ def create_regime_quadrant_chart(data: dict):
         fig.update_layout(height=500)
         return fig
     
-    # Determine axis range (minimum ±3, expand if data exceeds)
-    if len(trail_data) > 0:
-        growth_min = min(trail_data['growth_zscore'].min(), current_growth, projected_growth)
-        growth_max = max(trail_data['growth_zscore'].max(), current_growth, projected_growth)
-        inflation_min = min(trail_data['inflation_zscore'].min(), current_inflation, projected_inflation)
-        inflation_max = max(trail_data['inflation_zscore'].max(), current_inflation, projected_inflation)
-        
-        x_range = [min(growth_min, -3), max(growth_max, 3)]
-        y_range = [min(inflation_min, -3), max(inflation_max, 3)]
-        
-        # Add some padding
-        x_padding = (x_range[1] - x_range[0]) * 0.1
-        y_padding = (y_range[1] - y_range[0]) * 0.1
-        x_range = [x_range[0] - x_padding, x_range[1] + x_padding]
-        y_range = [y_range[0] - y_padding, y_range[1] + y_padding]
-    else:
-        x_range = [-3, 3]
-        y_range = [-3, 3]
+    # Fixed axis range of ±3 for both axes
+    x_range = [-3, 3]
+    y_range = [-3, 3]
     
     fig = go.Figure()
     
@@ -667,8 +652,6 @@ def create_regime_quadrant_chart(data: dict):
             title="Inflation Momentum (TIP/IEF Z-Score)",
             zeroline=True, zerolinewidth=2, zerolinecolor='rgba(128,128,128,0.5)',
             range=y_range,
-            scaleanchor="x",  # Force square aspect ratio
-            scaleratio=1,
         ),
         margin=dict(l=60, r=60, t=40, b=60),
         hovermode='closest',

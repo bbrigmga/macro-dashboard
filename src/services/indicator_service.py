@@ -104,7 +104,7 @@ class IndicatorService:
                 'tickers': ['TIP', 'IEF', 'CPER', 'GLD'],
                 'frequency': 'D',
                 'cache_ttl': self.settings.cache.yahoo_ttl,
-                'default_lookback_days': 504
+                'default_lookback_days': 900
             }
         }
 
@@ -330,7 +330,7 @@ class IndicatorService:
         """Get regime quadrant data from Yahoo Finance proxies."""
         try:
             result = self.indicator_data.get_regime_quadrant_data(
-                lookback_days=kwargs.get('lookback_days', 504),
+                lookback_days=kwargs.get('lookback_days', 900),
                 trail_days=kwargs.get('trail_days', 252)
             )
             return IndicatorResult(success=True, data=result)

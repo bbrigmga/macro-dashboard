@@ -268,7 +268,7 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         yahoo_series=["TIP", "IEF", "CPER", "GLD"],
         chart_type="custom",
         value_column="growth_zscore",      # Primary display column
-        periods=504,                       # 2 years of daily data for warmup
+        periods=900,                       # ~2.5 years of daily data; needed for: 252 trail + 252 Z-score window + 60 ROC = 564 trading days ≈ 790 cal days
         frequency="D",
         bullish_condition="custom",
         threshold=None,
