@@ -609,15 +609,15 @@ def create_regime_quadrant_chart(data: dict):
             showlegend=False,
         ))
     
-    # Add current point
+    # Add current point (distinct color to stand out from the trail)
     fig.add_trace(go.Scatter(
         x=[current_growth],
         y=[current_inflation],
         mode='markers+text',
-        marker=dict(size=18, color='#ff6f00', line=dict(color='white', width=2)),
+        marker=dict(size=18, color='#FFFFFF', line=dict(color='#ff6f00', width=2)),
         text=[current_regime],
         textposition='top center',
-        textfont=dict(size=12, color='#ff6f00'),
+        textfont=dict(size=12, color='#FFFFFF'),
         name='Current Regime',
         showlegend=False,
         hovertemplate=f'Current: {current_regime}<br>Growth: {current_growth:.2f}<br>Inflation: {current_inflation:.2f}<extra></extra>'

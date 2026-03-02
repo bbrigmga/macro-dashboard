@@ -225,8 +225,8 @@ def create_dashboard(indicators, fred_client):
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if 'pscf' in indicators:  # Note: data key matches registry key 'pscf_price'
-            display_indicator_card('pscf_price', indicators['pscf'], fred_client)
+        if 'pscf_price' in indicators:
+            display_indicator_card('pscf_price', indicators['pscf_price'], fred_client)
 
     with col2:
         if 'usd_liquidity' in indicators:

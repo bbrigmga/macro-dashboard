@@ -154,16 +154,16 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
 
     "pscf_price": IndicatorConfig(
         key="pscf_price",
-        display_name="Copper Price (PSCF)",
-        emoji="🔩",
+        display_name="Small Cap Financials (PSCF)",
+        emoji="🏦",
         fred_series=["PSCF"],
         chart_type="custom",
         value_column="value",
         periods=24,  # 2 years of monthly data
         frequency="M",
-        bullish_condition="decreasing", 
-        threshold=None,  # Uses trend-based logic - rising copper is typically bullish
-        warning_description="Copper prices often lead global economic cycles due to deep industrial demand. Falling copper signals economic slowdown ahead. Rising copper signals expanding manufacturing and construction activity. Often called 'Dr. Copper' for its predictive track record.",
+        bullish_condition="increasing",
+        threshold=None,  # Uses trend-based logic - rising PSCF is bullish
+        warning_description="PSCF (Invesco S&P SmallCap Financials ETF) tracks small-cap financial stocks, which are sensitive to credit conditions, regional bank health, and economic growth expectations. Rising PSCF signals healthy credit markets and risk-on sentiment. Falling PSCF can signal tightening credit or stress in regional banks.",
         chart_color="#ff5722",
         custom_chart_fn="visualization.charts.create_pscf_chart",
         fred_link="https://fred.stlouisfed.org/series/PSCF"
