@@ -289,6 +289,26 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         custom_status_fn="visualization.warning_signals.generate_regime_quadrant_warning",
         fred_link=None,
         cache_ttl=3600,
+    ),
+
+    "implied_realized_vol": IndicatorConfig(
+        key="implied_realized_vol",
+        display_name="Implied vs Realized Volatility",
+        emoji="📊",
+        fred_series=[],
+        chart_type="custom",
+        value_column="ivol_rvol_current",
+        periods=252,
+        frequency="D",
+        bullish_condition="custom",
+        threshold=None,
+        warning_description="IV premium > 0 means options market pricing more risk than realized...",
+        chart_color="#e91e63",
+        custom_chart_fn="visualization.vol_table.create_vol_table",
+        custom_status_fn=None,
+        yahoo_series=["SPY", "QQQ", "IWM", "XLF", "XLE", "XLK", "XLV", "XLB",
+                      "XLI", "XLY", "XLP", "XLU", "XLC", "XLRE"],
+        cache_ttl=3600,
     )
 }
 

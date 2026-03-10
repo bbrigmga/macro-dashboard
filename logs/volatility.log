@@ -1,0 +1,7 @@
+2026-03-06 16:05:24 - volatility - INFO - setup_volatility_logging:288 - Volatility logging system initialized
+2026-03-06 16:05:24 - volatility - INFO - setup_volatility_logging:295 - Log level: INFO
+2026-03-06 16:05:24 - volatility - INFO - setup_volatility_logging:296 - Log to file: True
+2026-03-06 16:05:24 - volatility - INFO - setup_volatility_logging:297 - Log to console: True
+2026-03-06 16:05:24 - volatility - INFO - setup_volatility_logging:299 - Log directory: U:\Code Hero\Macro Dashboard\logs
+2026-03-06 16:05:24 - volatility.performance - INFO - log_performance_metric:254 - test_metric: 123.4500 ms | ticker=SPY | operation=test
+2026-03-06 16:05:24 - volatility.data_quality - INFO - log_data_quality_metric:272 - iv_quality: 75.50 | status=GOOD | ticker=QQQ

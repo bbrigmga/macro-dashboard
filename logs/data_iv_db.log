@@ -1,0 +1,176 @@
+2026-03-09 08:09:17 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-09 08:09:17 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-09 08:09:17 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-09 08:09:17 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-09 08:10:42 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-09 08:10:42 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-09 08:10:42 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-09 08:10:42 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-09 08:28:54 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-09 08:28:54 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-09 08:28:54 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-09 08:28:54 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-09 08:31:17 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-09 08:31:17 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-09 08:31:17 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-09 08:31:17 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-09 08:46:36 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-09 08:46:36 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-09 08:46:36 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-09 08:46:36 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 08:34:43 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 08:34:43 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 08:34:43 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 08:34:43 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 08:36:12 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 08:36:12 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 08:36:12 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 08:36:12 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:06:12 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:06:12 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:06:12 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:06:12 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:06:43 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:06:43 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:06:43 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:06:43 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:08:25 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:08:25 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:08:25 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:08:25 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_schema_creation0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_upsert_daily_data0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_upsert_idempotency0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_get_latest0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_get_history_date_range0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_get_all_latest0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_get_snapshot0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_context_manager0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_context_manager0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_nullable_fields0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_get_all_tickers0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:09:13 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:09:13 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:09:13 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-5\test_delete_ticker0\test_iv_data.db
+2026-03-10 09:09:13 - data.iv_db - INFO - delete_ticker:268 - Deleted 2 records for ticker SPY
+2026-03-10 09:09:13 - data.iv_db - INFO - delete_ticker:268 - Deleted 0 records for ticker NONEXISTENT
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_schema_creation0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_upsert_daily_data0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_upsert_idempotency0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_get_latest0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_get_history_date_range0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_get_all_latest0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_get_snapshot0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_context_manager0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_context_manager0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_nullable_fields0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_get_all_tickers0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:12:11 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:12:11 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:12:11 - data.iv_db - INFO - _init_db:64 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\pytest-of-garrett\pytest-6\test_delete_ticker0\test_iv_data.db
+2026-03-10 09:12:11 - data.iv_db - INFO - delete_ticker:268 - Deleted 2 records for ticker SPY
+2026-03-10 09:12:11 - data.iv_db - INFO - delete_ticker:268 - Deleted 0 records for ticker NONEXISTENT
+2026-03-10 09:13:51 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:13:51 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:13:51 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:13:51 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:15:41 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:15:41 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:15:41 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:15:41 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:16:21 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:16:21 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:16:21 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:16:21 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:22:54 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:22:54 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:22:54 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:22:54 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:22:54 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:22:54 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:22:54 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:22:54 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:38:44 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:38:44 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:38:44 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:38:44 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:47:06 - data.iv_db - INFO - enable_wal_mode:403 - Enabling WAL mode for better performance...
+2026-03-10 09:47:06 - data.iv_db - INFO - enable_wal_mode:406 - WAL mode enabled
+2026-03-10 09:47:06 - data.iv_db - INFO - optimize_connection:425 - Database connection optimized for performance
+2026-03-10 09:47:06 - data.iv_db - INFO - _init_db:64 - Initialized IV database at data\volatility\iv_data.db

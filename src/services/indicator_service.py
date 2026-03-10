@@ -12,6 +12,8 @@ from src.config.settings import get_settings
 from src.core.caching.cache_manager import CacheManager
 from data.fred_client import FredClient
 from data.indicators import IndicatorData
+from data.iv_db import IVDatabase
+from data.vol_table_data import VolTableDataAssembler
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +161,8 @@ class IndicatorService:
                 result = await asyncio.to_thread(self._get_copper_gold_ratio_data, **kwargs)
             elif indicator_name == 'regime_quadrant':
                 result = await asyncio.to_thread(self._get_regime_quadrant_data, **kwargs)
+            elif indicator_name == 'implied_realized_vol':
+                result = await asyncio.to_thread(self._get_implied_realized_vol_data, **kwargs)
             else:
                 result = await asyncio.to_thread(self._get_basic_indicator_data, indicator_name, **kwargs)
 
@@ -193,7 +197,8 @@ class IndicatorService:
             indicators = [
                 'claims', 'pce', 'core_cpi', 'hours_worked',
                 'pmi', 'usd_liquidity', 'new_orders', 'yield_curve', 'copper_gold_ratio',
-                'pscf_price', 'credit_spread', 'xlp_xly_ratio', 'regime_quadrant'
+                'pscf_price', 'credit_spread', 'xlp_xly_ratio', 'regime_quadrant',
+                'implied_realized_vol'
             ]
 
             # Fetch all indicators in parallel
@@ -334,6 +339,16 @@ class IndicatorService:
                 trail_days=kwargs.get('trail_days', 252)
             )
             return IndicatorResult(success=True, data=result)
+        except Exception as e:
+            return IndicatorResult(success=False, error=str(e))
+
+    def _get_implied_realized_vol_data(self, **kwargs) -> IndicatorResult:
+        """Get implied vs realized volatility table data."""
+        try:
+            with IVDatabase() as db:
+                assembler = VolTableDataAssembler(db)
+                table_data = assembler.build_table()
+            return IndicatorResult(success=True, data={"data": table_data, "table_type": "vol_heatmap"})
         except Exception as e:
             return IndicatorResult(success=False, error=str(e))
 

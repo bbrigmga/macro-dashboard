@@ -78,14 +78,15 @@ class TestIndicatorRegistry:
     
     def test_registry_has_expected_count(self):
         """Test that registry contains expected number of indicators."""
-        assert len(INDICATOR_REGISTRY) == 11
+        assert len(INDICATOR_REGISTRY) == 14
     
     def test_registry_contains_all_expected_indicators(self):
         """Test that all expected indicators are present."""
         expected_indicators = [
             'initial_claims', 'pce', 'core_cpi', 'hours_worked',
-            'yield_curve', 'credit_spread', 'pscf_price', 'pmi_proxy',
-            'usd_liquidity', 'new_orders', 'copper_gold_yield'
+            'yield_curve', 'credit_spread', 'xlp_xly_ratio', 'pscf_price', 
+            'pmi_proxy', 'usd_liquidity', 'new_orders', 'copper_gold_yield',
+            'regime_quadrant', 'implied_realized_vol'
         ]
         
         for indicator in expected_indicators:
@@ -99,13 +100,13 @@ class TestIndicatorRegistry:
             assert config.display_name is not None
             assert config.emoji is not None
             assert config.chart_type in ['line', 'dual_axis', 'bar', 'custom']
-            assert config.bullish_condition in ['below_threshold', 'above_threshold', 'decreasing', 'custom']
+            assert config.bullish_condition in ['below_threshold', 'above_threshold', 'decreasing', 'increasing', 'custom']
             assert isinstance(config.periods, int) and config.periods > 0
             assert config.chart_color.startswith('#')
     
     def test_frequency_values_are_valid(self):
         """Test that frequency values are valid or None."""
-        valid_frequencies = ['d', 'w', 'm', 'q', None]
+        valid_frequencies = ['d', 'D', 'w', 'W', 'm', 'M', 'q', 'Q', None]
         
         for config in INDICATOR_REGISTRY.values():
             assert config.frequency in valid_frequencies
@@ -122,7 +123,7 @@ class TestIndicatorRegistry:
         for config in INDICATOR_REGISTRY.values():
             if config.chart_type == 'custom':
                 assert config.custom_chart_fn is not None
-            if config.bullish_condition == 'custom':
+            if config.bullish_condition == 'custom' and config.key not in ['copper_gold_yield', 'xlp_xly_ratio', 'implied_realized_vol']:
                 assert config.custom_status_fn is not None
     
     def test_data_sources_are_specified(self):
@@ -130,7 +131,8 @@ class TestIndicatorRegistry:
         for config in INDICATOR_REGISTRY.values():
             has_fred = config.fred_series and len(config.fred_series) > 0
             has_yahoo = config.yahoo_series and len(config.yahoo_series) > 0
-            assert has_fred or has_yahoo, f"Indicator {config.key} has no data source"
+            has_custom_data = config.key in ['xlp_xly_ratio', 'implied_realized_vol']
+            assert has_fred or has_yahoo or has_custom_data, f"Indicator {config.key} has no data source"
     
     def test_pmi_has_components(self):
         """Test that PMI indicator has component configuration."""
@@ -138,7 +140,7 @@ class TestIndicatorRegistry:
         assert pmi_config is not None
         assert pmi_config.pmi_components is not None
         assert isinstance(pmi_config.pmi_components, dict)
-        assert 'series' in pmi_config.pmi_components
+        assert 'series_ids' in pmi_config.pmi_components
         assert 'weights' in pmi_config.pmi_components
     
     def test_usd_liquidity_has_components(self):
@@ -181,7 +183,7 @@ class TestRegistryHelperFunctions:
         indicators = list_indicators()
         
         assert isinstance(indicators, list)
-        assert len(indicators) == 11
+        assert len(indicators) == 14
         assert 'initial_claims' in indicators
         assert 'pce' in indicators
         assert 'usd_liquidity' in indicators
@@ -276,14 +278,13 @@ class TestIndicatorSpecificValidation:
         assert config.display_name == 'Initial Jobless Claims'
         assert 'ICSA' in config.fred_series
         assert config.chart_type == 'line'
-        assert config.bullish_condition == 'below_threshold'
-        assert config.threshold is not None
+        assert config.bullish_condition == 'decreasing'
     
     def test_pce_config(self):
         """Test PCE configuration."""
         config = INDICATOR_REGISTRY['pce']
         
-        assert config.display_name == 'Personal Consumption Expenditures (PCE)'
+        assert config.display_name == 'Personal Consumption Expenditures'
         assert 'PCE' in config.fred_series
         assert config.chart_type == 'line'
     

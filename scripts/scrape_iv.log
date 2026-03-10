@@ -1,0 +1,274 @@
+2026-03-06 15:30:28,377 - __main__ - INFO - Starting daily IV scrape at 2026-03-06 15:30:28.377624
+2026-03-06 15:30:28,378 - __main__ - INFO - Initializing database and scraper...
+2026-03-06 15:30:28,392 - data.iv_db - INFO - Initialized IV database at data\volatility\iv_data.db
+2026-03-06 15:30:28,393 - data.yahoo_client - INFO - Yahoo Finance Client initialized
+2026-03-06 15:30:28,394 - data.rv_calculator - INFO - RealizedVolCalculator initialized
+2026-03-06 15:30:28,395 - data.iv_scraper - INFO - IV Scraper initialized
+2026-03-06 15:30:28,396 - __main__ - INFO - Beginning scrape process...
+2026-03-06 15:30:28,397 - data.iv_scraper - INFO - Starting daily IV scraping for ETF universe
+2026-03-06 15:30:28,398 - data.iv_scraper - INFO - Processing XLRE (Real Estate Sector SPDR ETF)
+2026-03-06 15:30:28,418 - yfinance - ERROR - Failed to get ticker 'XLRE' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F24AD0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,424 - yfinance - ERROR - $XLRE: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,427 - data.iv_scraper - ERROR - Error getting current price for XLRE: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3C410>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,428 - data.iv_scraper - WARNING - Failed to get current price for XLRE
+2026-03-06 15:30:28,429 - data.iv_scraper - INFO - Processing XLF (Financials Sector SPDR ETF)
+2026-03-06 15:30:28,433 - yfinance - ERROR - Failed to get ticker 'XLF' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3D1D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,435 - yfinance - ERROR - $XLF: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,439 - data.iv_scraper - ERROR - Error getting current price for XLF: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3DD10>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,441 - data.iv_scraper - WARNING - Failed to get current price for XLF
+2026-03-06 15:30:28,442 - data.iv_scraper - INFO - Processing XLE (Energy Sector SPDR ETF)
+2026-03-06 15:30:28,444 - yfinance - ERROR - Failed to get ticker 'XLE' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3EAD0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,448 - yfinance - ERROR - $XLE: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,451 - data.iv_scraper - ERROR - Error getting current price for XLE: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3F390>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,452 - data.iv_scraper - WARNING - Failed to get current price for XLE
+2026-03-06 15:30:28,453 - data.iv_scraper - INFO - Processing XLC (Communication Services SPDR ETF)
+2026-03-06 15:30:28,459 - yfinance - ERROR - Failed to get ticker 'XLC' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3F9D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,463 - yfinance - ERROR - $XLC: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,466 - data.iv_scraper - ERROR - Error getting current price for XLC: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F68190>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,467 - data.iv_scraper - WARNING - Failed to get current price for XLC
+2026-03-06 15:30:28,468 - data.iv_scraper - INFO - Processing XLK (Technology Sector SPDR ETF)
+2026-03-06 15:30:28,473 - yfinance - ERROR - Failed to get ticker 'XLK' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F687D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,475 - yfinance - ERROR - $XLK: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,478 - data.iv_scraper - ERROR - Error getting current price for XLK: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3F9D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,481 - data.iv_scraper - WARNING - Failed to get current price for XLK
+2026-03-06 15:30:28,482 - data.iv_scraper - INFO - Processing QQQ (Power Shares QQQ Trust ETF)
+2026-03-06 15:30:28,484 - yfinance - ERROR - Failed to get ticker 'QQQ' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3E5D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,487 - yfinance - ERROR - $QQQ: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,492 - data.iv_scraper - ERROR - Error getting current price for QQQ: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3EFD0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,493 - data.iv_scraper - WARNING - Failed to get current price for QQQ
+2026-03-06 15:30:28,495 - data.iv_scraper - INFO - Processing SPY (SPDR S&P 500 Trust)
+2026-03-06 15:30:28,499 - yfinance - ERROR - Failed to get ticker 'SPY' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3E710>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,502 - yfinance - ERROR - $SPY: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,506 - data.iv_scraper - ERROR - Error getting current price for SPY: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3C910>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,507 - data.iv_scraper - WARNING - Failed to get current price for SPY
+2026-03-06 15:30:28,508 - data.iv_scraper - INFO - Processing XLV (Health Care Sector SPDR ETF)
+2026-03-06 15:30:28,511 - yfinance - ERROR - Failed to get ticker 'XLV' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3D090>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,516 - yfinance - ERROR - $XLV: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,519 - data.iv_scraper - ERROR - Error getting current price for XLV: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3D310>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,520 - data.iv_scraper - WARNING - Failed to get current price for XLV
+2026-03-06 15:30:28,523 - data.iv_scraper - INFO - Processing XLB (Materials Sector SPDR ETF)
+2026-03-06 15:30:28,526 - yfinance - ERROR - Failed to get ticker 'XLB' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3C690>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,530 - yfinance - ERROR - $XLB: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,533 - data.iv_scraper - ERROR - Error getting current price for XLB: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7EE7B10>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,534 - data.iv_scraper - WARNING - Failed to get current price for XLB
+2026-03-06 15:30:28,535 - data.iv_scraper - INFO - Processing XLI (Industrials Sector SPDR ETF)
+2026-03-06 15:30:28,539 - yfinance - ERROR - Failed to get ticker 'XLI' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7EE7750>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,542 - yfinance - ERROR - $XLI: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,551 - data.iv_scraper - ERROR - Error getting current price for XLI: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7EE6D50>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,587 - data.iv_scraper - WARNING - Failed to get current price for XLI
+2026-03-06 15:30:28,702 - data.iv_scraper - INFO - Processing XLY (Consumer Discretionary SPDR ETF)
+2026-03-06 15:30:28,748 - yfinance - ERROR - Failed to get ticker 'XLY' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7EE6D50>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,755 - yfinance - ERROR - $XLY: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,759 - data.iv_scraper - ERROR - Error getting current price for XLY: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7EE6490>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,761 - data.iv_scraper - WARNING - Failed to get current price for XLY
+2026-03-06 15:30:28,767 - data.iv_scraper - INFO - Processing IWM (I-Shares Russell 2000)
+2026-03-06 15:30:28,772 - yfinance - ERROR - Failed to get ticker 'IWM' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7EE7B10>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,776 - yfinance - ERROR - $IWM: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,784 - data.iv_scraper - ERROR - Error getting current price for IWM: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3C2D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,785 - data.iv_scraper - WARNING - Failed to get current price for IWM
+2026-03-06 15:30:28,786 - data.iv_scraper - INFO - Processing XLU (Utilities Sector SPDR ETF)
+2026-03-06 15:30:28,796 - yfinance - ERROR - Failed to get ticker 'XLU' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3D310>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,800 - yfinance - ERROR - $XLU: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,803 - data.iv_scraper - ERROR - Error getting current price for XLU: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7EE6E90>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,804 - data.iv_scraper - WARNING - Failed to get current price for XLU
+2026-03-06 15:30:28,805 - data.iv_scraper - INFO - Processing XLP (Consumer Staples Sector SPDR ETF)
+2026-03-06 15:30:28,809 - yfinance - ERROR - Failed to get ticker 'XLP' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3DE50>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,812 - yfinance - ERROR - $XLP: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:30:28,815 - data.iv_scraper - ERROR - Error getting current price for XLP: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001A9C7F3DF90>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:30:28,817 - data.iv_scraper - WARNING - Failed to get current price for XLP
+2026-03-06 15:30:28,817 - data.iv_scraper - INFO - Scraping completed: 0/14 successful, 14 failed
+2026-03-06 15:30:28,818 - data.iv_scraper - WARNING - Failed tickers: XLRE, XLF, XLE, XLC, XLK, QQQ, SPY, XLV, XLB, XLI, XLY, IWM, XLU, XLP
+2026-03-06 15:30:28,819 - __main__ - INFO - Scrape completed in 0:00:00.442282
+2026-03-06 15:30:28,821 - __main__ - INFO - Results: 0/14 succeeded, 14 failed
+2026-03-06 15:35:29,158 - __main__ - INFO - Starting daily IV scrape at 2026-03-06 15:35:29.158274
+2026-03-06 15:35:29,161 - __main__ - INFO - Initializing database and scraper...
+2026-03-06 15:35:29,174 - data.iv_db - INFO - Initialized IV database at data\volatility\iv_data.db
+2026-03-06 15:35:29,175 - data.yahoo_client - INFO - Yahoo Finance Client initialized
+2026-03-06 15:35:29,176 - data.rv_calculator - INFO - RealizedVolCalculator initialized
+2026-03-06 15:35:29,177 - data.iv_scraper - INFO - IV Scraper initialized
+2026-03-06 15:35:29,178 - __main__ - INFO - Beginning scrape process...
+2026-03-06 15:35:29,179 - data.iv_scraper - INFO - Starting daily IV scraping for ETF universe
+2026-03-06 15:35:29,180 - data.iv_scraper - INFO - Processing XLRE (Real Estate Sector SPDR ETF)
+2026-03-06 15:35:29,202 - yfinance - ERROR - Failed to get ticker 'XLRE' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D518AD0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,205 - yfinance - ERROR - $XLRE: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,208 - data.iv_scraper - ERROR - Error getting current price for XLRE: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52C410>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,209 - data.iv_scraper - WARNING - Failed to get current price for XLRE
+2026-03-06 15:35:29,210 - data.iv_scraper - INFO - Processing XLF (Financials Sector SPDR ETF)
+2026-03-06 15:35:29,213 - yfinance - ERROR - Failed to get ticker 'XLF' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52D1D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,217 - yfinance - ERROR - $XLF: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,219 - data.iv_scraper - ERROR - Error getting current price for XLF: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52DD10>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,221 - data.iv_scraper - WARNING - Failed to get current price for XLF
+2026-03-06 15:35:29,224 - data.iv_scraper - INFO - Processing XLE (Energy Sector SPDR ETF)
+2026-03-06 15:35:29,229 - yfinance - ERROR - Failed to get ticker 'XLE' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52EAD0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,232 - yfinance - ERROR - $XLE: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,235 - data.iv_scraper - ERROR - Error getting current price for XLE: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52F390>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,237 - data.iv_scraper - WARNING - Failed to get current price for XLE
+2026-03-06 15:35:29,238 - data.iv_scraper - INFO - Processing XLC (Communication Services SPDR ETF)
+2026-03-06 15:35:29,241 - yfinance - ERROR - Failed to get ticker 'XLC' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52F9D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,244 - yfinance - ERROR - $XLC: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,247 - data.iv_scraper - ERROR - Error getting current price for XLC: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D558190>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,248 - data.iv_scraper - WARNING - Failed to get current price for XLC
+2026-03-06 15:35:29,249 - data.iv_scraper - INFO - Processing XLK (Technology Sector SPDR ETF)
+2026-03-06 15:35:29,253 - yfinance - ERROR - Failed to get ticker 'XLK' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D5587D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,256 - yfinance - ERROR - $XLK: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,259 - data.iv_scraper - ERROR - Error getting current price for XLK: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52F9D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,261 - data.iv_scraper - WARNING - Failed to get current price for XLK
+2026-03-06 15:35:29,262 - data.iv_scraper - INFO - Processing QQQ (Power Shares QQQ Trust ETF)
+2026-03-06 15:35:29,265 - yfinance - ERROR - Failed to get ticker 'QQQ' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52E5D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,268 - yfinance - ERROR - $QQQ: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,271 - data.iv_scraper - ERROR - Error getting current price for QQQ: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52EFD0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,272 - data.iv_scraper - WARNING - Failed to get current price for QQQ
+2026-03-06 15:35:29,273 - data.iv_scraper - INFO - Processing SPY (SPDR S&P 500 Trust)
+2026-03-06 15:35:29,276 - yfinance - ERROR - Failed to get ticker 'SPY' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52E710>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,279 - yfinance - ERROR - $SPY: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,282 - data.iv_scraper - ERROR - Error getting current price for SPY: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52C910>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,283 - data.iv_scraper - WARNING - Failed to get current price for SPY
+2026-03-06 15:35:29,284 - data.iv_scraper - INFO - Processing XLV (Health Care Sector SPDR ETF)
+2026-03-06 15:35:29,288 - yfinance - ERROR - Failed to get ticker 'XLV' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52D090>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,291 - yfinance - ERROR - $XLV: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,296 - data.iv_scraper - ERROR - Error getting current price for XLV: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52D310>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,297 - data.iv_scraper - WARNING - Failed to get current price for XLV
+2026-03-06 15:35:29,298 - data.iv_scraper - INFO - Processing XLB (Materials Sector SPDR ETF)
+2026-03-06 15:35:29,302 - yfinance - ERROR - Failed to get ticker 'XLB' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52C690>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,305 - yfinance - ERROR - $XLB: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,309 - data.iv_scraper - ERROR - Error getting current price for XLB: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D4D7B10>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,311 - data.iv_scraper - WARNING - Failed to get current price for XLB
+2026-03-06 15:35:29,313 - data.iv_scraper - INFO - Processing XLI (Industrials Sector SPDR ETF)
+2026-03-06 15:35:29,316 - yfinance - ERROR - Failed to get ticker 'XLI' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D4D7750>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,319 - yfinance - ERROR - $XLI: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,322 - data.iv_scraper - ERROR - Error getting current price for XLI: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D4D6D50>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,323 - data.iv_scraper - WARNING - Failed to get current price for XLI
+2026-03-06 15:35:29,324 - data.iv_scraper - INFO - Processing XLY (Consumer Discretionary SPDR ETF)
+2026-03-06 15:35:29,328 - yfinance - ERROR - Failed to get ticker 'XLY' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D4D6D50>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,331 - yfinance - ERROR - $XLY: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,334 - data.iv_scraper - ERROR - Error getting current price for XLY: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D4D6490>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,335 - data.iv_scraper - WARNING - Failed to get current price for XLY
+2026-03-06 15:35:29,336 - data.iv_scraper - INFO - Processing IWM (I-Shares Russell 2000)
+2026-03-06 15:35:29,339 - yfinance - ERROR - Failed to get ticker 'IWM' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D4D7B10>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,342 - yfinance - ERROR - $IWM: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,345 - data.iv_scraper - ERROR - Error getting current price for IWM: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52C2D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,346 - data.iv_scraper - WARNING - Failed to get current price for IWM
+2026-03-06 15:35:29,348 - data.iv_scraper - INFO - Processing XLU (Utilities Sector SPDR ETF)
+2026-03-06 15:35:29,351 - yfinance - ERROR - Failed to get ticker 'XLU' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52D310>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,353 - yfinance - ERROR - $XLU: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,357 - data.iv_scraper - ERROR - Error getting current price for XLU: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D4D6E90>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,358 - data.iv_scraper - WARNING - Failed to get current price for XLU
+2026-03-06 15:35:29,359 - data.iv_scraper - INFO - Processing XLP (Consumer Staples Sector SPDR ETF)
+2026-03-06 15:35:29,363 - yfinance - ERROR - Failed to get ticker 'XLP' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52DE50>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,366 - yfinance - ERROR - $XLP: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:35:29,369 - data.iv_scraper - ERROR - Error getting current price for XLP: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002425D52DF90>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:35:29,370 - data.iv_scraper - WARNING - Failed to get current price for XLP
+2026-03-06 15:35:29,370 - data.iv_scraper - INFO - Scraping completed: 0/14 successful, 14 failed
+2026-03-06 15:35:29,371 - data.iv_scraper - WARNING - Failed tickers: XLRE, XLF, XLE, XLC, XLK, QQQ, SPY, XLV, XLB, XLI, XLY, IWM, XLU, XLP
+2026-03-06 15:35:29,372 - __main__ - INFO - Scrape completed in 0:00:00.214406
+2026-03-06 15:35:29,373 - __main__ - INFO - Results: 0/14 succeeded, 14 failed
+2026-03-06 15:38:05,392 - __main__ - INFO - Starting daily IV scrape at 2026-03-06 15:38:05.392086
+2026-03-06 15:38:05,393 - __main__ - INFO - Initializing database and scraper...
+2026-03-06 15:38:05,403 - data.iv_db - INFO - Initialized IV database at data\volatility\iv_data.db
+2026-03-06 15:38:05,404 - data.yahoo_client - INFO - Yahoo Finance Client initialized
+2026-03-06 15:38:05,405 - data.rv_calculator - INFO - RealizedVolCalculator initialized
+2026-03-06 15:38:05,406 - data.iv_scraper - INFO - IV Scraper initialized
+2026-03-06 15:38:05,407 - __main__ - INFO - Beginning scrape process...
+2026-03-06 15:38:05,408 - data.iv_scraper - INFO - Starting daily IV scraping for ETF universe
+2026-03-06 15:38:05,409 - data.iv_scraper - INFO - Processing XLRE (Real Estate Sector SPDR ETF)
+2026-03-06 15:38:05,432 - yfinance - ERROR - Failed to get ticker 'XLRE' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000024013924AD0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,436 - yfinance - ERROR - $XLRE: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,439 - data.iv_scraper - ERROR - Error getting current price for XLRE: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393C410>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,440 - data.iv_scraper - WARNING - Failed to get current price for XLRE
+2026-03-06 15:38:05,441 - data.iv_scraper - INFO - Processing XLF (Financials Sector SPDR ETF)
+2026-03-06 15:38:05,444 - yfinance - ERROR - Failed to get ticker 'XLF' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393D1D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,449 - yfinance - ERROR - $XLF: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,452 - data.iv_scraper - ERROR - Error getting current price for XLF: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393DD10>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,453 - data.iv_scraper - WARNING - Failed to get current price for XLF
+2026-03-06 15:38:05,454 - data.iv_scraper - INFO - Processing XLE (Energy Sector SPDR ETF)
+2026-03-06 15:38:05,457 - yfinance - ERROR - Failed to get ticker 'XLE' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393EAD0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,459 - yfinance - ERROR - $XLE: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,464 - data.iv_scraper - ERROR - Error getting current price for XLE: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393F390>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,465 - data.iv_scraper - WARNING - Failed to get current price for XLE
+2026-03-06 15:38:05,466 - data.iv_scraper - INFO - Processing XLC (Communication Services SPDR ETF)
+2026-03-06 15:38:05,469 - yfinance - ERROR - Failed to get ticker 'XLC' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393F9D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,472 - yfinance - ERROR - $XLC: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,475 - data.iv_scraper - ERROR - Error getting current price for XLC: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000024013968190>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,476 - data.iv_scraper - WARNING - Failed to get current price for XLC
+2026-03-06 15:38:05,477 - data.iv_scraper - INFO - Processing XLK (Technology Sector SPDR ETF)
+2026-03-06 15:38:05,482 - yfinance - ERROR - Failed to get ticker 'XLK' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000240139687D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,485 - yfinance - ERROR - $XLK: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,488 - data.iv_scraper - ERROR - Error getting current price for XLK: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393F9D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,489 - data.iv_scraper - WARNING - Failed to get current price for XLK
+2026-03-06 15:38:05,490 - data.iv_scraper - INFO - Processing QQQ (Power Shares QQQ Trust ETF)
+2026-03-06 15:38:05,493 - yfinance - ERROR - Failed to get ticker 'QQQ' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393E5D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,498 - yfinance - ERROR - $QQQ: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,501 - data.iv_scraper - ERROR - Error getting current price for QQQ: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393EFD0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,503 - data.iv_scraper - WARNING - Failed to get current price for QQQ
+2026-03-06 15:38:05,504 - data.iv_scraper - INFO - Processing SPY (SPDR S&P 500 Trust)
+2026-03-06 15:38:05,507 - yfinance - ERROR - Failed to get ticker 'SPY' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393E710>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,509 - yfinance - ERROR - $SPY: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,513 - data.iv_scraper - ERROR - Error getting current price for SPY: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393C910>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,515 - data.iv_scraper - WARNING - Failed to get current price for SPY
+2026-03-06 15:38:05,516 - data.iv_scraper - INFO - Processing XLV (Health Care Sector SPDR ETF)
+2026-03-06 15:38:05,518 - yfinance - ERROR - Failed to get ticker 'XLV' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393D090>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,521 - yfinance - ERROR - $XLV: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,524 - data.iv_scraper - ERROR - Error getting current price for XLV: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393D310>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,526 - data.iv_scraper - WARNING - Failed to get current price for XLV
+2026-03-06 15:38:05,527 - data.iv_scraper - INFO - Processing XLB (Materials Sector SPDR ETF)
+2026-03-06 15:38:05,532 - yfinance - ERROR - Failed to get ticker 'XLB' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393C690>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,535 - yfinance - ERROR - $XLB: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,538 - data.iv_scraper - ERROR - Error getting current price for XLB: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000240138E7B10>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,548 - data.iv_scraper - WARNING - Failed to get current price for XLB
+2026-03-06 15:38:05,550 - data.iv_scraper - INFO - Processing XLI (Industrials Sector SPDR ETF)
+2026-03-06 15:38:05,553 - yfinance - ERROR - Failed to get ticker 'XLI' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000240138E7750>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,556 - yfinance - ERROR - $XLI: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,559 - data.iv_scraper - ERROR - Error getting current price for XLI: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000240138E6D50>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,560 - data.iv_scraper - WARNING - Failed to get current price for XLI
+2026-03-06 15:38:05,561 - data.iv_scraper - INFO - Processing XLY (Consumer Discretionary SPDR ETF)
+2026-03-06 15:38:05,565 - yfinance - ERROR - Failed to get ticker 'XLY' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000240138E6D50>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,568 - yfinance - ERROR - $XLY: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,570 - data.iv_scraper - ERROR - Error getting current price for XLY: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000240138E6490>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,572 - data.iv_scraper - WARNING - Failed to get current price for XLY
+2026-03-06 15:38:05,573 - data.iv_scraper - INFO - Processing IWM (I-Shares Russell 2000)
+2026-03-06 15:38:05,576 - yfinance - ERROR - Failed to get ticker 'IWM' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000240138E7B10>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,581 - yfinance - ERROR - $IWM: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,584 - data.iv_scraper - ERROR - Error getting current price for IWM: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393C2D0>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,584 - data.iv_scraper - WARNING - Failed to get current price for IWM
+2026-03-06 15:38:05,586 - data.iv_scraper - INFO - Processing XLU (Utilities Sector SPDR ETF)
+2026-03-06 15:38:05,590 - yfinance - ERROR - Failed to get ticker 'XLU' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393D310>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,592 - yfinance - ERROR - $XLU: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,595 - data.iv_scraper - ERROR - Error getting current price for XLU: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000240138E6E90>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,597 - data.iv_scraper - WARNING - Failed to get current price for XLU
+2026-03-06 15:38:05,598 - data.iv_scraper - INFO - Processing XLP (Consumer Staples Sector SPDR ETF)
+2026-03-06 15:38:05,601 - yfinance - ERROR - Failed to get ticker 'XLP' reason: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393DE50>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,604 - yfinance - ERROR - $XLP: possibly delisted; no price data found  (period=1y)
+2026-03-06 15:38:05,607 - data.iv_scraper - ERROR - Error getting current price for XLP: HTTPSConnectionPool(host='fc.yahoo.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000002401393DF90>: Failed to resolve 'fc.yahoo.com' ([Errno 11004] getaddrinfo failed)"))
+2026-03-06 15:38:05,608 - data.iv_scraper - WARNING - Failed to get current price for XLP
+2026-03-06 15:38:05,609 - data.iv_scraper - INFO - Scraping completed: 0/14 successful, 14 failed
+2026-03-06 15:38:05,610 - data.iv_scraper - WARNING - Failed tickers: XLRE, XLF, XLE, XLC, XLK, QQQ, SPY, XLV, XLB, XLI, XLY, IWM, XLU, XLP
+2026-03-06 15:38:05,611 - __main__ - INFO - Scrape completed in 0:00:00.218916
+2026-03-06 15:38:05,611 - __main__ - INFO - Results: 0/14 succeeded, 14 failed
+2026-03-10 09:47:06,700 - __main__ - INFO - Starting daily IV scrape at 2026-03-10 09:47:06.700554
+2026-03-10 09:47:06,710 - __main__ - INFO - Initializing database and scraper...
+2026-03-10 09:47:06,746 - data.iv_db - INFO - Enabling WAL mode for better performance...
+2026-03-10 09:47:06,749 - data.iv_db - INFO - WAL mode enabled
+2026-03-10 09:47:06,751 - data.iv_db - INFO - Database connection optimized for performance
+2026-03-10 09:47:06,752 - data.iv_db - INFO - Initialized IV database at data\volatility\iv_data.db
+2026-03-10 09:47:06,755 - data.yahoo_client - INFO - Yahoo Finance Client initialized
+2026-03-10 09:47:06,756 - data.rv_calculator - INFO - RealizedVolCalculator initialized
+2026-03-10 09:47:06,757 - data.iv_scraper - INFO - IV Scraper initialized
+2026-03-10 09:47:06,763 - __main__ - INFO - Beginning scrape process...
+2026-03-10 09:47:06,764 - data.iv_scraper - INFO - Starting daily IV scraping for ETF universe
+2026-03-10 09:47:06,767 - data.iv_scraper - INFO - Skipping XLRE - already have today's data
+2026-03-10 09:47:06,769 - data.iv_scraper - INFO - Skipping XLF - already have today's data
+2026-03-10 09:47:06,771 - data.iv_scraper - INFO - Skipping XLE - already have today's data
+2026-03-10 09:47:06,772 - data.iv_scraper - INFO - Skipping XLC - already have today's data
+2026-03-10 09:47:06,775 - data.iv_scraper - INFO - Skipping XLK - already have today's data
+2026-03-10 09:47:06,776 - data.iv_scraper - INFO - Skipping QQQ - already have today's data
+2026-03-10 09:47:06,778 - data.iv_scraper - INFO - Skipping SPY - already have today's data
+2026-03-10 09:47:06,779 - data.iv_scraper - INFO - Skipping XLV - already have today's data
+2026-03-10 09:47:06,782 - data.iv_scraper - INFO - Skipping XLB - already have today's data
+2026-03-10 09:47:06,784 - data.iv_scraper - INFO - Skipping XLI - already have today's data
+2026-03-10 09:47:06,786 - data.iv_scraper - INFO - Skipping XLY - already have today's data
+2026-03-10 09:47:06,788 - data.iv_scraper - INFO - Skipping IWM - already have today's data
+2026-03-10 09:47:06,789 - data.iv_scraper - INFO - Skipping XLU - already have today's data
+2026-03-10 09:47:06,791 - data.iv_scraper - INFO - Skipping XLP - already have today's data
+2026-03-10 09:47:06,792 - data.iv_scraper - INFO - Scraping completed: 14/14 successful, 0 failed
+2026-03-10 09:47:06,794 - __main__ - INFO - Scrape completed in 0:00:00.094091
+2026-03-10 09:47:06,795 - __main__ - INFO - Results: 14/14 succeeded, 0 failed

@@ -89,6 +89,21 @@ class DataConfig:
 
 
 @dataclass
+class VolatilityConfig:
+    """Volatility data configuration."""
+
+    db_path: str = "data/volatility/iv_data.db"
+    scraper_enabled: bool = True
+    etf_universe: list[str] = field(default_factory=lambda: [
+        "SPY", "QQQ", "IWM", "XLF", "XLE", "XLK", "XLV", "XLB",
+        "XLI", "XLY", "XLP", "XLU", "XLC", "XLRE"
+    ])
+    rv_window_days: int = 30  # Realized vol calculation window
+    iv_target_days: int = 30  # Target days-to-expiration for IV
+    scraper_schedule: str = "0 16 * * 1-5"  # Cron: 4PM weekdays
+
+
+@dataclass
 class LoggingConfig:
     """Logging configuration."""
 
@@ -106,6 +121,7 @@ class Settings:
     cache: CacheConfig = field(default_factory=CacheConfig)
     chart: ChartConfig = field(default_factory=ChartConfig)
     data: DataConfig = field(default_factory=DataConfig)
+    volatility: VolatilityConfig = field(default_factory=VolatilityConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
 
     # Environment and debug settings

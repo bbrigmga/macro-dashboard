@@ -48,5 +48,8 @@ Thumbs.db
 *.csv
 *.xlsx
 
+# Volatility database
+iv_data.db
+
 # Runtime cache artifacts
 data/cache/*.pkl

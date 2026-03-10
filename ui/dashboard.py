@@ -9,6 +9,7 @@ from .indicators import (
     display_indicator_card,
     display_core_principles_card
 )
+from .vol_table import render_vol_table
 from src.config.indicator_registry import INDICATOR_REGISTRY
 from visualization.warning_signals import generate_indicator_warning
 from data.fred_client import FredClient
@@ -235,6 +236,11 @@ def create_dashboard(indicators, fred_client):
     with col3:
         if 'copper_gold_ratio' in indicators:  # Note: data key matches registry key 'copper_gold_yield'
             display_indicator_card('copper_gold_yield', indicators['copper_gold_ratio'], fred_client)
+
+    # --- Volatility Table Section ---
+    if 'implied_realized_vol' in indicators:
+        st.divider()
+        render_vol_table(indicators['implied_realized_vol']['data'])
 
     # Display footer
     display_footer()

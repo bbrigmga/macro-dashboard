@@ -33,18 +33,22 @@ This dashboard has been optimized through a comprehensive three-phase enhancemen
 
 - **Real-time data** from FRED (Federal Reserve Economic Data) and Yahoo Finance
 - **Interactive charts** for 9 comprehensive economic indicators
+- **Implied vs Realized Volatility table** with 14 major ETFs and quality-weighted options data
 - **Warning signals** and interpretation guidelines for each indicator
 - **Danger combination detection** with risk assessment framework
 - **Defensive playbook recommendations** based on indicator combinations
 - **Core principles** for disciplined market analysis
 - **Summary table** with current status and positioning guidance
 - **Release schedule tracking** for data updates
-- **Modern finance-themed UI** with responsive design
+- **Modern finance-themed UI** with responsive design and heatmap visualizations
 - **High-performance architecture** with optimized algorithms (40-80% faster)
 - **Multi-level intelligent caching** with memory and disk storage
 - **Real-time performance monitoring** with benchmarking and metrics
 - **Service layer architecture** for better maintainability and testability
 - **Vectorized calculations** for improved speed and memory efficiency
+- **Market holiday handling** and trading day calculations for accurate volatility data
+- **Options quality assessment** with volume and bid-ask spread analysis
+- **Async processing** for concurrent data fetching and performance optimization
 
 ## Code Structure
 
@@ -85,12 +89,20 @@ macro_dashboard/
 │   ├── indicators.py               # Economic indicators data fetching and processing
 │   ├── processing.py               # Data processing utilities
 │   ├── pce_fix.py                  # PCE data processing fixes
-│   └── release_schedule.py         # Economic data release schedule tracking
+│   ├── release_schedule.py         # Economic data release schedule tracking
+│   ├── iv_db.py                    # Volatility database layer with SQLite optimization
+│   ├── iv_scraper.py               # Options chain scraper with quality assessment
+│   ├── rv_calculator.py            # Realized volatility calculations
+│   ├── vol_table_data.py           # Volatility table data assembly and Z-scores
+│   ├── market_utils.py             # Trading day calculations and market holidays
+│   ├── performance_utils.py        # Async processing utilities for volatility data
+│   └── cache/                      # Cached FRED and volatility data files
 │
 ├── ui/                             # User interface components
 │   ├── __init__.py
 │   ├── dashboard.py                # Main dashboard layout and status tables
 │   ├── indicators.py               # Individual indicator card displays
+│   ├── vol_table.py                # Volatility table display with heatmap styling
 │   └── custom.css                  # Custom CSS styling
 │
 ├── visualization/                  # Chart and visualization modules
@@ -102,7 +114,15 @@ macro_dashboard/
 ├── test_phase1.py                  # Phase 1 optimization tests
 ├── test_phase2.py                  # Phase 2 architecture tests
 ├── test_phase3.py                  # Phase 3 algorithm tests
-└── test_service_layer.py           # Service layer compatibility test
+├── test_service_layer.py           # Service layer compatibility test
+└── tests/                          # Comprehensive test suite
+    ├── test_iv_db.py               # IV database functionality tests
+    ├── test_iv_db_performance.py   # IV database performance optimization tests
+    ├── test_iv_scraper.py          # Options scraper tests
+    ├── test_rv_calculator.py       # Realized volatility calculation tests
+    ├── test_vol_table_data.py      # Volatility table assembly tests
+    ├── test_market_utils.py        # Trading day calculation tests
+    └── test_vol_integration.py     # End-to-end volatility integration tests
 ```
 
 ### 🏗️ Architecture Highlights
@@ -140,9 +160,11 @@ pip install -r requirements.txt
 - `pandas` & `numpy` - Data processing and analysis
 - `plotly` - Interactive charts and visualizations
 - `fredapi` - FRED (Federal Reserve Economic Data) API client
-- `yfinance` - Yahoo Finance data access
+- `yfinance` - Yahoo Finance data access (options chains and price data)
 - `python-dotenv` - Environment variable management
 - `psutil` - System performance monitoring (optional, enhances performance tracking)
+- `aiohttp` - Async HTTP client for performance optimization
+- `APScheduler` - Advanced Python Scheduler for data collection timing
 
 4. Get a FRED API key:
     - Go to https://fred.stlouisfed.org/docs/api/api_key.html
@@ -298,6 +320,151 @@ The Manufacturing PMI Proxy is a sophisticated calculation using five key FRED e
    - Index above 50 indicates economic expansion
    - Index below 50 indicates economic contraction
    - Provides a proxy for the ISM Manufacturing Purchasing Managers' Index (PMI)
+
+## Implied vs Realized Volatility Table
+
+The dashboard includes a comprehensive **Volatility Table** that compares implied volatility (IV) from options pricing with realized volatility (RV) from actual price movements across 14 major ETFs. This advanced feature helps identify over/under-valued options and assess market sentiment.
+
+### 🎯 Features
+
+- **Real-time IV/RV data** for 14 major sector ETFs and market indices
+- **IV Premium calculations** showing when options are expensive or cheap relative to actual volatility
+- **Historical Z-scores** (1-year and 3-year lookbacks) for statistical context
+- **Time series analysis** comparing current IV premium to yesterday, 1 week, and 1 month ago
+- **Quality assessment** of options data with volume and bid-ask spread analysis
+- **Market holiday handling** for accurate trading day calculations
+- **Performance optimization** with multi-level caching and async processing
+
+### 📊 ETF Universe
+
+The volatility table tracks the following 14 ETFs across major market sectors:
+
+| Sector | ETF | Name |
+|--------|-----|------|
+| **Market Indices** | SPY | SPDR S&P 500 Trust |
+| | QQQ | Power Shares QQQ Trust (Nasdaq 100) |
+| | IWM | iShares Russell 2000 |
+| **Sectors** | XLK | Technology Sector SPDR |
+| | XLF | Financials Sector SPDR |
+| | XLV | Health Care Sector SPDR |
+| | XLE | Energy Sector SPDR |
+| | XLI | Industrials Sector SPDR |
+| | XLY | Consumer Discretionary SPDR |
+| | XLP | Consumer Staples SPDR |
+| | XLU | Utilities Sector SPDR |
+| | XLB | Materials Sector SPDR |
+| | XLC | Communication Services SPDR |
+| | XLRE | Real Estate Sector SPDR |
+
+### 🔍 Data Columns
+
+| Column | Description | Purpose |
+|--------|-------------|---------|
+| **ETF Name** | Full ETF name | Identification |
+| **Ticker** | Formatted as "TICKER US EQUITY" | Bloomberg-style display |
+| **YTD %** | Year-to-date return percentage | Performance ranking |
+| **IV/RV Current** | Current implied volatility premium | Options pricing relative to realized vol |
+| **IV Premium Yesterday** | IV premium from previous trading day | Short-term trend |
+| **IV Premium 1W** | IV premium from 1 week ago | Weekly trend |
+| **IV Premium 1M** | IV premium from 1 month ago | Monthly trend |
+| **TTM Z-Score** | Z-score over trailing 252 trading days | 1-year statistical context |
+| **3Y Z-Score** | Z-score over trailing 756 trading days | 3-year statistical context |
+
+### 🧮 Calculations
+
+**Implied Volatility (IV)**:
+- Extracted from at-the-money (ATM) options using Black-Scholes model
+- Quality-weighted based on volume and bid-ask spreads
+- 30-day expiration target for consistency
+
+**Realized Volatility (RV)**:
+- Calculated from daily log returns over 30-day rolling window
+- Uses close-to-close price movements
+- Annualized using √252 trading days
+
+**IV Premium**:
+```
+IV Premium = (Implied Volatility - Realized Volatility) / Realized Volatility * 100
+```
+
+**Z-Score Calculation**:
+```
+Z-Score = (Current IV Premium - Mean IV Premium) / Standard Deviation
+```
+
+### 🏗️ Architecture & Performance
+
+**Database Layer**:
+- SQLite database with optimized schema and indexing
+- WAL (Write-Ahead Logging) mode for better concurrency
+- Batch operations and connection pooling
+- Vacuum and analyze for optimal query performance
+
+**Data Collection**:
+- Options chain scraping with intelligent ATM strike selection
+- Market holiday detection and trading day calculations
+- Quality assessment scoring (0-100) based on:
+  - Options volume
+  - Bid-ask spreads
+  - IV value sanity checks
+
+**Performance Optimizations**:
+- Multi-level caching (`@st.cache_data` with 1-hour TTL)
+- Async processing for concurrent ETF data fetching
+- Batch database queries for multiple tickers
+- Pre-computed historical data retrieval
+
+**Market Utilities**:
+- Comprehensive US market holiday calendar (2024-2027)
+- Trading day arithmetic for accurate date calculations
+- Weekend and market closure detection
+- Business day lookback calculations
+
+### 🎨 Display Features
+
+- **Color-coded heatmap** for easy pattern recognition
+- **YTD performance sorting** with top performers first
+- **Real-time data freshness indicators**
+- **Responsive design** that works on mobile and desktop
+- **Loading states** for smooth user experience
+
+### 🔧 Usage Example
+
+To access the volatility data programmetically:
+
+```python
+from data.vol_table_data import VolTableDataAssembler
+from data.iv_db import IVDatabase
+
+# Initialize database and assembler
+with IVDatabase() as db:
+    assembler = VolTableDataAssembler(db)
+    
+    # Get complete volatility table
+    vol_table = assembler.build_table()
+    
+    # Check data freshness
+    freshness = assembler.get_data_freshness_info()
+    print(f"Data coverage: {freshness['coverage_pct']:.1f}%")
+    print(f"Latest date: {freshness['latest_date']}")
+```
+
+**Scraping Options Data**:
+```python
+from data.iv_scraper import IVScraper
+from data.market_utils import is_trading_day
+
+# Check if market is open for scraping
+if is_trading_day():
+    scraper = IVScraper()
+    
+    # Scrape single ETF with quality metrics
+    iv_data, quality = scraper.get_iv_at_strike('SPY', 450.0)
+    print(f"SPY IV: {iv_data:.1%}, Quality: {quality}/100")
+    
+    # Batch scrape all ETFs
+    scraper.scrape_daily()
+```
 
 ## Key Concepts
 
