@@ -158,8 +158,16 @@ def _format_and_style_table(data: pd.DataFrame) -> Styler:
         return [rdylgn_css(v, -2, 2) for v in col]
 
     styled = df.style
-    styled = styled.apply(pct_color, subset=percentage_cols)
-    styled = styled.apply(zscore_color, subset=zscore_cols)
+    if percentage_cols:
+        styling = styled
+        for col in percentage_cols:
+            styling = styling.apply(pct_color, subset=[col])
+        styled = styling
+    if zscore_cols:
+        styling = styled
+        for col in zscore_cols:
+            styling = styling.apply(zscore_color, subset=[col])
+        styled = styling
     
     # Format numeric displays
     styled = styled.format({
@@ -260,10 +268,11 @@ def render_vol_table_with_data_fetch() -> None:
     Uses the indicator service to get formatted data.
     """
     try:
+        import asyncio
         from src.services.indicator_service import IndicatorService
         
         service = IndicatorService()
-        result = service.get_indicator("implied_realized_vol")
+        result = asyncio.run(service.get_indicator("implied_realized_vol"))
         
         if result and result.data is not None:
             render_vol_table(result.data)

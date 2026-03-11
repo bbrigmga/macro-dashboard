@@ -33,7 +33,7 @@ class TestVolTableFormatting:
     def test_column_renaming(self):
         """Test proper column renaming for display"""
         styled = _format_and_style_table(self.sample_data)
-        df = styled.data
+        df = styled.data  # type: ignore
         
         expected_columns = [
             "ETF Name", "Ticker", "YTD %", "IVOL/RVOL Current",

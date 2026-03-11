@@ -19,6 +19,8 @@ logger = get_volatility_logger(__name__)
 class IVDatabase:
     """Database access layer for daily implied/realized volatility data."""
     
+    conn: sqlite3.Connection
+    
     def __init__(self, db_path: str = "data/volatility/iv_data.db"):
         """Initialize database connection.
         
@@ -27,7 +29,7 @@ class IVDatabase:
         """
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.conn = None
+        self.conn: sqlite3.Connection
         self._init_db()
     
     def _init_db(self) -> None:
@@ -338,7 +340,7 @@ class IVDatabase:
         df = pd.read_sql_query(
             sql,
             self.conn,
-            params=tickers,
+            params=tuple(tickers),
             parse_dates=['date']
         )
         
@@ -373,7 +375,7 @@ class IVDatabase:
         ORDER BY ticker, date DESC
         """
         
-        params = tickers + [lookback_days]
+        params = tuple(tickers) + (lookback_days,)
         df = pd.read_sql_query(
             sql,
             self.conn, 

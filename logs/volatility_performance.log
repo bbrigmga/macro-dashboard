@@ -1,3 +1,5 @@
 2026-03-06 16:05:24 - PERF - test_metric: 123.4500 ms | ticker=SPY | operation=test
 2026-03-10 09:22:54 - PERF - vol_table_batch_fetch: 0.0093 seconds | tickers=14 | history_records=14
 2026-03-10 09:22:54 - PERF - vol_table_build_total: 0.0415 seconds | rows_built=14 | tickers_available=14
+2026-03-11 08:43:31 - PERF - vol_table_batch_fetch: 0.0152 seconds | tickers=14 | history_records=14
+2026-03-11 08:43:31 - PERF - vol_table_build_total: 0.2900 seconds | rows_built=14 | tickers_available=14

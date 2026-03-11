@@ -6,7 +6,7 @@ and stores daily snapshots in SQLite database.
 """
 import datetime as dt
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -575,7 +575,7 @@ class IVScraper:
             put_iv, put_quality = put_result if put_result else (None, None)
             
             # Combine call and put data
-            if call_iv is not None and put_iv is not None:
+            if call_iv is not None and put_iv is not None and call_quality is not None and put_quality is not None:
                 # Average IVs weighted by quality scores
                 call_weight = call_quality['quality_score']
                 put_weight = put_quality['quality_score']
@@ -600,12 +600,12 @@ class IVScraper:
                 
                 return weighted_iv, combined_quality
                 
-            elif call_iv is not None:
+            elif call_iv is not None and call_quality is not None:
                 logger.debug(f"{ticker} {exp_date}: Using Call IV={call_iv:.4f} (Q:{call_quality['quality_score']:.1f})")
                 call_quality['data_source'] = 'calls_only'
                 return call_iv, call_quality
                 
-            elif put_iv is not None:
+            elif put_iv is not None and put_quality is not None:
                 logger.debug(f"{ticker} {exp_date}: Using Put IV={put_iv:.4f} (Q:{put_quality['quality_score']:.1f})")
                 put_quality['data_source'] = 'puts_only'  
                 return put_iv, put_quality
@@ -671,7 +671,7 @@ class IVScraper:
             logger.error(f"Error calculating YTD return for {ticker}: {e}")
             return None
     
-    def scrape_daily(self) -> Dict[str, int]:
+    def scrape_daily(self) -> Dict[str, Any]:
         """
         Scrape daily IV/RV data for all ETFs in universe and store in database.
         

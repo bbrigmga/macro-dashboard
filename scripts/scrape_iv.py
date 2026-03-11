@@ -68,7 +68,7 @@ def main():
         logger.info(f"Scrape completed in {duration}")
         logger.info(f"Results: {success_count}/{total_count} succeeded, {failed_count} failed")
         
-        if 'results' in result:
+        if isinstance(result, dict) and 'results' in result:
             # Log individual ticker results
             for ticker, status in result['results'].items():
                 if status == 'success':

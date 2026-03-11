@@ -5,11 +5,16 @@ This module provides async versions of data fetching operations to improve
 performance when processing multiple ETF tickers in parallel.
 """
 import asyncio
-import aiohttp
 import logging
 from typing import Dict, List, Optional, Tuple, Any
 from concurrent.futures import ThreadPoolExecutor
+import pandas as pd
 import yfinance as yf
+
+try:
+    import aiohttp  # type: ignore
+except ImportError:
+    aiohttp = None  # Optional dependency
 
 logger = logging.getLogger(__name__)
 

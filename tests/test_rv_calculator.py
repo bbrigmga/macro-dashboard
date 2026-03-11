@@ -56,7 +56,8 @@ class TestRealizedVolCalculator:
         prices = pd.Series([100 + 2 * ((-1) ** i) for i in range(50)])
         
         # Calculate daily returns manually
-        daily_returns = np.log(prices / prices.shift(1)).dropna()
+        price_ratios = (prices / prices.shift(1))
+        daily_returns = pd.Series(np.log(price_ratios)).dropna()
         
         # Manual calculation
         manual_daily_std = daily_returns.tail(30).std()

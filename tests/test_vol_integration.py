@@ -181,9 +181,7 @@ class TestVolatilityIntegration:
         }
         
         db = IVDatabase(":memory:")
-        yahoo_client = YahooClient()
-        rv_calc = RealizedVolCalculator(yahoo_client)
-        scraper = IVScraper(db, yahoo_client, rv_calc)
+        scraper = IVScraper(db)
         
         # Run scraper (mocked)
         results = scraper.scrape_daily()

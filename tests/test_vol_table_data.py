@@ -19,12 +19,13 @@ def temp_db():
     with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
         db_path = tmp.name
     
+    db = None
     try:
         db = IVDatabase(db_path)
         yield db
     finally:
         # Properly close database connection
-        if hasattr(db, 'conn') and db.conn:
+        if db and hasattr(db, 'conn') and db.conn:
             db.conn.close()
         try:
             if os.path.exists(db_path):
@@ -160,8 +161,8 @@ class TestVolTableDataAssembler:
         assert len(df) > 1
         
         # Check sort order
-        ytd_values = df['ytd_pct'].values
-        assert np.all(ytd_values[:-1] >= ytd_values[1:]), "Should be sorted by ytd_pct descending"
+        ytd_values = list(df['ytd_pct'].astype(float))
+        assert all(ytd_values[i] >= ytd_values[i+1] for i in range(len(ytd_values) - 1)), "Should be sorted by ytd_pct descending"
     
     def test_ticker_display_format(self, populated_db):
         """Test ticker display format is correct."""

@@ -207,7 +207,7 @@ def get_approximate_trading_day(date: dt.date, days_back: int) -> dt.date:
     return target_date
 
 
-def is_market_hours_et(hour: int = None) -> bool:
+def is_market_hours_et(hour: int | None = None) -> bool:
     """
     Check if current time is within market hours (9:30 AM - 4:00 PM ET).
     

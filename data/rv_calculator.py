@@ -38,8 +38,9 @@ class RealizedVolCalculator:
             logger.warning(f"Insufficient price data: {len(prices)} prices for window {window}")
             return np.nan
         
-        # Calculate daily log returns
-        daily_returns = np.log(prices / prices.shift(1))
+        # Calculate daily log returns  
+        price_ratios = prices / prices.shift(1)
+        daily_returns = pd.Series(np.log(price_ratios.values)).dropna()
         
         # Take the last 'window' returns and calculate volatility
         recent_returns = daily_returns.tail(window)

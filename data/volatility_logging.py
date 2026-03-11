@@ -234,7 +234,7 @@ def get_data_quality_logger() -> logging.Logger:
     config = get_logger_config()
     return config.setup_data_quality_logger()
 
-def log_performance_metric(metric_name: str, value: float, unit: str = "", context: dict = None):
+def log_performance_metric(metric_name: str, value: float, unit: str = "", context: dict | None = None):
     """
     Log a performance metric in a structured format.
     
@@ -253,7 +253,7 @@ def log_performance_metric(metric_name: str, value: float, unit: str = "", conte
     
     perf_logger.info(f"{metric_name}: {value:.4f} {unit}{context_str}")
 
-def log_data_quality_metric(metric_name: str, value: float, threshold: float = None, ticker: str = None):
+def log_data_quality_metric(metric_name: str, value: float, threshold: float | None = None, ticker: str | None = None):
     """
     Log a data quality metric in a structured format.
     

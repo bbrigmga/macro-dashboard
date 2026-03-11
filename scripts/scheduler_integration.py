@@ -22,16 +22,16 @@ Requirements:
 import logging
 import atexit
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 try:
-    from apscheduler.schedulers.background import BackgroundScheduler
-    from apscheduler.triggers.cron import CronTrigger
+    from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore
+    from apscheduler.triggers.cron import CronTrigger  # type: ignore
     APSCHEDULER_AVAILABLE = True
 except ImportError:
     APSCHEDULER_AVAILABLE = False
-    BackgroundScheduler = None
-    CronTrigger = None
+    BackgroundScheduler = None  # type: ignore
+    CronTrigger = None  # type: ignore
 
 from data.iv_scraper import IVScraper
 from data.iv_db import IVDatabase
@@ -39,8 +39,8 @@ from data.iv_db import IVDatabase
 
 logger = logging.getLogger(__name__)
 
-# Global scheduler instance
-_scheduler: Optional[BackgroundScheduler] = None
+# Global scheduler instance (type: ignore for when apscheduler is not available)
+_scheduler: Optional["BackgroundScheduler"] = None  # type: ignore
 
 
 def _scrape_job():
@@ -89,12 +89,12 @@ def start_scheduler(
         
     try:
         # Create scheduler
-        _scheduler = BackgroundScheduler(timezone=timezone)
+        _scheduler = BackgroundScheduler(timezone=timezone)  # type: ignore
         
         # Add job: Run Monday-Friday at specified time
-        _scheduler.add_job(
+        _scheduler.add_job(  # type: ignore
             _scrape_job,
-            CronTrigger(hour=hour, minute=minute, day_of_week='mon-fri'),
+            CronTrigger(hour=hour, minute=minute, day_of_week='mon-fri'),  # type: ignore
             id='daily_iv_scrape',
             name='Daily IV Scrape',
             max_instances=1,  # Prevent overlapping runs
@@ -102,12 +102,12 @@ def start_scheduler(
         )
         
         # Start scheduler
-        _scheduler.start()
+        _scheduler.start()  # type: ignore
         
         # Register shutdown handler
         atexit.register(stop_scheduler)
         
-        next_run = _scheduler.get_job('daily_iv_scrape').next_run_time
+        next_run = _scheduler.get_job('daily_iv_scrape').next_run_time  # type: ignore
         logger.info(f"IV scraper scheduled to run weekdays at {hour:02d}:{minute:02d} {timezone}")
         logger.info(f"Next run: {next_run}")
         
