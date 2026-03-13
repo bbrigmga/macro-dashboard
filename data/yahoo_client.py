@@ -2,6 +2,7 @@
 Yahoo Finance client for fetching historical price data.
 """
 import yfinance as yf
+import numpy as np
 import pandas as pd
 import logging
 import os
@@ -69,12 +70,13 @@ class YahooClient:
         cached_df = self._load_cached_data(ticker)
         today = datetime.now().date()
 
-        # Check if we have recent data (within last 2 days to account for weekends/holidays)
+        # Check if we have recent data — use business days so weekends don't count as a gap.
+        # 1 business day means at most one trading session has passed (e.g. Friday→Monday is 1 bday).
         has_recent_data = False
         if not cached_df.empty:
             latest_date = cached_df['Date'].max().date()
-            days_since_latest = (today - latest_date).days
-            has_recent_data = days_since_latest <= 2  # Consider data recent if within 2 days
+            bdays_since_latest = int(np.busday_count(latest_date, today))
+            has_recent_data = bdays_since_latest <= 1  # Recent if latest data is from the last trading session
 
         # If we have recent cached data and periods is specified, check if we have enough data
         if has_recent_data and periods is not None and not cached_df.empty:
