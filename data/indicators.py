@@ -224,7 +224,7 @@ class IndicatorData:
         except Exception as e:
             logger.error(f"Failed to fetch or process Aggregate Hours data: {e}")
             raise
-    
+
     def calculate_pmi_proxy(_self, periods=36, start_date=None):
         """
         Calculate a proxy for the ISM Manufacturing PMI using FRED data.
