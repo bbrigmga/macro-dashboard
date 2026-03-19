@@ -1188,3 +1188,465 @@
 2026-03-16 16:30:53,019 - data.iv_scraper - INFO - Scraping completed: 14/14 successful, 0 failed
 2026-03-16 16:30:53,021 - __main__ - INFO - Scrape completed in 0:00:40.939978
 2026-03-16 16:30:53,022 - __main__ - INFO - Results: 14/14 succeeded, 0 failed
+2026-03-17 16:30:17,284 - __main__ - INFO - Starting daily IV scrape at 2026-03-17 16:30:17.284358
+2026-03-17 16:30:17,285 - __main__ - INFO - Initializing database and scraper...
+2026-03-17 16:30:17,305 - data.iv_db - INFO - Enabling WAL mode for better performance...
+2026-03-17 16:30:17,307 - data.iv_db - INFO - WAL mode enabled
+2026-03-17 16:30:17,309 - data.iv_db - INFO - Database connection optimized for performance
+2026-03-17 16:30:17,312 - data.iv_db - INFO - Initialized IV database at data\volatility\iv_data.db
+2026-03-17 16:30:17,314 - data.yahoo_client - INFO - Yahoo Finance Client initialized
+2026-03-17 16:30:17,314 - data.rv_calculator - INFO - RealizedVolCalculator initialized
+2026-03-17 16:30:17,315 - data.iv_scraper - INFO - IV Scraper initialized
+2026-03-17 16:30:17,318 - __main__ - INFO - Beginning scrape process...
+2026-03-17 16:30:17,318 - data.iv_scraper - INFO - Starting daily IV scraping for ETF universe
+2026-03-17 16:30:17,321 - data.iv_scraper - INFO - Processing XLRE (Real Estate Sector SPDR ETF)
+2026-03-17 16:30:17,418 - data.yahoo_client - INFO - Loaded 49 cached records for XLRE
+2026-03-17 16:30:17,423 - data.yahoo_client - INFO - Fetching new data for XLRE from 2026-03-14
+2026-03-17 16:30:25,100 - data.yahoo_client - INFO - Saved 51 records to cache for XLRE
+2026-03-17 16:30:25,101 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLRE
+2026-03-17 16:30:25,119 - data.yahoo_client - INFO - Loaded 51 cached records for XLRE
+2026-03-17 16:30:25,121 - data.yahoo_client - INFO - Using cached data for XLRE - 1 records
+2026-03-17 16:30:26,286 - volatility.data_quality - INFO - iv_scrape_quality: 21.00 | status=POOR | ticker=XLRE
+2026-03-17 16:30:26,288 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 21.00 < 50.0
+2026-03-17 16:30:26,290 - data.iv_scraper - WARNING - XLRE: Low quality IV data (Q:21.0, Vol:10.5, Spread:130.5%)
+2026-03-17 16:30:26,297 - data.yahoo_client - INFO - Loaded 51 cached records for XLRE
+2026-03-17 16:30:26,298 - data.yahoo_client - INFO - Using cached data for XLRE - 40 records
+2026-03-17 16:30:26,300 - data.rv_calculator - INFO - Calculated RV for XLRE: 0.1310 (13.10%)
+2026-03-17 16:30:26,305 - data.yahoo_client - INFO - Loaded 51 cached records for XLRE
+2026-03-17 16:30:27,078 - data.yahoo_client - INFO - Saved 50 records to cache for XLRE
+2026-03-17 16:30:27,079 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for XLRE
+2026-03-17 16:30:27,096 - data.iv_scraper - INFO - Successfully processed XLRE: Price=$42.72, IV=0.5639, RV=0.1310, Premium=330.28% (if available), YTD=0.0545 (if available)
+2026-03-17 16:30:27,098 - data.iv_scraper - INFO - Processing XLF (Financials Sector SPDR ETF)
+2026-03-17 16:30:27,116 - data.yahoo_client - INFO - Loaded 49 cached records for XLF
+2026-03-17 16:30:27,118 - data.yahoo_client - INFO - Fetching new data for XLF from 2026-03-14
+2026-03-17 16:30:27,876 - data.yahoo_client - INFO - Saved 51 records to cache for XLF
+2026-03-17 16:30:27,877 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLF
+2026-03-17 16:30:27,892 - data.yahoo_client - INFO - Loaded 51 cached records for XLF
+2026-03-17 16:30:27,894 - data.yahoo_client - INFO - Using cached data for XLF - 1 records
+2026-03-17 16:30:28,153 - volatility.data_quality - INFO - iv_scrape_quality: 75.00 | status=GOOD | ticker=XLF
+2026-03-17 16:30:28,160 - data.yahoo_client - INFO - Loaded 51 cached records for XLF
+2026-03-17 16:30:28,162 - data.yahoo_client - INFO - Using cached data for XLF - 40 records
+2026-03-17 16:30:28,163 - data.rv_calculator - INFO - Calculated RV for XLF: 0.1905 (19.05%)
+2026-03-17 16:30:28,168 - data.yahoo_client - INFO - Loaded 51 cached records for XLF
+2026-03-17 16:30:28,950 - data.yahoo_client - INFO - Saved 50 records to cache for XLF
+2026-03-17 16:30:28,951 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for XLF
+2026-03-17 16:30:28,954 - data.iv_scraper - INFO - Successfully processed XLF: Price=$49.56, IV=0.2294, RV=0.1905, Premium=20.43% (if available), YTD=-0.1025 (if available)
+2026-03-17 16:30:28,956 - data.iv_scraper - INFO - Processing XLE (Energy Sector SPDR ETF)
+2026-03-17 16:30:28,974 - data.yahoo_client - INFO - Loaded 49 cached records for XLE
+2026-03-17 16:30:28,975 - data.yahoo_client - INFO - Fetching new data for XLE from 2026-03-14
+2026-03-17 16:30:29,974 - data.yahoo_client - INFO - Saved 51 records to cache for XLE
+2026-03-17 16:30:29,975 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLE
+2026-03-17 16:30:29,991 - data.yahoo_client - INFO - Loaded 51 cached records for XLE
+2026-03-17 16:30:29,992 - data.yahoo_client - INFO - Using cached data for XLE - 1 records
+2026-03-17 16:30:30,245 - volatility.data_quality - INFO - iv_scrape_quality: 55.00 | status=GOOD | ticker=XLE
+2026-03-17 16:30:30,252 - data.yahoo_client - INFO - Loaded 51 cached records for XLE
+2026-03-17 16:30:30,253 - data.yahoo_client - INFO - Using cached data for XLE - 40 records
+2026-03-17 16:30:30,254 - data.rv_calculator - INFO - Calculated RV for XLE: 0.2029 (20.29%)
+2026-03-17 16:30:30,259 - data.yahoo_client - INFO - Loaded 51 cached records for XLE
+2026-03-17 16:30:31,550 - data.yahoo_client - INFO - Saved 50 records to cache for XLE
+2026-03-17 16:30:31,551 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for XLE
+2026-03-17 16:30:31,552 - data.iv_scraper - INFO - Successfully processed XLE: Price=$58.51, IV=0.2764, RV=0.2029, Premium=36.22% (if available), YTD=0.2683 (if available)
+2026-03-17 16:30:31,554 - data.iv_scraper - INFO - Processing XLC (Communication Services SPDR ETF)
+2026-03-17 16:30:31,571 - data.yahoo_client - INFO - Loaded 49 cached records for XLC
+2026-03-17 16:30:31,573 - data.yahoo_client - INFO - Fetching new data for XLC from 2026-03-14
+2026-03-17 16:30:32,400 - data.yahoo_client - INFO - Saved 51 records to cache for XLC
+2026-03-17 16:30:32,402 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLC
+2026-03-17 16:30:32,423 - data.yahoo_client - INFO - Loaded 51 cached records for XLC
+2026-03-17 16:30:32,424 - data.yahoo_client - INFO - Using cached data for XLC - 1 records
+2026-03-17 16:30:32,682 - volatility.data_quality - INFO - iv_scrape_quality: 22.12 | status=POOR | ticker=XLC
+2026-03-17 16:30:32,684 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 22.12 < 50.0
+2026-03-17 16:30:32,685 - data.iv_scraper - WARNING - XLC: Low quality IV data (Q:22.1, Vol:18.033898305084747, Spread:162.5%)
+2026-03-17 16:30:32,692 - data.yahoo_client - INFO - Loaded 51 cached records for XLC
+2026-03-17 16:30:32,693 - data.yahoo_client - INFO - Using cached data for XLC - 40 records
+2026-03-17 16:30:32,695 - data.rv_calculator - INFO - Calculated RV for XLC: 0.1280 (12.80%)
+2026-03-17 16:30:32,701 - data.yahoo_client - INFO - Loaded 51 cached records for XLC
+2026-03-17 16:30:33,412 - data.yahoo_client - INFO - Saved 50 records to cache for XLC
+2026-03-17 16:30:33,413 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for XLC
+2026-03-17 16:30:33,416 - data.iv_scraper - INFO - Successfully processed XLC: Price=$115.37, IV=0.3620, RV=0.1280, Premium=182.86% (if available), YTD=-0.0134 (if available)
+2026-03-17 16:30:33,418 - data.iv_scraper - INFO - Processing XLK (Technology Sector SPDR ETF)
+2026-03-17 16:30:33,436 - data.yahoo_client - INFO - Loaded 49 cached records for XLK
+2026-03-17 16:30:33,437 - data.yahoo_client - INFO - Fetching new data for XLK from 2026-03-14
+2026-03-17 16:30:34,106 - data.yahoo_client - INFO - Saved 51 records to cache for XLK
+2026-03-17 16:30:34,107 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLK
+2026-03-17 16:30:34,122 - data.yahoo_client - INFO - Loaded 51 cached records for XLK
+2026-03-17 16:30:34,124 - data.yahoo_client - INFO - Using cached data for XLK - 1 records
+2026-03-17 16:30:34,372 - volatility.data_quality - INFO - iv_scrape_quality: 72.75 | status=GOOD | ticker=XLK
+2026-03-17 16:30:34,382 - data.yahoo_client - INFO - Loaded 51 cached records for XLK
+2026-03-17 16:30:34,383 - data.yahoo_client - INFO - Using cached data for XLK - 40 records
+2026-03-17 16:30:34,384 - data.rv_calculator - INFO - Calculated RV for XLK: 0.2557 (25.57%)
+2026-03-17 16:30:34,389 - data.yahoo_client - INFO - Loaded 51 cached records for XLK
+2026-03-17 16:30:35,147 - data.yahoo_client - INFO - Saved 50 records to cache for XLK
+2026-03-17 16:30:35,148 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for XLK
+2026-03-17 16:30:35,149 - data.iv_scraper - INFO - Successfully processed XLK: Price=$139.54, IV=0.2776, RV=0.2557, Premium=8.59% (if available), YTD=-0.0383 (if available)
+2026-03-17 16:30:35,151 - data.iv_scraper - INFO - Processing QQQ (Power Shares QQQ Trust ETF)
+2026-03-17 16:30:35,167 - data.yahoo_client - INFO - Loaded 49 cached records for QQQ
+2026-03-17 16:30:35,169 - data.yahoo_client - INFO - Fetching new data for QQQ from 2026-03-14
+2026-03-17 16:30:35,964 - data.yahoo_client - INFO - Saved 51 records to cache for QQQ
+2026-03-17 16:30:35,965 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for QQQ
+2026-03-17 16:30:35,980 - data.yahoo_client - INFO - Loaded 51 cached records for QQQ
+2026-03-17 16:30:35,982 - data.yahoo_client - INFO - Using cached data for QQQ - 1 records
+2026-03-17 16:30:36,272 - volatility.data_quality - INFO - iv_scrape_quality: 100.00 | status=GOOD | ticker=QQQ
+2026-03-17 16:30:36,278 - data.yahoo_client - INFO - Loaded 51 cached records for QQQ
+2026-03-17 16:30:36,278 - data.yahoo_client - INFO - Using cached data for QQQ - 40 records
+2026-03-17 16:30:36,281 - data.rv_calculator - INFO - Calculated RV for QQQ: 0.1790 (17.90%)
+2026-03-17 16:30:36,286 - data.yahoo_client - INFO - Loaded 51 cached records for QQQ
+2026-03-17 16:30:37,158 - data.yahoo_client - INFO - Saved 50 records to cache for QQQ
+2026-03-17 16:30:37,159 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for QQQ
+2026-03-17 16:30:37,160 - data.iv_scraper - INFO - Successfully processed QQQ: Price=$603.31, IV=0.2140, RV=0.1790, Premium=19.57% (if available), YTD=-0.0208 (if available)
+2026-03-17 16:30:37,162 - data.iv_scraper - INFO - Processing SPY (SPDR S&P 500 Trust)
+2026-03-17 16:30:37,180 - data.yahoo_client - INFO - Loaded 49 cached records for SPY
+2026-03-17 16:30:37,182 - data.yahoo_client - INFO - Fetching new data for SPY from 2026-03-14
+2026-03-17 16:30:37,980 - data.yahoo_client - INFO - Saved 51 records to cache for SPY
+2026-03-17 16:30:37,981 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for SPY
+2026-03-17 16:30:37,996 - data.yahoo_client - INFO - Loaded 51 cached records for SPY
+2026-03-17 16:30:37,998 - data.yahoo_client - INFO - Using cached data for SPY - 1 records
+2026-03-17 16:30:38,279 - volatility.data_quality - INFO - iv_scrape_quality: 100.00 | status=GOOD | ticker=SPY
+2026-03-17 16:30:38,285 - data.yahoo_client - INFO - Loaded 51 cached records for SPY
+2026-03-17 16:30:38,287 - data.yahoo_client - INFO - Using cached data for SPY - 40 records
+2026-03-17 16:30:38,289 - data.rv_calculator - INFO - Calculated RV for SPY: 0.1319 (13.19%)
+2026-03-17 16:30:38,293 - data.yahoo_client - INFO - Loaded 51 cached records for SPY
+2026-03-17 16:30:39,074 - data.yahoo_client - INFO - Saved 50 records to cache for SPY
+2026-03-17 16:30:39,075 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for SPY
+2026-03-17 16:30:39,077 - data.iv_scraper - INFO - Successfully processed SPY: Price=$670.79, IV=0.1824, RV=0.1319, Premium=38.23% (if available), YTD=-0.0207 (if available)
+2026-03-17 16:30:39,079 - data.iv_scraper - INFO - Processing XLV (Health Care Sector SPDR ETF)
+2026-03-17 16:30:39,093 - data.yahoo_client - INFO - Loaded 49 cached records for XLV
+2026-03-17 16:30:39,095 - data.yahoo_client - INFO - Fetching new data for XLV from 2026-03-14
+2026-03-17 16:30:39,887 - data.yahoo_client - INFO - Saved 51 records to cache for XLV
+2026-03-17 16:30:39,888 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLV
+2026-03-17 16:30:39,902 - data.yahoo_client - INFO - Loaded 51 cached records for XLV
+2026-03-17 16:30:39,904 - data.yahoo_client - INFO - Using cached data for XLV - 1 records
+2026-03-17 16:30:40,296 - volatility.data_quality - INFO - iv_scrape_quality: 55.50 | status=GOOD | ticker=XLV
+2026-03-17 16:30:40,302 - data.yahoo_client - INFO - Loaded 51 cached records for XLV
+2026-03-17 16:30:40,303 - data.yahoo_client - INFO - Using cached data for XLV - 40 records
+2026-03-17 16:30:40,305 - data.rv_calculator - INFO - Calculated RV for XLV: 0.1528 (15.28%)
+2026-03-17 16:30:40,310 - data.yahoo_client - INFO - Loaded 51 cached records for XLV
+2026-03-17 16:30:41,111 - data.yahoo_client - INFO - Saved 50 records to cache for XLV
+2026-03-17 16:30:41,112 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for XLV
+2026-03-17 16:30:41,114 - data.iv_scraper - INFO - Successfully processed XLV: Price=$149.64, IV=0.2083, RV=0.1528, Premium=36.27% (if available), YTD=-0.0289 (if available)
+2026-03-17 16:30:41,116 - data.iv_scraper - INFO - Processing XLB (Materials Sector SPDR ETF)
+2026-03-17 16:30:41,132 - data.yahoo_client - INFO - Loaded 49 cached records for XLB
+2026-03-17 16:30:41,134 - data.yahoo_client - INFO - Fetching new data for XLB from 2026-03-14
+2026-03-17 16:30:41,870 - data.yahoo_client - INFO - Saved 51 records to cache for XLB
+2026-03-17 16:30:41,871 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLB
+2026-03-17 16:30:41,889 - data.yahoo_client - INFO - Loaded 51 cached records for XLB
+2026-03-17 16:30:41,890 - data.yahoo_client - INFO - Using cached data for XLB - 1 records
+2026-03-17 16:30:42,164 - volatility.data_quality - INFO - iv_scrape_quality: 24.38 | status=POOR | ticker=XLB
+2026-03-17 16:30:42,166 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 24.38 < 50.0
+2026-03-17 16:30:42,167 - data.iv_scraper - WARNING - XLB: Low quality IV data (Q:24.4, Vol:826.123076923077, Spread:108.9%)
+2026-03-17 16:30:42,173 - data.yahoo_client - INFO - Loaded 51 cached records for XLB
+2026-03-17 16:30:42,174 - data.yahoo_client - INFO - Using cached data for XLB - 40 records
+2026-03-17 16:30:42,176 - data.rv_calculator - INFO - Calculated RV for XLB: 0.2059 (20.59%)
+2026-03-17 16:30:42,180 - data.yahoo_client - INFO - Loaded 51 cached records for XLB
+2026-03-17 16:30:43,051 - data.yahoo_client - INFO - Saved 50 records to cache for XLB
+2026-03-17 16:30:43,052 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for XLB
+2026-03-17 16:30:43,053 - data.iv_scraper - INFO - Successfully processed XLB: Price=$49.52, IV=0.5207, RV=0.2059, Premium=152.90% (if available), YTD=0.0711 (if available)
+2026-03-17 16:30:43,055 - data.iv_scraper - INFO - Processing XLI (Industrials Sector SPDR ETF)
+2026-03-17 16:30:43,077 - data.yahoo_client - INFO - Loaded 49 cached records for XLI
+2026-03-17 16:30:43,078 - data.yahoo_client - INFO - Fetching new data for XLI from 2026-03-14
+2026-03-17 16:30:44,032 - data.yahoo_client - INFO - Saved 51 records to cache for XLI
+2026-03-17 16:30:44,033 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLI
+2026-03-17 16:30:44,048 - data.yahoo_client - INFO - Loaded 51 cached records for XLI
+2026-03-17 16:30:44,049 - data.yahoo_client - INFO - Using cached data for XLI - 1 records
+2026-03-17 16:30:44,273 - volatility.data_quality - INFO - iv_scrape_quality: 24.38 | status=POOR | ticker=XLI
+2026-03-17 16:30:44,275 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 24.38 < 50.0
+2026-03-17 16:30:44,277 - data.iv_scraper - WARNING - XLI: Low quality IV data (Q:24.4, Vol:144.96923076923076, Spread:107.1%)
+2026-03-17 16:30:44,283 - data.yahoo_client - INFO - Loaded 51 cached records for XLI
+2026-03-17 16:30:44,285 - data.yahoo_client - INFO - Using cached data for XLI - 40 records
+2026-03-17 16:30:44,286 - data.rv_calculator - INFO - Calculated RV for XLI: 0.1784 (17.84%)
+2026-03-17 16:30:44,292 - data.yahoo_client - INFO - Loaded 51 cached records for XLI
+2026-03-17 16:30:45,313 - data.yahoo_client - INFO - Saved 50 records to cache for XLI
+2026-03-17 16:30:45,314 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for XLI
+2026-03-17 16:30:45,316 - data.iv_scraper - INFO - Successfully processed XLI: Price=$166.50, IV=0.3427, RV=0.1784, Premium=92.11% (if available), YTD=0.0511 (if available)
+2026-03-17 16:30:45,317 - data.iv_scraper - INFO - Processing XLY (Consumer Discretionary SPDR ETF)
+2026-03-17 16:30:45,337 - data.yahoo_client - INFO - Loaded 772 cached records for XLY
+2026-03-17 16:30:45,339 - data.yahoo_client - INFO - Using cached data for XLY - 1 records
+2026-03-17 16:30:45,344 - data.yahoo_client - INFO - Loaded 772 cached records for XLY
+2026-03-17 16:30:45,345 - data.yahoo_client - INFO - Using cached data for XLY - 1 records
+2026-03-17 16:30:45,569 - volatility.data_quality - INFO - iv_scrape_quality: 23.25 | status=POOR | ticker=XLY
+2026-03-17 16:30:45,571 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 23.25 < 50.0
+2026-03-17 16:30:45,572 - data.iv_scraper - WARNING - XLY: Low quality IV data (Q:23.2, Vol:83.51612903225806, Spread:117.0%)
+2026-03-17 16:30:45,579 - data.yahoo_client - INFO - Loaded 772 cached records for XLY
+2026-03-17 16:30:45,581 - data.yahoo_client - INFO - Using cached data for XLY - 40 records
+2026-03-17 16:30:45,584 - data.rv_calculator - INFO - Calculated RV for XLY: 0.1764 (17.64%)
+2026-03-17 16:30:45,592 - data.yahoo_client - INFO - Loaded 772 cached records for XLY
+2026-03-17 16:30:45,594 - data.yahoo_client - INFO - Using cached data for XLY - 50 records
+2026-03-17 16:30:45,595 - data.iv_scraper - INFO - Successfully processed XLY: Price=$112.50, IV=0.3903, RV=0.1764, Premium=121.20% (if available), YTD=-0.0495 (if available)
+2026-03-17 16:30:45,597 - data.iv_scraper - INFO - Processing IWM (I-Shares Russell 2000)
+2026-03-17 16:30:45,613 - data.yahoo_client - INFO - Loaded 49 cached records for IWM
+2026-03-17 16:30:45,615 - data.yahoo_client - INFO - Fetching new data for IWM from 2026-03-14
+2026-03-17 16:30:46,377 - data.yahoo_client - INFO - Saved 51 records to cache for IWM
+2026-03-17 16:30:46,379 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for IWM
+2026-03-17 16:30:46,406 - data.yahoo_client - INFO - Loaded 51 cached records for IWM
+2026-03-17 16:30:46,408 - data.yahoo_client - INFO - Using cached data for IWM - 1 records
+2026-03-17 16:30:46,680 - volatility.data_quality - INFO - iv_scrape_quality: 100.00 | status=GOOD | ticker=IWM
+2026-03-17 16:30:46,685 - data.yahoo_client - INFO - Loaded 51 cached records for IWM
+2026-03-17 16:30:46,687 - data.yahoo_client - INFO - Using cached data for IWM - 40 records
+2026-03-17 16:30:46,688 - data.rv_calculator - INFO - Calculated RV for IWM: 0.2104 (21.04%)
+2026-03-17 16:30:46,693 - data.yahoo_client - INFO - Loaded 51 cached records for IWM
+2026-03-17 16:30:47,505 - data.yahoo_client - INFO - Saved 50 records to cache for IWM
+2026-03-17 16:30:47,506 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for IWM
+2026-03-17 16:30:47,508 - data.iv_scraper - INFO - Successfully processed IWM: Price=$250.05, IV=0.2644, RV=0.2104, Premium=25.67% (if available), YTD=0.0006 (if available)
+2026-03-17 16:30:47,509 - data.iv_scraper - INFO - Processing XLU (Utilities Sector SPDR ETF)
+2026-03-17 16:30:47,527 - data.yahoo_client - INFO - Loaded 49 cached records for XLU
+2026-03-17 16:30:47,528 - data.yahoo_client - INFO - Fetching new data for XLU from 2026-03-14
+2026-03-17 16:30:48,359 - data.yahoo_client - INFO - Saved 51 records to cache for XLU
+2026-03-17 16:30:48,360 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLU
+2026-03-17 16:30:48,375 - data.yahoo_client - INFO - Loaded 51 cached records for XLU
+2026-03-17 16:30:48,377 - data.yahoo_client - INFO - Using cached data for XLU - 1 records
+2026-03-17 16:30:48,684 - volatility.data_quality - INFO - iv_scrape_quality: 50.00 | status=GOOD | ticker=XLU
+2026-03-17 16:30:48,691 - data.yahoo_client - INFO - Loaded 51 cached records for XLU
+2026-03-17 16:30:48,692 - data.yahoo_client - INFO - Using cached data for XLU - 40 records
+2026-03-17 16:30:48,694 - data.rv_calculator - INFO - Calculated RV for XLU: 0.1474 (14.74%)
+2026-03-17 16:30:48,699 - data.yahoo_client - INFO - Loaded 51 cached records for XLU
+2026-03-17 16:30:50,027 - data.yahoo_client - INFO - Saved 50 records to cache for XLU
+2026-03-17 16:30:50,028 - data.yahoo_client - INFO - Successfully fetched/updated 50 records for XLU
+2026-03-17 16:30:50,029 - data.iv_scraper - INFO - Successfully processed XLU: Price=$47.13, IV=0.2259, RV=0.1474, Premium=53.24% (if available), YTD=0.0945 (if available)
+2026-03-17 16:30:50,031 - data.iv_scraper - INFO - Processing XLP (Consumer Staples Sector SPDR ETF)
+2026-03-17 16:30:50,049 - data.yahoo_client - INFO - Loaded 772 cached records for XLP
+2026-03-17 16:30:50,051 - data.yahoo_client - INFO - Using cached data for XLP - 1 records
+2026-03-17 16:30:50,056 - data.yahoo_client - INFO - Loaded 772 cached records for XLP
+2026-03-17 16:30:50,058 - data.yahoo_client - INFO - Using cached data for XLP - 1 records
+2026-03-17 16:30:50,291 - volatility.data_quality - INFO - iv_scrape_quality: 48.88 | status=POOR | ticker=XLP
+2026-03-17 16:30:50,293 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 48.88 < 50.0
+2026-03-17 16:30:50,295 - data.iv_scraper - WARNING - XLP: Low quality IV data (Q:48.9, Vol:565.6803069053708, Spread:64.4%)
+2026-03-17 16:30:50,302 - data.yahoo_client - INFO - Loaded 772 cached records for XLP
+2026-03-17 16:30:50,304 - data.yahoo_client - INFO - Using cached data for XLP - 40 records
+2026-03-17 16:30:50,305 - data.rv_calculator - INFO - Calculated RV for XLP: 0.1530 (15.30%)
+2026-03-17 16:30:50,310 - data.yahoo_client - INFO - Loaded 772 cached records for XLP
+2026-03-17 16:30:50,313 - data.yahoo_client - INFO - Using cached data for XLP - 50 records
+2026-03-17 16:30:50,313 - data.iv_scraper - INFO - Successfully processed XLP: Price=$85.14, IV=0.2301, RV=0.1530, Premium=50.43% (if available), YTD=0.0959 (if available)
+2026-03-17 16:30:50,315 - data.iv_scraper - INFO - Scraping completed: 14/14 successful, 0 failed
+2026-03-17 16:30:50,317 - __main__ - INFO - Scrape completed in 0:00:33.033446
+2026-03-17 16:30:50,318 - __main__ - INFO - Results: 14/14 succeeded, 0 failed
+2026-03-18 16:30:11,381 - __main__ - INFO - Starting daily IV scrape at 2026-03-18 16:30:11.381250
+2026-03-18 16:30:11,382 - __main__ - INFO - Initializing database and scraper...
+2026-03-18 16:30:11,415 - data.iv_db - INFO - Enabling WAL mode for better performance...
+2026-03-18 16:30:11,417 - data.iv_db - INFO - WAL mode enabled
+2026-03-18 16:30:11,419 - data.iv_db - INFO - Database connection optimized for performance
+2026-03-18 16:30:11,420 - data.iv_db - INFO - Initialized IV database at data\volatility\iv_data.db
+2026-03-18 16:30:11,422 - data.yahoo_client - INFO - Yahoo Finance Client initialized
+2026-03-18 16:30:11,423 - data.rv_calculator - INFO - RealizedVolCalculator initialized
+2026-03-18 16:30:11,423 - data.iv_scraper - INFO - IV Scraper initialized
+2026-03-18 16:30:11,425 - __main__ - INFO - Beginning scrape process...
+2026-03-18 16:30:11,426 - data.iv_scraper - INFO - Starting daily IV scraping for ETF universe
+2026-03-18 16:30:11,427 - data.iv_scraper - INFO - Processing XLRE (Real Estate Sector SPDR ETF)
+2026-03-18 16:30:11,495 - data.yahoo_client - INFO - Loaded 50 cached records for XLRE
+2026-03-18 16:30:11,497 - data.yahoo_client - INFO - Fetching new data for XLRE from 2026-03-17
+2026-03-18 16:30:17,222 - data.yahoo_client - INFO - Saved 52 records to cache for XLRE
+2026-03-18 16:30:17,223 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLRE
+2026-03-18 16:30:17,239 - data.yahoo_client - INFO - Loaded 52 cached records for XLRE
+2026-03-18 16:30:17,241 - data.yahoo_client - INFO - Using cached data for XLRE - 1 records
+2026-03-18 16:30:18,161 - volatility.data_quality - INFO - iv_scrape_quality: 23.25 | status=POOR | ticker=XLRE
+2026-03-18 16:30:18,163 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 23.25 < 50.0
+2026-03-18 16:30:18,165 - data.iv_scraper - WARNING - XLRE: Low quality IV data (Q:23.2, Vol:23.0, Spread:140.9%)
+2026-03-18 16:30:18,171 - data.yahoo_client - INFO - Loaded 52 cached records for XLRE
+2026-03-18 16:30:18,172 - data.yahoo_client - INFO - Using cached data for XLRE - 40 records
+2026-03-18 16:30:18,173 - data.rv_calculator - INFO - Calculated RV for XLRE: 0.1403 (14.03%)
+2026-03-18 16:30:18,179 - data.yahoo_client - INFO - Loaded 52 cached records for XLRE
+2026-03-18 16:30:20,386 - data.yahoo_client - INFO - Saved 51 records to cache for XLRE
+2026-03-18 16:30:20,388 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for XLRE
+2026-03-18 16:30:20,401 - data.iv_scraper - INFO - Successfully processed XLRE: Price=$42.02, IV=0.5635, RV=0.1403, Premium=301.55% (if available), YTD=0.0579 (if available)
+2026-03-18 16:30:20,402 - data.iv_scraper - INFO - Processing XLF (Financials Sector SPDR ETF)
+2026-03-18 16:30:20,418 - data.yahoo_client - INFO - Loaded 50 cached records for XLF
+2026-03-18 16:30:20,419 - data.yahoo_client - INFO - Fetching new data for XLF from 2026-03-17
+2026-03-18 16:30:21,170 - data.yahoo_client - INFO - Saved 52 records to cache for XLF
+2026-03-18 16:30:21,171 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLF
+2026-03-18 16:30:21,184 - data.yahoo_client - INFO - Loaded 52 cached records for XLF
+2026-03-18 16:30:21,185 - data.yahoo_client - INFO - Using cached data for XLF - 1 records
+2026-03-18 16:30:21,373 - volatility.data_quality - INFO - iv_scrape_quality: 55.00 | status=GOOD | ticker=XLF
+2026-03-18 16:30:21,384 - data.yahoo_client - INFO - Loaded 52 cached records for XLF
+2026-03-18 16:30:21,386 - data.yahoo_client - INFO - Using cached data for XLF - 40 records
+2026-03-18 16:30:21,387 - data.rv_calculator - INFO - Calculated RV for XLF: 0.1914 (19.14%)
+2026-03-18 16:30:21,396 - data.yahoo_client - INFO - Loaded 52 cached records for XLF
+2026-03-18 16:30:23,091 - data.yahoo_client - INFO - Saved 51 records to cache for XLF
+2026-03-18 16:30:23,092 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for XLF
+2026-03-18 16:30:23,094 - data.iv_scraper - INFO - Successfully processed XLF: Price=$48.97, IV=0.3004, RV=0.1914, Premium=56.96% (if available), YTD=-0.0978 (if available)
+2026-03-18 16:30:23,096 - data.iv_scraper - INFO - Processing XLE (Energy Sector SPDR ETF)
+2026-03-18 16:30:23,111 - data.yahoo_client - INFO - Loaded 50 cached records for XLE
+2026-03-18 16:30:23,113 - data.yahoo_client - INFO - Fetching new data for XLE from 2026-03-17
+2026-03-18 16:30:23,916 - data.yahoo_client - INFO - Saved 52 records to cache for XLE
+2026-03-18 16:30:23,917 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLE
+2026-03-18 16:30:23,931 - data.yahoo_client - INFO - Loaded 52 cached records for XLE
+2026-03-18 16:30:23,934 - data.yahoo_client - INFO - Using cached data for XLE - 1 records
+2026-03-18 16:30:24,115 - volatility.data_quality - INFO - iv_scrape_quality: 30.00 | status=POOR | ticker=XLE
+2026-03-18 16:30:24,117 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 30.00 < 50.0
+2026-03-18 16:30:24,119 - data.iv_scraper - WARNING - XLE: Low quality IV data (Q:30.0, Vol:1394.0, Spread:77.7%)
+2026-03-18 16:30:24,125 - data.yahoo_client - INFO - Loaded 52 cached records for XLE
+2026-03-18 16:30:24,126 - data.yahoo_client - INFO - Using cached data for XLE - 40 records
+2026-03-18 16:30:24,128 - data.rv_calculator - INFO - Calculated RV for XLE: 0.1872 (18.72%)
+2026-03-18 16:30:24,133 - data.yahoo_client - INFO - Loaded 52 cached records for XLE
+2026-03-18 16:30:25,416 - data.yahoo_client - INFO - Saved 51 records to cache for XLE
+2026-03-18 16:30:25,417 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for XLE
+2026-03-18 16:30:25,418 - data.iv_scraper - INFO - Successfully processed XLE: Price=$58.43, IV=0.4841, RV=0.1872, Premium=158.61% (if available), YTD=0.2817 (if available)
+2026-03-18 16:30:25,420 - data.iv_scraper - INFO - Processing XLC (Communication Services SPDR ETF)
+2026-03-18 16:30:25,436 - data.yahoo_client - INFO - Loaded 50 cached records for XLC
+2026-03-18 16:30:25,436 - data.yahoo_client - INFO - Fetching new data for XLC from 2026-03-17
+2026-03-18 16:30:26,427 - data.yahoo_client - INFO - Saved 52 records to cache for XLC
+2026-03-18 16:30:26,427 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLC
+2026-03-18 16:30:26,440 - data.yahoo_client - INFO - Loaded 52 cached records for XLC
+2026-03-18 16:30:26,441 - data.yahoo_client - INFO - Using cached data for XLC - 1 records
+2026-03-18 16:30:26,681 - volatility.data_quality - INFO - iv_scrape_quality: 21.00 | status=POOR | ticker=XLC
+2026-03-18 16:30:26,682 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 21.00 < 50.0
+2026-03-18 16:30:26,683 - data.iv_scraper - WARNING - XLC: Low quality IV data (Q:21.0, Vol:4.0, Spread:113.0%)
+2026-03-18 16:30:26,687 - data.yahoo_client - INFO - Loaded 52 cached records for XLC
+2026-03-18 16:30:26,688 - data.yahoo_client - INFO - Using cached data for XLC - 40 records
+2026-03-18 16:30:26,692 - data.rv_calculator - INFO - Calculated RV for XLC: 0.1267 (12.67%)
+2026-03-18 16:30:26,697 - data.yahoo_client - INFO - Loaded 52 cached records for XLC
+2026-03-18 16:30:27,953 - data.yahoo_client - INFO - Saved 51 records to cache for XLC
+2026-03-18 16:30:27,953 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for XLC
+2026-03-18 16:30:27,956 - data.iv_scraper - INFO - Successfully processed XLC: Price=$113.66, IV=0.3892, RV=0.1267, Premium=207.24% (if available), YTD=-0.0131 (if available)
+2026-03-18 16:30:27,958 - data.iv_scraper - INFO - Processing XLK (Technology Sector SPDR ETF)
+2026-03-18 16:30:27,983 - data.yahoo_client - INFO - Loaded 50 cached records for XLK
+2026-03-18 16:30:27,984 - data.yahoo_client - INFO - Fetching new data for XLK from 2026-03-17
+2026-03-18 16:30:28,880 - data.yahoo_client - INFO - Saved 52 records to cache for XLK
+2026-03-18 16:30:28,881 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLK
+2026-03-18 16:30:28,896 - data.yahoo_client - INFO - Loaded 52 cached records for XLK
+2026-03-18 16:30:28,897 - data.yahoo_client - INFO - Using cached data for XLK - 1 records
+2026-03-18 16:30:29,107 - volatility.data_quality - INFO - iv_scrape_quality: 62.00 | status=GOOD | ticker=XLK
+2026-03-18 16:30:29,115 - data.yahoo_client - INFO - Loaded 52 cached records for XLK
+2026-03-18 16:30:29,116 - data.yahoo_client - INFO - Using cached data for XLK - 40 records
+2026-03-18 16:30:29,118 - data.rv_calculator - INFO - Calculated RV for XLK: 0.2499 (24.99%)
+2026-03-18 16:30:29,122 - data.yahoo_client - INFO - Loaded 52 cached records for XLK
+2026-03-18 16:30:30,041 - data.yahoo_client - INFO - Saved 51 records to cache for XLK
+2026-03-18 16:30:30,043 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for XLK
+2026-03-18 16:30:30,044 - data.iv_scraper - INFO - Successfully processed XLK: Price=$137.96, IV=0.3179, RV=0.2499, Premium=27.20% (if available), YTD=-0.0330 (if available)
+2026-03-18 16:30:30,045 - data.iv_scraper - INFO - Processing QQQ (Power Shares QQQ Trust ETF)
+2026-03-18 16:30:30,062 - data.yahoo_client - INFO - Loaded 50 cached records for QQQ
+2026-03-18 16:30:30,063 - data.yahoo_client - INFO - Fetching new data for QQQ from 2026-03-17
+2026-03-18 16:30:31,061 - data.yahoo_client - INFO - Saved 52 records to cache for QQQ
+2026-03-18 16:30:31,062 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for QQQ
+2026-03-18 16:30:31,078 - data.yahoo_client - INFO - Loaded 52 cached records for QQQ
+2026-03-18 16:30:31,080 - data.yahoo_client - INFO - Using cached data for QQQ - 1 records
+2026-03-18 16:30:31,323 - volatility.data_quality - INFO - iv_scrape_quality: 100.00 | status=GOOD | ticker=QQQ
+2026-03-18 16:30:31,330 - data.yahoo_client - INFO - Loaded 52 cached records for QQQ
+2026-03-18 16:30:31,331 - data.yahoo_client - INFO - Using cached data for QQQ - 40 records
+2026-03-18 16:30:31,333 - data.rv_calculator - INFO - Calculated RV for QQQ: 0.1781 (17.81%)
+2026-03-18 16:30:31,339 - data.yahoo_client - INFO - Loaded 52 cached records for QQQ
+2026-03-18 16:30:32,152 - data.yahoo_client - INFO - Saved 51 records to cache for QQQ
+2026-03-18 16:30:32,153 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for QQQ
+2026-03-18 16:30:32,155 - data.iv_scraper - INFO - Successfully processed QQQ: Price=$594.90, IV=0.2381, RV=0.1781, Premium=33.71% (if available), YTD=-0.0160 (if available)
+2026-03-18 16:30:32,157 - data.iv_scraper - INFO - Processing SPY (SPDR S&P 500 Trust)
+2026-03-18 16:30:32,180 - data.yahoo_client - INFO - Loaded 50 cached records for SPY
+2026-03-18 16:30:32,182 - data.yahoo_client - INFO - Fetching new data for SPY from 2026-03-17
+2026-03-18 16:30:33,380 - data.yahoo_client - INFO - Saved 52 records to cache for SPY
+2026-03-18 16:30:33,381 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for SPY
+2026-03-18 16:30:33,397 - data.yahoo_client - INFO - Loaded 52 cached records for SPY
+2026-03-18 16:30:33,399 - data.yahoo_client - INFO - Using cached data for SPY - 1 records
+2026-03-18 16:30:33,614 - volatility.data_quality - INFO - iv_scrape_quality: 100.00 | status=GOOD | ticker=SPY
+2026-03-18 16:30:33,620 - data.yahoo_client - INFO - Loaded 52 cached records for SPY
+2026-03-18 16:30:33,622 - data.yahoo_client - INFO - Using cached data for SPY - 40 records
+2026-03-18 16:30:33,624 - data.rv_calculator - INFO - Calculated RV for SPY: 0.1355 (13.55%)
+2026-03-18 16:30:33,629 - data.yahoo_client - INFO - Loaded 52 cached records for SPY
+2026-03-18 16:30:34,415 - data.yahoo_client - INFO - Saved 51 records to cache for SPY
+2026-03-18 16:30:34,416 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for SPY
+2026-03-18 16:30:34,417 - data.iv_scraper - INFO - Successfully processed SPY: Price=$661.43, IV=0.2087, RV=0.1355, Premium=53.99% (if available), YTD=-0.0181 (if available)
+2026-03-18 16:30:34,419 - data.iv_scraper - INFO - Processing XLV (Health Care Sector SPDR ETF)
+2026-03-18 16:30:34,435 - data.yahoo_client - INFO - Loaded 50 cached records for XLV
+2026-03-18 16:30:34,436 - data.yahoo_client - INFO - Fetching new data for XLV from 2026-03-17
+2026-03-18 16:30:35,532 - data.yahoo_client - INFO - Saved 52 records to cache for XLV
+2026-03-18 16:30:35,533 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLV
+2026-03-18 16:30:35,549 - data.yahoo_client - INFO - Loaded 52 cached records for XLV
+2026-03-18 16:30:35,551 - data.yahoo_client - INFO - Using cached data for XLV - 1 records
+2026-03-18 16:30:35,749 - volatility.data_quality - INFO - iv_scrape_quality: 27.75 | status=POOR | ticker=XLV
+2026-03-18 16:30:35,752 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 27.75 < 50.0
+2026-03-18 16:30:35,754 - data.iv_scraper - WARNING - XLV: Low quality IV data (Q:27.8, Vol:86.0, Spread:141.3%)
+2026-03-18 16:30:35,759 - data.yahoo_client - INFO - Loaded 52 cached records for XLV
+2026-03-18 16:30:35,762 - data.yahoo_client - INFO - Using cached data for XLV - 40 records
+2026-03-18 16:30:35,763 - data.rv_calculator - INFO - Calculated RV for XLV: 0.1573 (15.73%)
+2026-03-18 16:30:35,768 - data.yahoo_client - INFO - Loaded 52 cached records for XLV
+2026-03-18 16:30:36,628 - data.yahoo_client - INFO - Saved 51 records to cache for XLV
+2026-03-18 16:30:36,629 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for XLV
+2026-03-18 16:30:36,632 - data.iv_scraper - INFO - Successfully processed XLV: Price=$147.14, IV=0.3422, RV=0.1573, Premium=117.51% (if available), YTD=-0.0377 (if available)
+2026-03-18 16:30:36,634 - data.iv_scraper - INFO - Processing XLB (Materials Sector SPDR ETF)
+2026-03-18 16:30:36,650 - data.yahoo_client - INFO - Loaded 50 cached records for XLB
+2026-03-18 16:30:36,651 - data.yahoo_client - INFO - Fetching new data for XLB from 2026-03-17
+2026-03-18 16:30:37,400 - data.yahoo_client - INFO - Saved 52 records to cache for XLB
+2026-03-18 16:30:37,401 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLB
+2026-03-18 16:30:37,415 - data.yahoo_client - INFO - Loaded 52 cached records for XLB
+2026-03-18 16:30:37,417 - data.yahoo_client - INFO - Using cached data for XLB - 1 records
+2026-03-18 16:30:37,624 - volatility.data_quality - INFO - iv_scrape_quality: 23.25 | status=POOR | ticker=XLB
+2026-03-18 16:30:37,626 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 23.25 < 50.0
+2026-03-18 16:30:37,629 - data.iv_scraper - WARNING - XLB: Low quality IV data (Q:23.2, Vol:35.0, Spread:130.7%)
+2026-03-18 16:30:37,647 - data.yahoo_client - INFO - Loaded 52 cached records for XLB
+2026-03-18 16:30:37,648 - data.yahoo_client - INFO - Using cached data for XLB - 40 records
+2026-03-18 16:30:37,651 - data.rv_calculator - INFO - Calculated RV for XLB: 0.2047 (20.47%)
+2026-03-18 16:30:37,657 - data.yahoo_client - INFO - Loaded 52 cached records for XLB
+2026-03-18 16:30:38,775 - data.yahoo_client - INFO - Saved 51 records to cache for XLB
+2026-03-18 16:30:38,775 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for XLB
+2026-03-18 16:30:38,777 - data.iv_scraper - INFO - Successfully processed XLB: Price=$48.48, IV=0.5332, RV=0.2047, Premium=160.41% (if available), YTD=0.0737 (if available)
+2026-03-18 16:30:38,779 - data.iv_scraper - INFO - Processing XLI (Industrials Sector SPDR ETF)
+2026-03-18 16:30:38,795 - data.yahoo_client - INFO - Loaded 50 cached records for XLI
+2026-03-18 16:30:38,797 - data.yahoo_client - INFO - Fetching new data for XLI from 2026-03-17
+2026-03-18 16:30:39,691 - data.yahoo_client - INFO - Saved 52 records to cache for XLI
+2026-03-18 16:30:39,692 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLI
+2026-03-18 16:30:39,708 - data.yahoo_client - INFO - Loaded 52 cached records for XLI
+2026-03-18 16:30:39,710 - data.yahoo_client - INFO - Using cached data for XLI - 1 records
+2026-03-18 16:30:39,939 - volatility.data_quality - INFO - iv_scrape_quality: 25.50 | status=POOR | ticker=XLI
+2026-03-18 16:30:39,941 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 25.50 < 50.0
+2026-03-18 16:30:39,943 - data.iv_scraper - WARNING - XLI: Low quality IV data (Q:25.5, Vol:142.0, Spread:78.1%)
+2026-03-18 16:30:39,950 - data.yahoo_client - INFO - Loaded 52 cached records for XLI
+2026-03-18 16:30:39,952 - data.yahoo_client - INFO - Using cached data for XLI - 40 records
+2026-03-18 16:30:39,953 - data.rv_calculator - INFO - Calculated RV for XLI: 0.1779 (17.79%)
+2026-03-18 16:30:39,959 - data.yahoo_client - INFO - Loaded 52 cached records for XLI
+2026-03-18 16:30:40,893 - data.yahoo_client - INFO - Saved 51 records to cache for XLI
+2026-03-18 16:30:40,894 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for XLI
+2026-03-18 16:30:40,895 - data.iv_scraper - INFO - Successfully processed XLI: Price=$165.18, IV=0.4325, RV=0.1779, Premium=143.14% (if available), YTD=0.0539 (if available)
+2026-03-18 16:30:40,897 - data.iv_scraper - INFO - Processing XLY (Consumer Discretionary SPDR ETF)
+2026-03-18 16:30:40,916 - data.yahoo_client - INFO - Loaded 774 cached records for XLY
+2026-03-18 16:30:40,919 - data.yahoo_client - INFO - Using cached data for XLY - 1 records
+2026-03-18 16:30:40,924 - data.yahoo_client - INFO - Loaded 774 cached records for XLY
+2026-03-18 16:30:40,925 - data.yahoo_client - INFO - Using cached data for XLY - 1 records
+2026-03-18 16:30:41,113 - volatility.data_quality - INFO - iv_scrape_quality: 27.75 | status=POOR | ticker=XLY
+2026-03-18 16:30:41,115 - volatility.data_quality - WARNING - Data quality below threshold for iv_scrape_quality: 27.75 < 50.0
+2026-03-18 16:30:41,118 - data.iv_scraper - WARNING - XLY: Low quality IV data (Q:27.8, Vol:96.0, Spread:82.9%)
+2026-03-18 16:30:41,126 - data.yahoo_client - INFO - Loaded 774 cached records for XLY
+2026-03-18 16:30:41,127 - data.yahoo_client - INFO - Using cached data for XLY - 40 records
+2026-03-18 16:30:41,129 - data.rv_calculator - INFO - Calculated RV for XLY: 0.1764 (17.64%)
+2026-03-18 16:30:41,135 - data.yahoo_client - INFO - Loaded 774 cached records for XLY
+2026-03-18 16:30:41,137 - data.yahoo_client - INFO - Using cached data for XLY - 52 records
+2026-03-18 16:30:41,139 - data.iv_scraper - INFO - Successfully processed XLY: Price=$112.21, IV=0.3564, RV=0.1764, Premium=102.08% (if available), YTD=-0.0519 (if available)
+2026-03-18 16:30:41,141 - data.iv_scraper - INFO - Processing IWM (I-Shares Russell 2000)
+2026-03-18 16:30:41,157 - data.yahoo_client - INFO - Loaded 50 cached records for IWM
+2026-03-18 16:30:41,158 - data.yahoo_client - INFO - Fetching new data for IWM from 2026-03-17
+2026-03-18 16:30:42,023 - data.yahoo_client - INFO - Saved 52 records to cache for IWM
+2026-03-18 16:30:42,024 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for IWM
+2026-03-18 16:30:42,042 - data.yahoo_client - INFO - Loaded 52 cached records for IWM
+2026-03-18 16:30:42,044 - data.yahoo_client - INFO - Using cached data for IWM - 1 records
+2026-03-18 16:30:42,247 - volatility.data_quality - INFO - iv_scrape_quality: 100.00 | status=GOOD | ticker=IWM
+2026-03-18 16:30:42,253 - data.yahoo_client - INFO - Loaded 52 cached records for IWM
+2026-03-18 16:30:42,255 - data.yahoo_client - INFO - Using cached data for IWM - 40 records
+2026-03-18 16:30:42,256 - data.rv_calculator - INFO - Calculated RV for IWM: 0.2143 (21.43%)
+2026-03-18 16:30:42,262 - data.yahoo_client - INFO - Loaded 52 cached records for IWM
+2026-03-18 16:30:43,437 - data.yahoo_client - INFO - Saved 51 records to cache for IWM
+2026-03-18 16:30:43,437 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for IWM
+2026-03-18 16:30:43,439 - data.iv_scraper - INFO - Successfully processed IWM: Price=$246.02, IV=0.2869, RV=0.2143, Premium=33.92% (if available), YTD=0.0069 (if available)
+2026-03-18 16:30:43,441 - data.iv_scraper - INFO - Processing XLU (Utilities Sector SPDR ETF)
+2026-03-18 16:30:43,458 - data.yahoo_client - INFO - Loaded 50 cached records for XLU
+2026-03-18 16:30:43,460 - data.yahoo_client - INFO - Fetching new data for XLU from 2026-03-17
+2026-03-18 16:30:44,557 - data.yahoo_client - INFO - Saved 52 records to cache for XLU
+2026-03-18 16:30:44,558 - data.yahoo_client - INFO - Successfully fetched/updated 2 records for XLU
+2026-03-18 16:30:44,574 - data.yahoo_client - INFO - Loaded 52 cached records for XLU
+2026-03-18 16:30:44,576 - data.yahoo_client - INFO - Using cached data for XLU - 1 records
+2026-03-18 16:30:44,781 - volatility.data_quality - INFO - iv_scrape_quality: 60.00 | status=GOOD | ticker=XLU
+2026-03-18 16:30:44,786 - data.yahoo_client - INFO - Loaded 52 cached records for XLU
+2026-03-18 16:30:44,787 - data.yahoo_client - INFO - Using cached data for XLU - 40 records
+2026-03-18 16:30:44,789 - data.rv_calculator - INFO - Calculated RV for XLU: 0.1474 (14.74%)
+2026-03-18 16:30:44,794 - data.yahoo_client - INFO - Loaded 52 cached records for XLU
+2026-03-18 16:30:45,706 - data.yahoo_client - INFO - Saved 51 records to cache for XLU
+2026-03-18 16:30:45,707 - data.yahoo_client - INFO - Successfully fetched/updated 51 records for XLU
+2026-03-18 16:30:45,709 - data.iv_scraper - INFO - Successfully processed XLU: Price=$46.73, IV=0.2212, RV=0.1474, Premium=50.04% (if available), YTD=0.0915 (if available)
+2026-03-18 16:30:45,711 - data.iv_scraper - INFO - Processing XLP (Consumer Staples Sector SPDR ETF)
+2026-03-18 16:30:45,736 - data.yahoo_client - INFO - Loaded 774 cached records for XLP
+2026-03-18 16:30:45,740 - data.yahoo_client - INFO - Using cached data for XLP - 1 records
+2026-03-18 16:30:45,746 - data.yahoo_client - INFO - Loaded 774 cached records for XLP
+2026-03-18 16:30:45,749 - data.yahoo_client - INFO - Using cached data for XLP - 1 records
+2026-03-18 16:30:45,923 - volatility.data_quality - INFO - iv_scrape_quality: 55.00 | status=GOOD | ticker=XLP
+2026-03-18 16:30:45,930 - data.yahoo_client - INFO - Loaded 774 cached records for XLP
+2026-03-18 16:30:45,931 - data.yahoo_client - INFO - Using cached data for XLP - 40 records
+2026-03-18 16:30:45,933 - data.rv_calculator - INFO - Calculated RV for XLP: 0.1513 (15.13%)
+2026-03-18 16:30:45,939 - data.yahoo_client - INFO - Loaded 774 cached records for XLP
+2026-03-18 16:30:45,941 - data.yahoo_client - INFO - Using cached data for XLP - 52 records
+2026-03-18 16:30:45,942 - data.iv_scraper - INFO - Successfully processed XLP: Price=$83.17, IV=0.1975, RV=0.1513, Premium=30.55% (if available), YTD=0.0705 (if available)
+2026-03-18 16:30:45,944 - data.iv_scraper - INFO - Scraping completed: 14/14 successful, 0 failed
+2026-03-18 16:30:45,946 - __main__ - INFO - Scrape completed in 0:00:34.565302
+2026-03-18 16:30:45,947 - __main__ - INFO - Results: 14/14 succeeded, 0 failed
