@@ -28,6 +28,21 @@ This dashboard has been optimized through a comprehensive three-phase enhancemen
 - 📊 **Real-time performance monitoring** and benchmarking
 - 🛡️ **Enhanced reliability** with robust error handling
 - 🔧 **Better maintainability** with clean architecture
+- 🕒 **Automated Data Pipeline** for daily volatility scraping
+
+## 📊 Volatility Dashboard (IVOL/RVOL)
+
+A major new feature that provides real-time and historical analysis of **Implied Volatility (IV)** vs **Realized Volatility (RV)** across 14 US equity sector ETFs.
+
+### Core Features
+- **ATM IV Interpolation**: Extracts 30-day at-the-money implied volatility from Yahoo Finance options chains using cubic spline interpolation.
+- **RV Calculation**: Annualized 30-day realized volatility based on log returns.
+- **IV Premium/Discount**: Real-time tracking of the "volatility risk premium" (`(IV/RV - 1) * 100`).
+- **Z-Score Analysis**: TTM (252-day) and 3-Year (756-day) relative value ranking of volatility premiums.
+- **Automated Pipeline**: Integrated Windows Task Scheduler automation for daily data collection.
+
+### ETF Universe (14 Symbols)
+Tracks XLRE, XLF, XLE, XLC, XLK, QQQ, SPY, XLV, XLB, XLI, XLY, IWM, XLU, XLP.
 
 ## Features
 
@@ -58,71 +73,55 @@ The codebase follows a highly optimized modular architecture with comprehensive 
 macro_dashboard/
 ├── app.py                          # Main Streamlit application entry point
 ├── requirements.txt                # Python dependencies (optimized)
-├── .env.example                    # Example environment variables template
+├── .env.example & .env             # FRED API key and environment settings
 ├── README.md                       # Project documentation
 ├── .gitignore                      # Git ignore rules
 ├── Macro Dashboard.code-workspace  # VS Code workspace configuration
 │
-├── archive/                        # Archived utilities and generated artifacts
-│   ├── legacy_tools/               # Standalone legacy helper scripts
-│   └── generated/                  # Generated debug/HTML artifacts
-│
-├── src/                            # 🚀 Optimized source package (NEW)
-│   ├── __init__.py                 # Package initialization & exports
+├── src/                            # 🚀 Optimized source package
+│   ├── __init__.py
 │   ├── config/
-│   │   └── settings.py             # Centralized configuration management
+│   │   ├── indicator_registry.py   # ✨ NEW: Centralized indicator config
+│   │   └── settings.py             # Configuration management
 │   ├── core/
-│   │   ├── __init__.py
-│   │   └── caching/
-│   │       ├── __init__.py
-│   │       └── cache_manager.py    # Multi-level intelligent caching
+│   │   ├── caching/
+│   │   │   └── cache_manager.py    # Intelligent caching
 │   └── services/
-│       ├── __init__.py
-│       ├── indicator_service.py    # Business logic service layer
-│       ├── optimized_indicators.py # High-performance algorithms
-│       └── performance_monitor.py  # Real-time performance tracking
+│       ├── indicator_service.py    # Service layer logic
+│       ├── optimized_indicators.py # Vectorized algorithms
+│       └── performance_monitor.py  # Real-time metrics tracking
 │
-├── data/                           # Data handling and API client modules
-│   ├── __init__.py
-│   ├── fred_client.py              # FRED API client with enhanced caching
-│   ├── yahoo_client.py             # Yahoo Finance API client
-│   ├── indicators.py               # Economic indicators data fetching and processing
-│   ├── processing.py               # Data processing utilities
-│   ├── pce_fix.py                  # PCE data processing fixes
-│   ├── release_schedule.py         # Economic data release schedule tracking
-│   ├── iv_db.py                    # Volatility database layer with SQLite optimization
-│   ├── iv_scraper.py               # Options chain scraper with quality assessment
-│   ├── rv_calculator.py            # Realized volatility calculations
-│   ├── vol_table_data.py           # Volatility table data assembly and Z-scores
-│   ├── market_utils.py             # Trading day calculations and market holidays
-│   ├── performance_utils.py        # Async processing utilities for volatility data
-│   └── cache/                      # Cached FRED and volatility data files
+├── data/                           # Data fetching & processing
+│   ├── fred_client.py              # FRED API with caching
+│   ├── yahoo_client.py             # Yahoo Finance API
+│   ├── indicators.py               # Indicators data fetching
+│   ├── iv_db.py                    # ✨ Volatility SQLite database layer
+│   ├── iv_scraper.py               # ✨ Options chain scraper (30-day ATM)
+│   ├── rv_calculator.py            # ✨ Realized volatility (RV) calculator
+│   ├── vol_table_data.py           # ✨ Volatility table assembly & Z-scores
+│   ├── market_utils.py             # Trading days & market holidays
+│   └── performance_utils.py        # Volatility processing utilities
 │
-├── ui/                             # User interface components
-│   ├── __init__.py
-│   ├── dashboard.py                # Main dashboard layout and status tables
-│   ├── indicators.py               # Individual indicator card displays
-│   ├── vol_table.py                # Volatility table display with heatmap styling
-│   └── custom.css                  # Custom CSS styling
+├── ui/                             # Streamlit UI components
+│   ├── dashboard.py                # Main layout & status tables
+│   ├── indicators.py               # Indicator cards
+│   └── vol_table.py                # ✨ Heatmap volatility table display
 │
-├── visualization/                  # Chart and visualization modules
-│   ├── __init__.py
-│   ├── charts.py                   # Core chart creation functions and theming
-│   ├── indicators.py               # Indicator-specific chart functions
-│   └── warning_signals.py          # Warning signal generation and display
+├── visualization/                  # Chart and signal logic
+│   ├── charts.py                   # Plotly theming & creation
+│   ├── indicators.py               # Indicator-specific charts
+│   └── warning_signals.py          # Warning signal generation logic
 │
-├── test_phase1.py                  # Phase 1 optimization tests
-├── test_phase2.py                  # Phase 2 architecture tests
-├── test_phase3.py                  # Phase 3 algorithm tests
-├── test_service_layer.py           # Service layer compatibility test
-└── tests/                          # Comprehensive test suite
-    ├── test_iv_db.py               # IV database functionality tests
-    ├── test_iv_db_performance.py   # IV database performance optimization tests
-    ├── test_iv_scraper.py          # Options scraper tests
-    ├── test_rv_calculator.py       # Realized volatility calculation tests
-    ├── test_vol_table_data.py      # Volatility table assembly tests
-    ├── test_market_utils.py        # Trading day calculation tests
-    └── test_vol_integration.py     # End-to-end volatility integration tests
+├── scripts/                        # ⚡ Automation & scripting
+│   ├── scrape_iv.py                # Daily volatility scraper (standalone)
+│   └── setup_task_scheduler.ps1    # ✨ Windows Task Scheduler integration
+│
+└── tests/                          # 🧪 Comprehensive test suite
+    ├── test_iv_db.py               # DB layer & performance tests
+    ├── test_iv_scraper.py          # Scraper & interpolation tests
+    ├── test_rv_calculator.py       # RV calculation tests
+    ├── test_vol_table_data.py      # Assembly & Z-score tests
+    └── test_vol_integration.py     # End-to-end integration tests
 ```
 
 ### 🏗️ Architecture Highlights
@@ -187,6 +186,32 @@ USE_SERVICE_LAYER=true streamlit run app.py
 ```
 
 **Note:** If you encounter issues installing pandas with Python 3.13, consider using Python 3.12 or conda for better package compatibility.
+
+## ⚡ Automation & Scheduling
+
+The **IVOL/RVOL** dashboard requires daily data collection to build historical time series for Z-score accuracy. This has been automated via Windows Task Scheduler.
+
+### Windows Task Scheduler Integration
+A PowerShell script is provided to set up the daily scraping task:
+
+1. **Activate Environment**: Ensure you are in your project directory and virtual environment.
+2. **Run Setup**:
+   ```powershell
+   # Open PowerShell as Administrator
+   cd "u:\Code Hero\Macro Dashboard"
+   .\scripts\setup_task_scheduler.ps1
+   ```
+3. **What happens**:
+   - Creates a scheduled task called `MacroDashboard_IVScrape`.
+   - Runs **daily at 4:30 PM** (30 mins after market close).
+   - Logs output to `scripts\scrape_iv.log`.
+   - You can verify the task in **Windows Task Scheduler** library.
+
+### Manual Data Refresh
+You can run the scraper manually at any time to update the SQLite database:
+```bash
+python scripts/scrape_iv.py
+```
 
 ## 🔧 Performance Optimization
 

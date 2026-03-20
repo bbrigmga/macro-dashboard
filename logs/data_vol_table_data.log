@@ -22,3 +22,155 @@
 2026-03-18 10:15:07 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.04s
 2026-03-19 07:47:07 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
 2026-03-19 07:47:07 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.03s
+2026-03-20 08:59:17 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:17 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.05s
+2026-03-20 08:59:19 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:19 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:20 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:20 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 08:59:20 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:20 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:20 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:20 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 08:59:20 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:20 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:20 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:20 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.03s
+2026-03-20 08:59:21 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:21 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.02s
+2026-03-20 08:59:21 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:21 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 08:59:21 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:21 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 08:59:22 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:43 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:43 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.05s
+2026-03-20 09:00:44 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:44 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:56 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:56 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 09:00:56 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:56 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:56 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:56 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 09:00:56 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:56 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:57 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:57 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.03s
+2026-03-20 09:00:57 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:57 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.02s
+2026-03-20 09:00:57 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:57 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 09:00:57 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:57 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:57 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:57 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:57 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 09:00:58 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 10:05:50 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:05:50 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.10s
+2026-03-20 10:05:50 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:05:50 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 10:05:51 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:05:51 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.01s
+2026-03-20 10:05:51 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:05:51 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 10:05:51 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:05:51 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.02s
+2026-03-20 10:05:51 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:05:51 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.03s
+2026-03-20 10:14:59 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:14:59 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.05s
+2026-03-20 10:15:00 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:00 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.02s
+2026-03-20 10:15:00 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:00 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 10:15:00 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:00 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.01s
+2026-03-20 10:15:00 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:00 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 10:15:00 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.07s
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.03s
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 10:15:59 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:15:59 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.06s
+2026-03-20 10:16:00 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:00 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.01s
+2026-03-20 10:16:00 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:00 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 10:16:00 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:00 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.01s
+2026-03-20 10:16:00 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:00 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 3 rows using optimized batch queries in 0.02s
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.03s
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - WARNING - build_table:87 - No data available in database
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 5 rows using optimized batch queries in 0.01s
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s
+2026-03-20 10:16:01 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-03-20 10:16:02 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 1 rows using optimized batch queries in 0.01s

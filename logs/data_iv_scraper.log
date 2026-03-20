@@ -507,3 +507,162 @@
 2026-03-18 16:30:45 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLP (Consumer Staples Sector SPDR ETF)
 2026-03-18 16:30:45 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLP: Price=$83.17, IV=0.1975, RV=0.1513, Premium=30.55% (if available), YTD=0.0705 (if available)
 2026-03-18 16:30:45 - data.iv_scraper - INFO - scrape_daily:794 - Scraping completed: 14/14 successful, 0 failed
+2026-03-19 16:30:15 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-19 16:30:15 - data.iv_scraper - INFO - scrape_daily:694 - Starting daily IV scraping for ETF universe
+2026-03-19 16:30:15 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLRE (Real Estate Sector SPDR ETF)
+2026-03-19 16:30:25 - data.iv_scraper - WARNING - scrape_daily:743 - XLRE: Low quality IV data (Q:27.8, Vol:212.5, Spread:76.8%)
+2026-03-19 16:30:26 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLRE: Price=$41.92, IV=0.2825, RV=0.1334, Premium=111.84% (if available), YTD=0.0406 (if available)
+2026-03-19 16:30:26 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLF (Financials Sector SPDR ETF)
+2026-03-19 16:30:28 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLF: Price=$48.99, IV=0.3668, RV=0.1889, Premium=94.20% (if available), YTD=-0.1085 (if available)
+2026-03-19 16:30:28 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLE (Energy Sector SPDR ETF)
+2026-03-19 16:30:30 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLE: Price=$59.36, IV=0.3399, RV=0.1827, Premium=86.05% (if available), YTD=0.2800 (if available)
+2026-03-19 16:30:30 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLC (Communication Services SPDR ETF)
+2026-03-19 16:30:31 - data.iv_scraper - WARNING - scrape_daily:743 - XLC: Low quality IV data (Q:23.2, Vol:nan, Spread:114.0%)
+2026-03-19 16:30:32 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLC: Price=$113.14, IV=0.3899, RV=0.1254, Premium=210.84% (if available), YTD=-0.0277 (if available)
+2026-03-19 16:30:32 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLK (Technology Sector SPDR ETF)
+2026-03-19 16:30:34 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLK: Price=$138.43, IV=0.3319, RV=0.2363, Premium=40.44% (if available), YTD=-0.0439 (if available)
+2026-03-19 16:30:34 - data.iv_scraper - INFO - scrape_daily:713 - Processing QQQ (Power Shares QQQ Trust ETF)
+2026-03-19 16:30:36 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed QQQ: Price=$593.02, IV=0.2390, RV=0.1713, Premium=39.55% (if available), YTD=-0.0297 (if available)
+2026-03-19 16:30:36 - data.iv_scraper - INFO - scrape_daily:713 - Processing SPY (SPDR S&P 500 Trust)
+2026-03-19 16:30:38 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed SPY: Price=$659.80, IV=0.2032, RV=0.1352, Premium=50.32% (if available), YTD=-0.0318 (if available)
+2026-03-19 16:30:38 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLV (Health Care Sector SPDR ETF)
+2026-03-19 16:30:39 - data.iv_scraper - WARNING - scrape_daily:743 - XLV: Low quality IV data (Q:24.4, Vol:726.9538461538461, Spread:116.3%)
+2026-03-19 16:30:41 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLV: Price=$146.61, IV=0.3805, RV=0.1517, Premium=150.83% (if available), YTD=-0.0538 (if available)
+2026-03-19 16:30:41 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLB (Materials Sector SPDR ETF)
+2026-03-19 16:30:42 - data.iv_scraper - WARNING - scrape_daily:743 - XLB: Low quality IV data (Q:33.0, Vol:4595.613636363636, Spread:96.1%)
+2026-03-19 16:30:43 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLB: Price=$47.74, IV=0.7461, RV=0.1946, Premium=283.41% (if available), YTD=0.0512 (if available)
+2026-03-19 16:30:43 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLI (Industrials Sector SPDR ETF)
+2026-03-19 16:30:44 - data.iv_scraper - WARNING - scrape_daily:743 - XLI: Low quality IV data (Q:34.9, Vol:22.666666666666668, Spread:66.2%)
+2026-03-19 16:30:45 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLI: Price=$164.06, IV=0.3709, RV=0.1784, Premium=107.90% (if available), YTD=0.0456 (if available)
+2026-03-19 16:30:45 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLY (Consumer Discretionary SPDR ETF)
+2026-03-19 16:30:45 - data.iv_scraper - WARNING - scrape_daily:743 - XLY: Low quality IV data (Q:25.5, Vol:56.5, Spread:93.1%)
+2026-03-19 16:30:45 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLY: Price=$112.21, IV=0.4049, RV=0.1764, Premium=129.58% (if available), YTD=-0.0519 (if available)
+2026-03-19 16:30:45 - data.iv_scraper - INFO - scrape_daily:713 - Processing IWM (I-Shares Russell 2000)
+2026-03-19 16:30:47 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed IWM: Price=$247.63, IV=0.2834, RV=0.2153, Premium=31.64% (if available), YTD=-0.0093 (if available)
+2026-03-19 16:30:47 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLU (Utilities Sector SPDR ETF)
+2026-03-19 16:30:49 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLU: Price=$46.54, IV=0.2220, RV=0.1476, Premium=50.42% (if available), YTD=0.0822 (if available)
+2026-03-19 16:30:49 - data.iv_scraper - INFO - scrape_daily:713 - Processing XLP (Consumer Staples Sector SPDR ETF)
+2026-03-19 16:30:49 - data.iv_scraper - WARNING - scrape_daily:743 - XLP: Low quality IV data (Q:27.8, Vol:328.86486486486484, Spread:100.1%)
+2026-03-19 16:30:49 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed XLP: Price=$83.17, IV=0.4055, RV=0.1513, Premium=168.02% (if available), YTD=0.0705 (if available)
+2026-03-19 16:30:49 - data.iv_scraper - INFO - scrape_daily:794 - Scraping completed: 14/14 successful, 0 failed
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - ERROR - _days_to_expiration:251 - Error parsing expiration date invalid-date: time data 'invalid-date' does not match format '%Y-%m-%d'
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - WARNING - _get_current_price:229 - Could not get current price for SPY
+2026-03-20 08:59:18 - data.iv_scraper - ERROR - _get_current_price:233 - Error getting current price for SPY: Network error
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - WARNING - _extract_iv_for_expiration:554 - Empty options chain for SPY 2024-04-19
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - WARNING - _get_atm_iv:399 - No option expirations for SPY
+2026-03-20 08:59:18 - data.iv_scraper - ERROR - _get_atm_iv:531 - Error extracting ATM IV for SPY: No options
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - WARNING - _get_ytd_return:643 - No price data available for SPY YTD calculation
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - INFO - scrape_daily:694 - Starting daily IV scraping for ETF universe
+2026-03-20 08:59:18 - data.iv_scraper - INFO - scrape_daily:713 - Processing SPY (SPDR S&P 500 Trust)
+2026-03-20 08:59:18 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed SPY: Price=$150.00, IV=0.2500, RV=0.2000, Premium=25.00% (if available), YTD=0.1500 (if available)
+2026-03-20 08:59:18 - data.iv_scraper - INFO - scrape_daily:794 - Scraping completed: 1/1 successful, 0 failed
+2026-03-20 08:59:18 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 08:59:18 - data.iv_scraper - INFO - scrape_daily:694 - Starting daily IV scraping for ETF universe
+2026-03-20 08:59:18 - data.iv_scraper - INFO - scrape_daily:713 - Processing TEST (Test ETF)
+2026-03-20 08:59:18 - data.iv_scraper - WARNING - scrape_daily:718 - Failed to get current price for TEST
+2026-03-20 08:59:18 - data.iv_scraper - INFO - scrape_daily:794 - Scraping completed: 0/1 successful, 1 failed
+2026-03-20 08:59:18 - data.iv_scraper - WARNING - scrape_daily:797 - Failed tickers: TEST
+2026-03-20 08:59:18 - data.iv_scraper - ERROR - run_scraper:834 - Fatal error running IV scraper: Database connection failed
+2026-03-20 08:59:20 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - ERROR - _days_to_expiration:251 - Error parsing expiration date invalid-date: time data 'invalid-date' does not match format '%Y-%m-%d'
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - WARNING - _get_current_price:229 - Could not get current price for SPY
+2026-03-20 09:00:44 - data.iv_scraper - ERROR - _get_current_price:233 - Error getting current price for SPY: Network error
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - WARNING - _extract_iv_for_expiration:554 - Empty options chain for SPY 2024-04-19
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - WARNING - _get_atm_iv:399 - No option expirations for SPY
+2026-03-20 09:00:44 - data.iv_scraper - ERROR - _get_atm_iv:531 - Error extracting ATM IV for SPY: No options
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - WARNING - _get_ytd_return:643 - No price data available for SPY YTD calculation
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - INFO - scrape_daily:694 - Starting daily IV scraping for ETF universe
+2026-03-20 09:00:44 - data.iv_scraper - INFO - scrape_daily:713 - Processing SPY (SPDR S&P 500 Trust)
+2026-03-20 09:00:44 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed SPY: Price=$150.00, IV=0.2500, RV=0.2000, Premium=25.00% (if available), YTD=0.1500 (if available)
+2026-03-20 09:00:44 - data.iv_scraper - INFO - scrape_daily:794 - Scraping completed: 1/1 successful, 0 failed
+2026-03-20 09:00:44 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 09:00:44 - data.iv_scraper - INFO - scrape_daily:694 - Starting daily IV scraping for ETF universe
+2026-03-20 09:00:44 - data.iv_scraper - INFO - scrape_daily:713 - Processing TEST (Test ETF)
+2026-03-20 09:00:44 - data.iv_scraper - WARNING - scrape_daily:718 - Failed to get current price for TEST
+2026-03-20 09:00:44 - data.iv_scraper - INFO - scrape_daily:794 - Scraping completed: 0/1 successful, 1 failed
+2026-03-20 09:00:44 - data.iv_scraper - WARNING - scrape_daily:797 - Failed tickers: TEST
+2026-03-20 09:00:44 - data.iv_scraper - ERROR - run_scraper:834 - Fatal error running IV scraper: Database connection failed
+2026-03-20 09:00:56 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:05:51 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - ERROR - _days_to_expiration:251 - Error parsing expiration date invalid-date: time data 'invalid-date' does not match format '%Y-%m-%d'
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - WARNING - _get_current_price:229 - Could not get current price for SPY
+2026-03-20 10:15:00 - data.iv_scraper - ERROR - _get_current_price:233 - Error getting current price for SPY: Network error
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - WARNING - _extract_iv_for_expiration:554 - Empty options chain for SPY 2024-04-19
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - WARNING - _get_atm_iv:399 - No option expirations for SPY
+2026-03-20 10:15:00 - data.iv_scraper - ERROR - _get_atm_iv:531 - Error extracting ATM IV for SPY: No options
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - WARNING - _get_ytd_return:643 - No price data available for SPY YTD calculation
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - INFO - scrape_daily:694 - Starting daily IV scraping for ETF universe
+2026-03-20 10:15:00 - data.iv_scraper - INFO - scrape_daily:713 - Processing SPY (SPDR S&P 500 Trust)
+2026-03-20 10:15:00 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed SPY: Price=$150.00, IV=0.2500, RV=0.2000, Premium=25.00% (if available), YTD=0.1500 (if available)
+2026-03-20 10:15:00 - data.iv_scraper - INFO - scrape_daily:794 - Scraping completed: 1/1 successful, 0 failed
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:15:00 - data.iv_scraper - INFO - scrape_daily:694 - Starting daily IV scraping for ETF universe
+2026-03-20 10:15:00 - data.iv_scraper - INFO - scrape_daily:713 - Processing TEST (Test ETF)
+2026-03-20 10:15:00 - data.iv_scraper - WARNING - scrape_daily:718 - Failed to get current price for TEST
+2026-03-20 10:15:00 - data.iv_scraper - INFO - scrape_daily:794 - Scraping completed: 0/1 successful, 1 failed
+2026-03-20 10:15:00 - data.iv_scraper - WARNING - scrape_daily:797 - Failed tickers: TEST
+2026-03-20 10:15:00 - data.iv_scraper - ERROR - run_scraper:834 - Fatal error running IV scraper: Database connection failed
+2026-03-20 10:15:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - ERROR - _days_to_expiration:251 - Error parsing expiration date invalid-date: time data 'invalid-date' does not match format '%Y-%m-%d'
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - WARNING - _get_current_price:229 - Could not get current price for SPY
+2026-03-20 10:16:00 - data.iv_scraper - ERROR - _get_current_price:233 - Error getting current price for SPY: Network error
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - WARNING - _extract_iv_for_expiration:554 - Empty options chain for SPY 2024-04-19
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - WARNING - _get_atm_iv:399 - No option expirations for SPY
+2026-03-20 10:16:00 - data.iv_scraper - ERROR - _get_atm_iv:531 - Error extracting ATM IV for SPY: No options
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - WARNING - _get_ytd_return:643 - No price data available for SPY YTD calculation
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - INFO - scrape_daily:694 - Starting daily IV scraping for ETF universe
+2026-03-20 10:16:00 - data.iv_scraper - INFO - scrape_daily:713 - Processing SPY (SPDR S&P 500 Trust)
+2026-03-20 10:16:00 - data.iv_scraper - INFO - scrape_daily:778 - Successfully processed SPY: Price=$150.00, IV=0.2500, RV=0.2000, Premium=25.00% (if available), YTD=0.1500 (if available)
+2026-03-20 10:16:00 - data.iv_scraper - INFO - scrape_daily:794 - Scraping completed: 1/1 successful, 0 failed
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
+2026-03-20 10:16:00 - data.iv_scraper - INFO - scrape_daily:694 - Starting daily IV scraping for ETF universe
+2026-03-20 10:16:00 - data.iv_scraper - INFO - scrape_daily:713 - Processing TEST (Test ETF)
+2026-03-20 10:16:00 - data.iv_scraper - WARNING - scrape_daily:718 - Failed to get current price for TEST
+2026-03-20 10:16:00 - data.iv_scraper - INFO - scrape_daily:794 - Scraping completed: 0/1 successful, 1 failed
+2026-03-20 10:16:00 - data.iv_scraper - WARNING - scrape_daily:797 - Failed tickers: TEST
+2026-03-20 10:16:00 - data.iv_scraper - ERROR - run_scraper:834 - Fatal error running IV scraper: Database connection failed
+2026-03-20 10:16:00 - data.iv_scraper - INFO - __init__:57 - IV Scraper initialized
