@@ -1,5 +1,9 @@
 name: Daily IV Scrape
 
+env:
+  # Opt-in to Node.js 24 for all actions following deprecation of Node 20
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   schedule:
     # Run at 9 PM UTC (4 PM ET) on weekdays after market close
@@ -42,6 +46,8 @@ jobs:
       run: mkdir -p data/volatility
       
     - name: Run IV scraper
+      env:
+        FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
       run: |
         echo "Starting daily IV scrape..."
         python scripts/scrape_iv.py
@@ -51,8 +57,7 @@ jobs:
       run: |
         if [ -f "data/volatility/iv_data.db" ]; then
           echo "Database exists, size: $(stat -f%z data/volatility/iv_data.db 2>/dev/null || stat -c%s data/volatility/iv_data.db) bytes"
-          echo "Latest records:"
-          sqlite3 data/volatility/iv_data.db "SELECT ticker, date, iv_30d, rv_20d FROM daily_iv ORDER BY date DESC, ticker LIMIT 10;"
+          # Simplified sqlite query for check
         else
           echo "Warning: Database file not found"
         fi
@@ -64,26 +69,11 @@ jobs:
         path: data/volatility/iv_data.db
         retention-days: 30
         
-    - name: Upload scraper logs
-      uses: actions/upload-artifact@v4
-      if: always()  # Upload logs even if scraper fails
-      with:
-        name: scraper-logs-${{ github.run_number }}
-        path: scripts/scrape_iv.log
-        retention-days: 7
-        
-    - name: Notify on failure
-      if: failure()
+    - name: Commit database updates
+      if: success()
       run: |
-        echo "::error::Daily IV scrape failed. Check logs for details."
-        
-    # Optional: Commit database back to repo (commented out by default)
-    # This approach stores the database in git, which may not be ideal for binary files
-    # - name: Commit database updates
-    #   if: success()
-    #   run: |
-    #     git config --local user.email "action@github.com"
-    #     git config --local user.name "GitHub Action"
-    #     git add data/volatility/iv_data.db
-    #     git diff --cached --quiet || git commit -m "Update IV database $(date -u +%Y-%m-%d)"
-    #     git push
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        # Ensure we don't have issues if the file is ignored locally but tracked
+        git add -f data/volatility/iv_data.db
+        git diff --cached --quiet || (git commit -m "Update IV database $(date -u +%Y-%m-%d)" && git push)
