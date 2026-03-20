@@ -458,7 +458,11 @@ def generate_pmi_warning(pmi_data):
     Returns:
         str: Formatted warning or description text
     """
-    latest_pmi = pmi_data['latest_pmi']
+    latest_pmi = pmi_data.get('latest_pmi')
+    
+    if latest_pmi is None:
+        return "<p>No PMI data available.</p>"
+    
     status = create_warning_indicator(latest_pmi < 50, 0.5)
     
     # Detailed explanation of the new PMI calculation methodology

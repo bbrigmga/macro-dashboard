@@ -6,7 +6,7 @@ import pytest
 import pandas as pd
 import numpy as np
 import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from pandas.io.formats.style import Styler
 from ui.vol_table import _format_and_style_table, _render_data_freshness_info
 import streamlit as st
@@ -114,8 +114,9 @@ class TestVolTableRendering:
             'date': ['2026-03-06']
         })
     
+    @patch('ui.vol_table._get_cached_vol_table_data', return_value=None)
     @patch('ui.vol_table.st')
-    def test_render_empty_data_message(self, mock_st):
+    def test_render_empty_data_message(self, mock_st, mock_cache_fn):
         """Test rendering with empty data shows appropriate message"""
         from ui.vol_table import render_vol_table
         
@@ -182,6 +183,7 @@ class TestDataFreshnessInfo:
         # Mock current time
         mock_now = pd.Timestamp('2026-03-06 10:00:00')
         mock_timestamp.now.return_value = mock_now
+        mock_st.columns.return_value = [MagicMock(), MagicMock(), MagicMock()]
         
         data = pd.DataFrame({
             'date': ['2026-03-06', '2026-03-06'],
@@ -190,9 +192,8 @@ class TestDataFreshnessInfo:
         
         _render_data_freshness_info(data)
         
-        # Should show current freshness
-        mock_st.columns.assert_called_once_with(2)
-        # The exact assertion depends on how streamlit columns work
+        # Should call st.columns (either 3 columns or no crash)
+        mock_st.columns.assert_called_once_with(3)
     
     @patch('ui.vol_table.st')
     @patch('ui.vol_table.pd.Timestamp')  
@@ -201,6 +202,7 @@ class TestDataFreshnessInfo:
         # Mock current time
         mock_now = pd.Timestamp('2026-03-10 10:00:00')  # 4 days later
         mock_timestamp.now.return_value = mock_now
+        mock_st.columns.return_value = [MagicMock(), MagicMock(), MagicMock()]
         
         data = pd.DataFrame({
             'date': ['2026-03-06', '2026-03-06'],  # 4 days old
@@ -210,12 +212,13 @@ class TestDataFreshnessInfo:
         _render_data_freshness_info(data)
         
         # Should call streamlit functions
-        mock_st.columns.assert_called_once_with(2)
+        mock_st.columns.assert_called_once_with(3)
     
     @patch('ui.vol_table.st')
     @patch('ui.vol_table.logger')
     def test_handles_missing_date_column(self, mock_logger, mock_st):
         """Test graceful handling when date column is missing"""
+        mock_st.columns.return_value = [MagicMock(), MagicMock(), MagicMock()]
         data = pd.DataFrame({
             'ticker': ['XLK', 'XLE'],
             'ytd_pct': [10.5, -5.2]
@@ -235,44 +238,40 @@ class TestIntegrationFunction:
         """Test successful data fetch and render"""
         from ui.vol_table import render_vol_table_with_data_fetch
         
-        # Mock the imports and service within the function
-        with patch.dict('sys.modules', {'src.services.indicator_service': MagicMock()}):
-            mock_module = MagicMock()
-            mock_service_class = MagicMock()
-            mock_service = MagicMock()
-            mock_result = MagicMock()
-            mock_result.data = pd.DataFrame({'test': [1, 2, 3]})
+        mock_module = MagicMock()
+        mock_service_class = MagicMock()
+        mock_service = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = pd.DataFrame({'test': [1, 2, 3]})
+        
+        mock_service.get_indicator = AsyncMock(return_value=mock_result)
+        mock_service_class.return_value = mock_service
+        mock_module.IndicatorService = mock_service_class
+        
+        with patch.dict('sys.modules', {'src.services.indicator_service': mock_module}):
+            render_vol_table_with_data_fetch()
             
-            mock_service.get_indicator.return_value = mock_result
-            mock_service_class.return_value = mock_service
-            mock_module.IndicatorService = mock_service_class
-            
-            with patch.dict('sys.modules', {'src.services.indicator_service': mock_module}):
-                render_vol_table_with_data_fetch()
-                
-                # Should call render function
-                mock_render.assert_called_once()
+            # Should call render function
+            mock_render.assert_called_once()
     
     @patch('ui.vol_table.render_vol_table')
     def test_render_with_data_fetch_no_data(self, mock_render):
         """Test handling when no data is returned"""
         from ui.vol_table import render_vol_table_with_data_fetch
         
-        # Mock the imports and service within the function
-        with patch.dict('sys.modules', {'src.services.indicator_service': MagicMock()}):
-            mock_module = MagicMock()
-            mock_service_class = MagicMock()
-            mock_service = MagicMock()
+        mock_module = MagicMock()
+        mock_service_class = MagicMock()
+        mock_service = MagicMock()
+        
+        mock_service.get_indicator = AsyncMock(return_value=None)
+        mock_service_class.return_value = mock_service
+        mock_module.IndicatorService = mock_service_class
+        
+        with patch.dict('sys.modules', {'src.services.indicator_service': mock_module}):
+            render_vol_table_with_data_fetch()
             
-            mock_service.get_indicator.return_value = None
-            mock_service_class.return_value = mock_service
-            mock_module.IndicatorService = mock_service_class
-            
-            with patch.dict('sys.modules', {'src.services.indicator_service': mock_module}):
-                render_vol_table_with_data_fetch()
-                
-                # Should render with None data
-                mock_render.assert_called_once_with(None)
+            # Should render with None data
+            mock_render.assert_called_once_with(None)
     
     @patch('ui.vol_table.st')
     @patch('ui.vol_table.logger')

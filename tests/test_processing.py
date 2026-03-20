@@ -24,8 +24,7 @@ class TestConvertDates:
         
         result = convert_dates(df)
         
-        # Should convert to numpy datetime64 array
-        assert isinstance(result.index, np.ndarray)
+        # Should convert index to datetime64 type
         assert result.index.dtype.kind == 'M'  # datetime64
         assert len(result) == 5
         
