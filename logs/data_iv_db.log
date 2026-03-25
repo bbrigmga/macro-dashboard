@@ -1346,3 +1346,63 @@
 2026-03-20 10:16:02 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
 2026-03-20 10:16:02 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
 2026-03-20 10:16:02 - data.iv_db - INFO - _init_db:66 - Initialized IV database at C:\Users\Garrett\AppData\Local\Temp\tmpcj2e10xt.db
+2026-03-20 11:13:57 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-20 11:13:57 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-20 11:13:57 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-20 11:13:57 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-20 11:14:15 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-20 11:14:15 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-20 11:14:15 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-20 11:14:15 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-20 11:14:33 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-20 11:14:33 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-20 11:14:33 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-20 11:14:33 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-20 16:30:11 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-20 16:30:11 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-20 16:30:11 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-20 16:30:12 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-23 08:57:32 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-23 08:57:32 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-23 08:57:32 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-23 08:57:32 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-23 08:57:54 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-23 08:57:54 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-23 08:57:54 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-23 08:57:54 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-23 08:58:11 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-23 08:58:11 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-23 08:58:11 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-23 08:58:11 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-23 16:30:16 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-23 16:30:16 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-23 16:30:16 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-23 16:30:16 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-24 13:53:30 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-24 13:53:30 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-24 13:53:30 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-24 13:53:30 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-24 13:54:15 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-24 13:54:15 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-24 13:54:15 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-24 13:54:15 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-24 13:54:32 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-24 13:54:32 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-24 13:54:32 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-24 13:54:32 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-24 16:30:11 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-24 16:30:11 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-24 16:30:11 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-24 16:30:11 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-25 07:48:23 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-25 07:48:23 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-25 07:48:23 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-25 07:48:23 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-25 07:48:28 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-25 07:48:28 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-25 07:48:28 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-25 07:48:28 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db
+2026-03-25 07:48:32 - data.iv_db - INFO - enable_wal_mode:472 - Enabling WAL mode for better performance...
+2026-03-25 07:48:32 - data.iv_db - INFO - enable_wal_mode:475 - WAL mode enabled
+2026-03-25 07:48:32 - data.iv_db - INFO - optimize_connection:494 - Database connection optimized for performance
+2026-03-25 07:48:32 - data.iv_db - INFO - _init_db:66 - Initialized IV database at data\volatility\iv_data.db

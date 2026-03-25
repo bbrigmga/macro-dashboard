@@ -177,3 +177,67 @@
 2026-03-20 09:00:44 - QUALITY - iv_scrape_quality: 80.00 | status=GOOD | ticker=SPY
 2026-03-20 10:15:00 - QUALITY - iv_scrape_quality: 80.00 | status=GOOD | ticker=SPY
 2026-03-20 10:16:00 - QUALITY - iv_scrape_quality: 80.00 | status=GOOD | ticker=SPY
+2026-03-20 16:30:18 - QUALITY - iv_scrape_quality: 24.38 | status=POOR | ticker=XLRE
+2026-03-20 16:30:18 - QUALITY - Data quality below threshold for iv_scrape_quality: 24.38 < 50.0
+2026-03-20 16:30:20 - QUALITY - iv_scrape_quality: 80.00 | status=GOOD | ticker=XLF
+2026-03-20 16:30:22 - QUALITY - iv_scrape_quality: 55.00 | status=GOOD | ticker=XLE
+2026-03-20 16:30:25 - QUALITY - iv_scrape_quality: 19.88 | status=POOR | ticker=XLC
+2026-03-20 16:30:25 - QUALITY - Data quality below threshold for iv_scrape_quality: 19.88 < 50.0
+2026-03-20 16:30:27 - QUALITY - iv_scrape_quality: 45.75 | status=POOR | ticker=XLK
+2026-03-20 16:30:27 - QUALITY - Data quality below threshold for iv_scrape_quality: 45.75 < 50.0
+2026-03-20 16:30:29 - QUALITY - iv_scrape_quality: 95.00 | status=GOOD | ticker=QQQ
+2026-03-20 16:30:32 - QUALITY - iv_scrape_quality: 100.00 | status=GOOD | ticker=SPY
+2026-03-20 16:30:34 - QUALITY - iv_scrape_quality: 27.75 | status=POOR | ticker=XLV
+2026-03-20 16:30:34 - QUALITY - Data quality below threshold for iv_scrape_quality: 27.75 < 50.0
+2026-03-20 16:30:36 - QUALITY - iv_scrape_quality: 25.50 | status=POOR | ticker=XLB
+2026-03-20 16:30:36 - QUALITY - Data quality below threshold for iv_scrape_quality: 25.50 < 50.0
+2026-03-20 16:30:37 - QUALITY - iv_scrape_quality: 40.50 | status=POOR | ticker=XLI
+2026-03-20 16:30:37 - QUALITY - Data quality below threshold for iv_scrape_quality: 40.50 < 50.0
+2026-03-20 16:30:39 - QUALITY - iv_scrape_quality: 27.38 | status=POOR | ticker=XLY
+2026-03-20 16:30:39 - QUALITY - Data quality below threshold for iv_scrape_quality: 27.38 < 50.0
+2026-03-20 16:30:40 - QUALITY - iv_scrape_quality: 100.00 | status=GOOD | ticker=IWM
+2026-03-20 16:30:42 - QUALITY - iv_scrape_quality: 54.50 | status=GOOD | ticker=XLU
+2026-03-20 16:30:43 - QUALITY - iv_scrape_quality: 26.62 | status=POOR | ticker=XLP
+2026-03-20 16:30:43 - QUALITY - Data quality below threshold for iv_scrape_quality: 26.62 < 50.0
+2026-03-23 16:30:26 - QUALITY - iv_scrape_quality: 25.50 | status=POOR | ticker=XLRE
+2026-03-23 16:30:26 - QUALITY - Data quality below threshold for iv_scrape_quality: 25.50 < 50.0
+2026-03-23 16:30:28 - QUALITY - iv_scrape_quality: 77.00 | status=GOOD | ticker=XLF
+2026-03-23 16:30:30 - QUALITY - iv_scrape_quality: 90.00 | status=GOOD | ticker=XLE
+2026-03-23 16:30:32 - QUALITY - iv_scrape_quality: 23.25 | status=POOR | ticker=XLC
+2026-03-23 16:30:32 - QUALITY - Data quality below threshold for iv_scrape_quality: 23.25 < 50.0
+2026-03-23 16:30:34 - QUALITY - iv_scrape_quality: 55.50 | status=GOOD | ticker=XLK
+2026-03-23 16:30:37 - QUALITY - iv_scrape_quality: 100.00 | status=GOOD | ticker=QQQ
+2026-03-23 16:30:39 - QUALITY - iv_scrape_quality: 100.00 | status=GOOD | ticker=SPY
+2026-03-23 16:30:41 - QUALITY - iv_scrape_quality: 49.12 | status=POOR | ticker=XLV
+2026-03-23 16:30:41 - QUALITY - Data quality below threshold for iv_scrape_quality: 49.12 < 50.0
+2026-03-23 16:30:44 - QUALITY - iv_scrape_quality: 37.12 | status=POOR | ticker=XLB
+2026-03-23 16:30:44 - QUALITY - Data quality below threshold for iv_scrape_quality: 37.12 < 50.0
+2026-03-23 16:30:47 - QUALITY - iv_scrape_quality: 34.12 | status=POOR | ticker=XLI
+2026-03-23 16:30:47 - QUALITY - Data quality below threshold for iv_scrape_quality: 34.12 < 50.0
+2026-03-23 16:30:48 - QUALITY - iv_scrape_quality: 22.12 | status=POOR | ticker=XLY
+2026-03-23 16:30:48 - QUALITY - Data quality below threshold for iv_scrape_quality: 22.12 < 50.0
+2026-03-23 16:30:49 - QUALITY - iv_scrape_quality: 100.00 | status=GOOD | ticker=IWM
+2026-03-23 16:30:52 - QUALITY - iv_scrape_quality: 57.50 | status=GOOD | ticker=XLU
+2026-03-23 16:30:53 - QUALITY - iv_scrape_quality: 61.50 | status=GOOD | ticker=XLP
+2026-03-24 16:30:19 - QUALITY - iv_scrape_quality: 22.12 | status=POOR | ticker=XLRE
+2026-03-24 16:30:19 - QUALITY - Data quality below threshold for iv_scrape_quality: 22.12 < 50.0
+2026-03-24 16:30:21 - QUALITY - iv_scrape_quality: 90.00 | status=GOOD | ticker=XLF
+2026-03-24 16:30:23 - QUALITY - iv_scrape_quality: 80.00 | status=GOOD | ticker=XLE
+2026-03-24 16:30:25 - QUALITY - iv_scrape_quality: 29.75 | status=POOR | ticker=XLC
+2026-03-24 16:30:25 - QUALITY - Data quality below threshold for iv_scrape_quality: 29.75 < 50.0
+2026-03-24 16:30:27 - QUALITY - iv_scrape_quality: 46.50 | status=POOR | ticker=XLK
+2026-03-24 16:30:27 - QUALITY - Data quality below threshold for iv_scrape_quality: 46.50 < 50.0
+2026-03-24 16:30:29 - QUALITY - iv_scrape_quality: 100.00 | status=GOOD | ticker=QQQ
+2026-03-24 16:30:32 - QUALITY - iv_scrape_quality: 100.00 | status=GOOD | ticker=SPY
+2026-03-24 16:30:34 - QUALITY - iv_scrape_quality: 23.25 | status=POOR | ticker=XLV
+2026-03-24 16:30:34 - QUALITY - Data quality below threshold for iv_scrape_quality: 23.25 < 50.0
+2026-03-24 16:30:36 - QUALITY - iv_scrape_quality: 22.12 | status=POOR | ticker=XLB
+2026-03-24 16:30:36 - QUALITY - Data quality below threshold for iv_scrape_quality: 22.12 < 50.0
+2026-03-24 16:30:38 - QUALITY - iv_scrape_quality: 23.25 | status=POOR | ticker=XLI
+2026-03-24 16:30:38 - QUALITY - Data quality below threshold for iv_scrape_quality: 23.25 < 50.0
+2026-03-24 16:30:40 - QUALITY - iv_scrape_quality: 26.62 | status=POOR | ticker=XLY
+2026-03-24 16:30:40 - QUALITY - Data quality below threshold for iv_scrape_quality: 26.62 < 50.0
+2026-03-24 16:30:41 - QUALITY - iv_scrape_quality: 100.00 | status=GOOD | ticker=IWM
+2026-03-24 16:30:43 - QUALITY - iv_scrape_quality: 50.25 | status=GOOD | ticker=XLU
+2026-03-24 16:30:45 - QUALITY - iv_scrape_quality: 35.25 | status=POOR | ticker=XLP
+2026-03-24 16:30:45 - QUALITY - Data quality below threshold for iv_scrape_quality: 35.25 < 50.0
