@@ -192,3 +192,9 @@
 2026-04-02 07:46:51 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.04s
 2026-04-08 08:23:14 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
 2026-04-08 08:23:14 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.34s
+2026-04-09 10:02:17 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-04-09 10:02:17 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.04s
+2026-04-10 07:45:21 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-04-10 07:45:21 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.04s
+2026-04-14 07:26:27 - data.vol_table_data - INFO - build_table:78 - Building volatility table data
+2026-04-14 07:26:27 - data.vol_table_data - INFO - build_table:146 - Built volatility table with 14 rows using optimized batch queries in 0.06s
