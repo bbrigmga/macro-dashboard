@@ -87,7 +87,8 @@ class VolTableDataAssembler:
             logger.warning("No data available in database")
             # Return empty DataFrame with correct schema
             return pd.DataFrame(columns=[
-                'etf_name', 'ticker_display', 'ytd_pct', 'ivol_rvol_current',
+                'etf_name', 'ticker_display', 'bias_score', 'bias_label',
+                'ytd_pct', 'ivol_rvol_current',
                 'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
                 'ttm_zscore', 'three_yr_zscore'
             ])
@@ -125,14 +126,15 @@ class VolTableDataAssembler:
         if not rows:
             logger.warning("No valid rows could be built")
             return pd.DataFrame(columns=[
-                'etf_name', 'ticker_display', 'ytd_pct', 'ivol_rvol_current',
+                'etf_name', 'ticker_display', 'bias_score', 'bias_label',
+                'ytd_pct', 'ivol_rvol_current',
                 'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
                 'ttm_zscore', 'three_yr_zscore'
             ])
         
-        # Create DataFrame and sort
+        # Create DataFrame and sort by bias score (most bullish first), then ytd_pct as tiebreaker
         df = pd.DataFrame(rows)
-        df = df.sort_values('ytd_pct', ascending=False).reset_index(drop=True)
+        df = df.sort_values(['bias_score', 'ytd_pct'], ascending=[False, False]).reset_index(drop=True)
         
         # Log overall performance
         total_duration = time.time() - start_time
@@ -164,19 +166,94 @@ class VolTableDataAssembler:
             return None
         
         # Build the row using pre-fetched history
+        current = latest_row.get('iv_premium', 0.0)
+        yesterday = self._get_historical_premium_from_data(history, 1)
+        week = self._get_historical_premium_from_data(history, 5)
+        month = self._get_historical_premium_from_data(history, 21)
+
+        bias_score, bias_label = self._compute_bias(current, yesterday, week, month)
+
         row = {
             'etf_name': ETF_NAME_LOOKUP[ticker],
-            'ticker_display': f"{ticker} US EQUITY",
+            'ticker_display': ticker,
+            'bias_score': bias_score,
+            'bias_label': bias_label,
             'ytd_pct': latest_row.get('ytd_return', 0.0) * 100,  # Convert to percentage
-            'ivol_rvol_current': latest_row.get('iv_premium', 0.0),
-            'ivol_prem_yesterday': self._get_historical_premium_from_data(history, 1),
-            'ivol_prem_1w': self._get_historical_premium_from_data(history, 5),
-            'ivol_prem_1m': self._get_historical_premium_from_data(history, 21),
+            'ivol_rvol_current': current,
+            'ivol_prem_yesterday': yesterday,
+            'ivol_prem_1w': week,
+            'ivol_prem_1m': month,
             'ttm_zscore': self._calculate_zscore_from_history(history, 252),
             'three_yr_zscore': self._calculate_zscore_from_history(history, 756),
         }
         
         return row
+
+    @staticmethod
+    def _compute_bias(current, yesterday, week, month) -> tuple:
+        """
+        Compute Hedgeye IVOL/RVOL contrarian bias score and label.
+
+        Contrarian logic:
+          - High premium = crowd is hedged/fearful → bearish setup
+          - Low/negative premium = complacency/fear unwound → bullish setup
+          - Rising premium over time = fear building → bearish
+          - Falling premium over time = fear unwinding → bullish
+
+        Score components (each −1 / 0 / +1):
+          1. Level  : current < 0  → +1; 0–50% → 0; > 50% → −1
+          2. ST trend: yesterday vs 1W — falling >5pts → +1; rising >5pts → −1
+          3. MT trend: 1W vs 1M      — falling >10pts → +1; rising >10pts → −1
+
+        Returns: (score: int [-3..+3], label: str)
+        """
+        score = 0
+
+        # 1. Level signal
+        try:
+            c = float(current) if current is not None else 0.0
+            if c < 0:
+                score += 1
+            elif c > 50:
+                score -= 1
+        except (TypeError, ValueError):
+            pass
+
+        # 2. Short-term trend: yesterday vs 1 week ago
+        try:
+            if yesterday is not None and week is not None:
+                diff = float(yesterday) - float(week)
+                if diff < -5:
+                    score += 1    # premium falling = fear unwinding = bullish
+                elif diff > 5:
+                    score -= 1    # premium rising = fear building = bearish
+        except (TypeError, ValueError):
+            pass
+
+        # 3. Medium-term trend: 1 week ago vs 1 month ago
+        try:
+            if week is not None and month is not None:
+                diff = float(week) - float(month)
+                if diff < -10:
+                    score += 1
+                elif diff > 10:
+                    score -= 1
+        except (TypeError, ValueError):
+            pass
+
+        # Map score to label
+        if score >= 2:
+            label = f"Bullish ({score:+d})"
+        elif score == 1:
+            label = f"Mild Bullish ({score:+d})"
+        elif score == 0:
+            label = f"Neutral ({score:+d})"
+        elif score == -1:
+            label = f"Mild Bearish ({score:+d})"
+        else:
+            label = f"Bearish ({score:+d})"
+
+        return score, label
     
     def _get_historical_premium_from_data(self, history_df: pd.DataFrame, days_ago: int) -> Optional[float]:
         """
@@ -229,7 +306,7 @@ class VolTableDataAssembler:
         # Build the row
         row = {
             'etf_name': ETF_NAME_LOOKUP[ticker],
-            'ticker_display': f"{ticker} US EQUITY",
+            'ticker_display': ticker,
             'ytd_pct': latest_row.get('ytd_return', 0.0) * 100,  # Convert to percentage
             'ivol_rvol_current': latest_row.get('iv_premium', 0.0),
             'ivol_prem_yesterday': self._get_historical_premium(ticker, 1),

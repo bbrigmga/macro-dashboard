@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@st.cache_data(ttl=3600)  # Cache for 1 hour
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
 def _get_cached_vol_table_data() -> Optional[pd.DataFrame]:
     """
     Get volatility table data with caching to improve performance.
@@ -83,6 +83,12 @@ def render_vol_table(data: Optional[pd.DataFrame] = None) -> None:
             column_config={
                 "ETF Name": st.column_config.TextColumn(width="medium"),
                 "Ticker": st.column_config.TextColumn(width="small"),
+                "Bias": st.column_config.TextColumn(
+                    width="medium",
+                    help="Hedgeye IVOL/RVOL contrarian bias. Score −3 (most bearish) to +3 (most bullish). "
+                         "Based on: premium level, short-term trend (yesterday vs 1W), "
+                         "and medium-term trend (1W vs 1M)."
+                ),
                 "YTD %": st.column_config.NumberColumn(width="small"),
                 "IVOL/RVOL Current": st.column_config.NumberColumn(width="medium"),
                 "IVOL Prem % Yesterday": st.column_config.NumberColumn(width="medium"),
@@ -117,7 +123,8 @@ def _format_and_style_table(data: pd.DataFrame) -> Styler:
     # Rename columns for display
     column_map = {
         "etf_name": "ETF Name",
-        "ticker_display": "Ticker", 
+        "ticker_display": "Ticker",
+        "bias_label": "Bias",
         "ytd_pct": "YTD %",
         "ivol_rvol_current": "IVOL/RVOL Current",
         "ivol_prem_yesterday": "IVOL Prem % Yesterday",
@@ -126,8 +133,10 @@ def _format_and_style_table(data: pd.DataFrame) -> Styler:
         "ttm_zscore": "TTM Z-Score",
         "three_yr_zscore": "3Yr Z-Score",
     }
-    
+
+    # Keep bias_score for styling, then drop it from display
     df = df.rename(columns=column_map)
+    # bias_score column remains (not renamed) — used for coloring, excluded at render time
     
     # Define column groups for styling
     percentage_cols = ["YTD %", "IVOL/RVOL Current", "IVOL Prem % Yesterday",
@@ -157,6 +166,23 @@ def _format_and_style_table(data: pd.DataFrame) -> Styler:
     def zscore_color(col):
         return [rdylgn_css(v, -2, 2) for v in col]
 
+    def bias_color(col):
+        """Color the Bias label column: green=bullish, red=bearish, yellow=neutral."""
+        styles = []
+        for val in col:
+            s = str(val)
+            if "Bullish" in s:
+                styles.append("background-color: #1e4d1e; color: #b6ffb6; font-weight: bold")
+            elif "Bearish" in s:
+                styles.append("background-color: #4d1e1e; color: #ffb6b6; font-weight: bold")
+            else:
+                styles.append("background-color: #4a4a00; color: #ffffb6; font-weight: bold")
+        return styles
+
+    # Drop bias_score before building the Styler (it was only needed for sorting)
+    display_cols = [c for c in df.columns if c != 'bias_score']
+    df = df[display_cols]
+
     styled = df.style
     if percentage_cols:
         styling = styled
@@ -168,6 +194,8 @@ def _format_and_style_table(data: pd.DataFrame) -> Styler:
         for col in zscore_cols:
             styling = styling.apply(zscore_color, subset=[col])
         styled = styling
+    if "Bias" in df.columns:
+        styled = styled.apply(bias_color, subset=["Bias"])
     
     # Format numeric displays
     styled = styled.format({
