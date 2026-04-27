@@ -23,6 +23,10 @@ def apply_dark_theme(fig):
     Returns:
         go.Figure: Themed figure object
     """
+    # Preserve any explicit height already set by the chart builder.
+    # Fall back to the configured default only when no height is defined.
+    existing_height = fig.layout.height
+
     fig.update_layout(
         paper_bgcolor=THEME['paper_bgcolor'],
         plot_bgcolor=THEME['background'],
@@ -31,7 +35,7 @@ def apply_dark_theme(fig):
             color=THEME['font_color']
         ),
         margin=dict(l=10, r=10, t=30, b=10),
-        height=250
+        height=existing_height if existing_height is not None else settings.chart.default_height
     )
     
     # Update axes
@@ -254,15 +258,27 @@ def create_copper_gold_yield_chart(copper_gold_data):
         )
 
     fig.update_layout(
-        title=dict(text='Copper/Gold Ratio vs 10Y Treasury + 60W Correlation', font=dict(size=14)),
+        title=dict(
+            text='Copper/Gold Ratio vs 10Y Treasury + 60W Correlation',
+            font=dict(size=14),
+            x=0.01,
+            xanchor='left'
+        ),
         height=520,
         template='plotly_white',
         yaxis=dict(title=dict(text='Copper/Gold Ratio', font=dict(color='#1f77b4')), tickfont=dict(color='#1f77b4')),
         yaxis2=dict(title=dict(text='10Y Yield (%)', font=dict(color='#d62728')), tickfont=dict(color='#d62728'), overlaying='y', side='right'),
         yaxis3=dict(title=dict(text='Correlation'), range=[-1, 1], gridcolor='#eee'),
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.08,
+            xanchor='left',
+            x=0.01,
+            font=dict(size=10)
+        ),
         hovermode='x unified',
-        margin=dict(l=10, r=10, t=40, b=10)
+        margin=dict(l=10, r=10, t=72, b=26)
     )
 
     return fig

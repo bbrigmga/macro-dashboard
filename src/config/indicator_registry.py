@@ -278,9 +278,9 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
             "Inflation Momentum (TIP/IEF ratio Z-Score). The trailing 12-month path shows regime "
             "migration. A dotted arrow projects the near-term trajectory based on the 5-day slope.\n\n"
             "**Quadrants:**\n"
-            "- 🟥 **Top-Right (Reflation):** Growth ↑, Inflation ↑ → Commodities, Energy, Value\n"
+            "- 🟧 **Top-Right (Reflation):** Growth ↑, Inflation ↑ → Commodities, Energy, Value\n"
             "- 🟩 **Bottom-Right (Goldilocks):** Growth ↑, Inflation ↓ → Tech, Equities, Risk-on\n"
-            "- 🟧 **Top-Left (Stagflation):** Growth ↓, Inflation ↑ → Gold, Cash, Defensive\n"
+            "- 🟥 **Top-Left (Stagflation):** Growth ↓, Inflation ↑ → Gold, Cash, Defensive\n"
             "- 🟦 **Bottom-Left (Deflation):** Growth ↓, Inflation ↓ → Long Bonds (TLT), Utilities"
         ),
         chart_color="#ff6f00",

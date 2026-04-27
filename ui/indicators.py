@@ -127,8 +127,7 @@ def display_indicator_card(indicator_key: str, data: dict, fred_client=None) -> 
         
         # Create and display the chart
         fig = create_indicator_chart(indicator_key, data)
-        chart_height = getattr(config, 'card_chart_height', 250)
-        st.plotly_chart(fig, use_container_width=True, height=chart_height, key=f"chart_{indicator_key}")
+        st.plotly_chart(fig, use_container_width=True, key=f"chart_{indicator_key}")
         
         # Expandable details section
         with st.expander("View Details"):

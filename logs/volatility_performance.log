@@ -171,3 +171,15 @@
 2026-04-10 07:45:21 - PERF - vol_table_build_total: 0.0366 seconds | rows_built=14 | tickers_available=14
 2026-04-14 07:26:27 - PERF - vol_table_batch_fetch: 0.0146 seconds | tickers=14 | history_records=336
 2026-04-14 07:26:27 - PERF - vol_table_build_total: 0.0636 seconds | rows_built=14 | tickers_available=14
+2026-04-21 15:57:45 - PERF - vol_table_batch_fetch: 0.3196 seconds | tickers=14 | history_records=406
+2026-04-21 15:57:45 - PERF - vol_table_build_total: 0.4697 seconds | rows_built=14 | tickers_available=14
+2026-04-22 07:47:05 - PERF - vol_table_batch_fetch: 0.0035 seconds | tickers=14 | history_records=420
+2026-04-22 07:47:05 - PERF - vol_table_build_total: 0.0375 seconds | rows_built=14 | tickers_available=14
+2026-04-22 09:32:31 - PERF - vol_table_batch_fetch: 0.0040 seconds | tickers=14 | history_records=420
+2026-04-22 09:32:31 - PERF - vol_table_build_total: 0.0570 seconds | rows_built=14 | tickers_available=14
+2026-04-22 09:59:04 - PERF - vol_table_batch_fetch: 0.0110 seconds | tickers=14 | history_records=420
+2026-04-22 09:59:04 - PERF - vol_table_build_total: 0.0826 seconds | rows_built=14 | tickers_available=14
+2026-04-24 10:13:05 - PERF - vol_table_batch_fetch: 0.1735 seconds | tickers=14 | history_records=448
+2026-04-24 10:13:05 - PERF - vol_table_build_total: 0.6158 seconds | rows_built=14 | tickers_available=14
+2026-04-24 16:04:04 - PERF - vol_table_batch_fetch: 0.0080 seconds | tickers=14 | history_records=448
+2026-04-24 16:04:04 - PERF - vol_table_build_total: 0.0371 seconds | rows_built=14 | tickers_available=14
