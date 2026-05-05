@@ -82,8 +82,9 @@ def check_consecutive_increase(values, count=3):
     if len(values) < count + 1:
         return False
     
-    # Check if each of the last 'count' values is greater than the previous
-    result = all(values[i] < values[i+1] for i in range(len(values)-count, len(values)-1))
+    # Check the last `count` pairwise moves, which requires `count + 1` points.
+    start_idx = len(values) - (count + 1)
+    result = all(values[i] < values[i+1] for i in range(start_idx, len(values)-1))
     
     return result
 
@@ -102,8 +103,9 @@ def check_consecutive_decrease(values, count=3):
     if len(values) < count + 1:
         return False
     
-    # Check if each of the last 'count' values is less than the previous
-    result = all(values[i] > values[i+1] for i in range(len(values)-count, len(values)-1))
+    # Check the last `count` pairwise moves, which requires `count + 1` points.
+    start_idx = len(values) - (count + 1)
+    result = all(values[i] > values[i+1] for i in range(start_idx, len(values)-1))
     
     return result
 

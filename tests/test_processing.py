@@ -151,6 +151,14 @@ class TestConsecutiveChecks:
         result = check_consecutive_increase(values, count=3)
         
         assert result is False
+
+    def test_check_consecutive_increase_requires_three_moves(self):
+        """Test that count=3 requires three consecutive up moves (not two)."""
+        values = [0.319, 0.421, 0.3712, 0.6485, 0.9019]
+
+        result = check_consecutive_increase(values, count=3)
+
+        assert result is False
     
     def test_check_consecutive_increase_insufficient_data(self):
         """Test consecutive increase with insufficient data."""
@@ -174,6 +182,14 @@ class TestConsecutiveChecks:
         
         result = check_consecutive_decrease(values, count=3)
         
+        assert result is False
+
+    def test_check_consecutive_decrease_requires_three_moves(self):
+        """Test that count=3 requires three consecutive down moves (not two)."""
+        values = [1.1, 1.0, 1.05, 0.9, 0.8]
+
+        result = check_consecutive_decrease(values, count=3)
+
         assert result is False
     
     def test_check_consecutive_decrease_insufficient_data(self):
