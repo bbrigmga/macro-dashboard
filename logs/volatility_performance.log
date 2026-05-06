@@ -191,3 +191,5 @@
 2026-05-01 08:51:57 - PERF - vol_table_build_total: 0.0405 seconds | rows_built=14 | tickers_available=14
 2026-05-04 07:32:12 - PERF - vol_table_batch_fetch: 0.0215 seconds | tickers=14 | history_records=532
 2026-05-04 07:32:12 - PERF - vol_table_build_total: 0.1194 seconds | rows_built=14 | tickers_available=14
+2026-05-05 10:58:37 - PERF - vol_table_batch_fetch: 0.0474 seconds | tickers=14 | history_records=546
+2026-05-05 10:58:37 - PERF - vol_table_build_total: 0.0986 seconds | rows_built=14 | tickers_available=14
