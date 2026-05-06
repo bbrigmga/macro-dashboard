@@ -513,6 +513,79 @@ def generate_pmi_warning(pmi_data):
     return description_text if latest_pmi >= 50 else warning_text
 
 
+def generate_korea_exports_spy_eps_warning(data):
+    """
+    Generate warning/details text for Korea exports vs SPY EPS indicator.
+
+    Returns a formatted message string compatible with generate_indicator_warning custom handling.
+    """
+    exports_yoy = _coerce_scalar(data.get('current_exports_yoy'))
+    eps_yoy = _coerce_scalar(data.get('current_spy_ntm_eps_yoy'))
+    mode = data.get('mode', 'exports_only')
+    corr = _coerce_scalar(data.get('correlation_full'))
+    source_meta = data.get('source_meta', {}) if isinstance(data, dict) else {}
+
+    if _is_missing(exports_yoy):
+        status = create_warning_indicator(False, 0.5, neutral=True)
+        message = "Neutral"
+    elif mode == 'exports_only':
+        message = 'Bullish' if exports_yoy > 0 else 'Bearish'
+        status = create_warning_indicator(message == 'Bearish', 0.5)
+    else:
+        if not _is_missing(eps_yoy) and exports_yoy > 0 and eps_yoy > 0:
+            message = 'Bullish'
+            status = create_warning_indicator(False, 0.5)
+        elif not _is_missing(eps_yoy) and exports_yoy < 0 and eps_yoy < 0:
+            message = 'Bearish'
+            status = create_warning_indicator(True, 0.5)
+        else:
+            message = 'Neutral'
+            status = create_warning_indicator(False, 0.5, neutral=True)
+
+    exports_text = "N/A" if _is_missing(exports_yoy) else f"{float(exports_yoy):.2f}%"
+    eps_text = "N/A" if _is_missing(eps_yoy) else f"{float(eps_yoy):.2f}%"
+    corr_text = "N/A" if _is_missing(corr) else f"{float(corr):.2f}"
+    exports_series = source_meta.get('korea_exports_series', 'Unknown')
+    eps_source = source_meta.get('spy_eps_source', 'Unavailable')
+
+    mode_note = ""
+    if mode == 'exports_only':
+        mode_note = (
+            "<div style='margin-top: 0.5rem;'><strong>Mode:</strong> Exports-only fallback. "
+            "Forward EPS estimate series unavailable; chart shows South Korea exports YoY only.</div>"
+        )
+    elif mode == 'eps_proxy':
+        mode_note = (
+            "<div style='margin-top: 0.5rem;'><strong>Mode:</strong> EPS proxy mode. "
+            "EPS series is a proxy rather than a forward next-12-month estimate.</div>"
+        )
+    else:
+        mode_note = "<div style='margin-top: 0.5rem;'><strong>Mode:</strong> Forward EPS mode.</div>"
+
+    details = f"""
+<div class='financial-figure' style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
+Korea Exports YoY: {exports_text}<br/>
+SPY NTM EPS YoY: {eps_text}<br/>
+Correlation (full sample): {corr_text}
+</div>
+
+<div style='margin-top: 0.5rem;'>
+<strong>Interpretation:</strong><br/>
+Korea exports can act as a global goods-cycle proxy. Alignment with earnings growth can support a growth-on view; persistent divergence may signal a regime transition or lag.
+</div>
+
+{mode_note}
+
+<div style='margin-top: 0.5rem;'>
+<strong>Sources:</strong><br/>
+Korea exports series: {exports_series}<br/>
+EPS source: {eps_source}
+</div>
+"""
+
+    return format_warning_message(status, message, details)
+
+
 def generate_regime_quadrant_warning(data: dict, config=None) -> dict:
     """Generate warning signal for the regime quadrant indicator."""
     regime = data.get('current_regime', 'Unknown')

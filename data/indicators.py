@@ -831,6 +831,140 @@ class IndicatorData:
             logger.error(f"Error fetching Yield Curve Spread data: {str(e)}")
             raise
 
+    def get_korea_exports_vs_spy_eps(_self, periods=120):
+        """
+        Get South Korea exports YoY and optional SPY/S&P EPS-growth proxy YoY.
+
+        The method is resilient by design. If EPS data is unavailable, it still returns
+        a valid exports-only payload so the chart can render.
+
+        Args:
+            periods (int, optional): Number of monthly points to display.
+
+        Returns:
+            dict: Indicator payload for chart + card rendering.
+        """
+        lookback_periods = max(periods + 24, 144)
+
+        # Candidate exports series IDs. We use the first one that returns usable data.
+        exports_candidates = [
+            "XTEXVA01KRM667S",
+            "XTEXVA01KRA667S",
+        ]
+
+        # Best-effort EPS candidates. If these fail, we stay in exports-only mode.
+        # Note: SP500EARN is a common trailing earnings proxy (not forward NTM).
+        eps_candidates = [
+            ("SP500EARN", "Q", "eps_proxy"),
+            ("EPS", "Q", "eps_proxy"),
+        ]
+
+        def _fetch_first_available(candidates, periods_to_fetch, frequency):
+            for series_id in candidates:
+                try:
+                    df = _self._fred().get_series(series_id, periods=periods_to_fetch, frequency=frequency)
+                    if df is None or df.empty:
+                        continue
+                    value_col = series_id if series_id in df.columns else next((c for c in df.columns if c != 'Date'), None)
+                    if value_col is None:
+                        continue
+                    df = df[['Date', value_col]].copy()
+                    df.columns = ['Date', 'value']
+                    df['Date'] = pd.to_datetime(df['Date'])
+                    df['value'] = pd.to_numeric(df['value'], errors='coerce')
+                    df = df.dropna(subset=['value']).sort_values('Date')
+                    if not df.empty:
+                        return series_id, df
+                except Exception:
+                    continue
+            return None, None
+
+        def _to_month_end(df):
+            out = df.copy()
+            out['Date'] = pd.to_datetime(out['Date']).dt.to_period('M').dt.to_timestamp('M')
+            out = out.groupby('Date', as_index=False)['value'].last().sort_values('Date')
+            return out
+
+        # 1) Required exports series
+        exports_series_id, exports_df = _fetch_first_available(exports_candidates, lookback_periods, 'M')
+        if exports_df is None or exports_df.empty:
+            raise ValueError("No supported South Korea exports FRED series available")
+
+        exports_df = _to_month_end(exports_df)
+        exports_df = exports_df.rename(columns={'value': 'korea_exports_level'})
+        exports_df['korea_exports_yoy'] = calculate_pct_change(exports_df, 'korea_exports_level', periods=12, fill_method=None)
+
+        chart_df = exports_df[['Date', 'korea_exports_yoy']].dropna(subset=['korea_exports_yoy']).copy()
+        mode = "exports_only"
+        eps_source = None
+        forward_eps_available = False
+
+        # 2) Optional EPS series
+        for eps_id, eps_freq, eps_mode in eps_candidates:
+            try:
+                raw_eps = _self._fred().get_series(eps_id, periods=lookback_periods, frequency=eps_freq)
+                if raw_eps is None or raw_eps.empty:
+                    continue
+
+                eps_value_col = eps_id if eps_id in raw_eps.columns else next((c for c in raw_eps.columns if c != 'Date'), None)
+                if eps_value_col is None:
+                    continue
+
+                eps_df = raw_eps[['Date', eps_value_col]].copy()
+                eps_df.columns = ['Date', 'value']
+                eps_df['Date'] = pd.to_datetime(eps_df['Date'])
+                eps_df['value'] = pd.to_numeric(eps_df['value'], errors='coerce')
+                eps_df = eps_df.dropna(subset=['value']).sort_values('Date')
+                if eps_df.empty:
+                    continue
+
+                eps_df = _to_month_end(eps_df)
+                eps_df['value'] = eps_df['value'].ffill()
+                eps_df['spy_ntm_eps_yoy'] = calculate_pct_change(eps_df, 'value', periods=12, fill_method=None)
+                eps_df = eps_df[['Date', 'spy_ntm_eps_yoy']].dropna(subset=['spy_ntm_eps_yoy'])
+                if eps_df.empty:
+                    continue
+
+                merged = pd.merge(chart_df, eps_df, on='Date', how='left').sort_values('Date')
+                if merged['spy_ntm_eps_yoy'].dropna().empty:
+                    continue
+
+                chart_df = merged
+                mode = eps_mode
+                eps_source = eps_id
+                forward_eps_available = True
+                break
+            except Exception:
+                continue
+
+        chart_df = chart_df.tail(periods).reset_index(drop=True)
+
+        if 'spy_ntm_eps_yoy' in chart_df.columns:
+            paired = chart_df.dropna(subset=['korea_exports_yoy', 'spy_ntm_eps_yoy']).copy()
+            correlation_full = float(paired['korea_exports_yoy'].corr(paired['spy_ntm_eps_yoy'])) if len(paired) >= 3 else None
+            chart_df['rolling_corr_12m'] = chart_df['korea_exports_yoy'].rolling(12).corr(chart_df['spy_ntm_eps_yoy'])
+        else:
+            correlation_full = None
+
+        current_exports = float(chart_df['korea_exports_yoy'].dropna().iloc[-1]) if not chart_df['korea_exports_yoy'].dropna().empty else None
+        current_eps = None
+        if 'spy_ntm_eps_yoy' in chart_df.columns and not chart_df['spy_ntm_eps_yoy'].dropna().empty:
+            current_eps = float(chart_df['spy_ntm_eps_yoy'].dropna().iloc[-1])
+
+        return {
+            'data': chart_df,
+            'current_value': current_exports,
+            'current_exports_yoy': current_exports,
+            'current_spy_ntm_eps_yoy': current_eps,
+            'correlation_full': correlation_full,
+            'forward_eps_available': forward_eps_available,
+            'mode': mode,
+            'source_meta': {
+                'korea_exports_series': exports_series_id,
+                'spy_eps_source': eps_source,
+            }
+        }
+
     def get_copper_gold_ratio(_self, periods=365):
         """
         Get Copper/Gold Ratio vs US 10-year Treasury yield data.

@@ -101,6 +101,12 @@ class IndicatorService:
                 'cache_ttl': self.settings.cache.fred_ttl,
                 'default_years': 3
             },
+            'korea_exports_spy_eps': {
+                'source': 'fred',
+                'frequency': 'M',
+                'cache_ttl': self.settings.cache.fred_ttl,
+                'default_periods': 120
+            },
             'regime_quadrant': {
                 'source': 'yahoo',
                 'tickers': ['TIP', 'IEF', 'CPER', 'GLD'],
@@ -197,7 +203,7 @@ class IndicatorService:
             indicators = [
                 'claims', 'pce', 'core_cpi', 'hours_worked',
                 'pmi', 'usd_liquidity', 'new_orders', 'yield_curve', 'copper_gold_ratio',
-                'pscf_price', 'credit_spread', 'xlp_xly_ratio', 'regime_quadrant',
+                'pscf_price', 'credit_spread', 'xlp_xly_ratio', 'korea_exports_spy_eps', 'regime_quadrant',
                 'implied_realized_vol'
             ]
 
@@ -266,6 +272,9 @@ class IndicatorService:
                 ),
                 'xlp_xly_ratio': lambda: self.indicator_data.get_xlp_xly_ratio(
                     years=kwargs.get('years', 3)
+                ),
+                'korea_exports_spy_eps': lambda: self.indicator_data.get_korea_exports_vs_spy_eps(
+                    periods=kwargs.get('periods', self._indicators_config['korea_exports_spy_eps']['default_periods'])
                 )
             }
 

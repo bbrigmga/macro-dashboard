@@ -237,6 +237,14 @@ def create_dashboard(indicators, fred_client):
         if 'copper_gold_ratio' in indicators:  # Note: data key matches registry key 'copper_gold_yield'
             display_indicator_card('copper_gold_yield', indicators['copper_gold_ratio'], fred_client)
 
+    # Fifth row - Korea exports vs SPY EPS growth
+    if 'korea_exports_spy_eps' in indicators:
+        st.divider()
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            display_indicator_card('korea_exports_spy_eps', indicators['korea_exports_spy_eps'], fred_client)
+
     # --- Volatility Table Section ---
     if 'implied_realized_vol' in indicators:
         st.divider()

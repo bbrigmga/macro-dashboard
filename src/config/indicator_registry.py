@@ -260,6 +260,29 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         fred_link="https://fred.stlouisfed.org/series/DGS10"
     ),
 
+    "korea_exports_spy_eps": IndicatorConfig(
+        key="korea_exports_spy_eps",
+        display_name="Korea Exports vs SPY EPS Growth",
+        emoji="🚢",
+        fred_series=["XTEXVA01KRM667S"],
+        chart_type="custom",
+        value_column="korea_exports_yoy",
+        periods=120,
+        frequency="M",
+        bullish_condition="custom",
+        threshold=None,
+        warning_description=(
+            "South Korea exports are a useful global trade-cycle proxy. "
+            "When paired with S&P/SPY earnings-growth estimates (or an earnings proxy), "
+            "co-movement can help contextualize growth momentum. "
+            "If EPS data is unavailable, the chart falls back to exports YoY-only mode."
+        ),
+        chart_color="#00acc1",
+        custom_chart_fn="visualization.indicators.create_korea_exports_spy_eps_chart",
+        custom_status_fn="visualization.warning_signals.generate_korea_exports_spy_eps_warning",
+        fred_link="https://fred.stlouisfed.org/series/XTEXVA01KRM667S"
+    ),
+
     "regime_quadrant": IndicatorConfig(
         key="regime_quadrant",
         display_name="Growth/Inflation Regime",

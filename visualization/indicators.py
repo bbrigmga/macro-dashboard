@@ -282,6 +282,83 @@ def create_pmi_components_table(pmi_data):
     })
 
 
+def create_korea_exports_spy_eps_chart(indicator_data, periods=120):
+    """
+    Create South Korea exports YoY vs SPY/S&P EPS-growth chart.
+
+    Falls back to exports-only rendering when EPS data is unavailable.
+    """
+    df = indicator_data.get('data')
+    if df is None or df.empty:
+        fig = go.Figure()
+        fig.update_layout(title="Korea Exports vs SPY EPS Growth - No Data Available")
+        return apply_dark_theme(fig)
+
+    plot_df = df.tail(periods).copy()
+    plot_df['Date'] = pd.to_datetime(plot_df['Date'])
+    plot_df = plot_df.sort_values('Date')
+
+    has_eps_series = 'spy_ntm_eps_yoy' in plot_df.columns and not plot_df['spy_ntm_eps_yoy'].dropna().empty
+    mode = indicator_data.get('mode', 'exports_only')
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=plot_df['Date'],
+        y=plot_df['korea_exports_yoy'],
+        name='Korea Exports YoY %',
+        line=dict(color='#00acc1', width=2),
+        hovertemplate='%{x|%b %Y}: %{y:.2f}%<extra></extra>'
+    ))
+
+    if has_eps_series:
+        dash_style = 'solid' if mode == 'forward_eps' else 'dash'
+        fig.add_trace(go.Scatter(
+            x=plot_df['Date'],
+            y=plot_df['spy_ntm_eps_yoy'],
+            name='SPY NTM EPS YoY %',
+            line=dict(color='#ff8f00', width=2, dash=dash_style),
+            hovertemplate='%{x|%b %Y}: %{y:.2f}%<extra></extra>'
+        ))
+
+    fig.add_hline(
+        y=0,
+        line_dash='dot',
+        line_color=THEME.get('grid_color', '#555555')
+    )
+
+    subtitle = None
+    corr = indicator_data.get('correlation_full')
+    if corr is not None:
+        subtitle = f'Full-sample correlation: {corr:.2f}'
+
+    title_text = 'South Korea Exports YoY vs SPY Next-12M EPS Growth YoY' if has_eps_series else 'South Korea Exports YoY'
+    if subtitle:
+        title_text = f'{title_text}<br><sup>{subtitle}</sup>'
+
+    fig.update_layout(
+        title=dict(text=title_text, font=dict(size=14)),
+        yaxis=dict(title='YoY %'),
+        xaxis=dict(type='date', title=None),
+        legend=dict(orientation='h', y=1.02, x=0.5, xanchor='center', font=dict(size=9)),
+        height=360,
+    )
+
+    if not has_eps_series:
+        fig.add_annotation(
+            x=0.01,
+            y=0.99,
+            xref='paper',
+            yref='paper',
+            text='Forward EPS estimate series unavailable; showing exports YoY only.',
+            showarrow=False,
+            align='left',
+            font=dict(size=10, color=THEME.get('font_color', '#dddddd')),
+            bgcolor='rgba(0,0,0,0.25)'
+        )
+
+    return apply_dark_theme(fig)
+
+
 def create_indicator_chart(indicator_key, indicator_data, periods=None):
     """
     Create an indicator chart using registry-driven approach.
@@ -307,6 +384,7 @@ def create_indicator_chart(indicator_key, indicator_data, periods=None):
         'create_pscf_chart': create_pscf_chart,
         'create_xlp_xly_ratio_chart': create_xlp_xly_ratio_chart,
         'create_pmi_chart': create_pmi_chart,
+        'create_korea_exports_spy_eps_chart': create_korea_exports_spy_eps_chart,
     }
     
     # Use periods parameter if provided, otherwise use config default

@@ -108,6 +108,8 @@ def display_indicator_card(indicator_key: str, data: dict, fred_client=None) -> 
                 formatted_value = f"{current_value:.1f} hours"
             elif indicator_key in ["core_cpi", "pce"]:
                 formatted_value = f"{current_value:.2f}%"
+            elif indicator_key == "korea_exports_spy_eps":
+                formatted_value = f"{current_value:.2f}%"
             elif indicator_key == "pmi_proxy":
                 formatted_value = f"{current_value:.1f}"
             elif indicator_key == "usd_liquidity":
