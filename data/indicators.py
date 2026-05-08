@@ -110,6 +110,8 @@ class IndicatorData:
             # Fetch extra 12 months so YoY calculation has a full year of baseline
             fetch_periods = periods + 12
             pce_data = _self._fred().get_series('PCE', periods=fetch_periods, frequency='M')
+            if pce_data is None or pce_data.empty:
+                raise ValueError("No PCE data available")
             pce_data.columns = ['Date', 'PCE']
             
             # Calculate year-over-year and month-over-month percentage changes
@@ -118,6 +120,8 @@ class IndicatorData:
             
             # Drop rows without a valid YoY value, then keep only the requested periods
             pce_data = pce_data.dropna(subset=['PCE_YoY']).tail(periods).reset_index(drop=True)
+            if pce_data.empty:
+                raise ValueError("Insufficient PCE history to compute YoY values")
 
             # Get recent MoM values for trend analysis
             recent_pce_mom = pce_data['PCE_MoM'].tail(5).values
@@ -650,7 +654,10 @@ class IndicatorData:
                 
                 # Find the last valid values for the components
                 last_valid_walcl = all_series['WALCL'].dropna().iloc[-1] if not all_series['WALCL'].dropna().empty else 0
-                last_valid_rrp = all_series['RRPONTTLD'].dropna().iloc[-1] if not all_series['RRPONTTLD'].dropna().empty else 0
+                if 'RRPONTTLD' in all_series.columns and not all_series['RRPONTTLD'].dropna().empty:
+                    last_valid_rrp = all_series['RRPONTTLD'].dropna().iloc[-1]
+                else:
+                    last_valid_rrp = 0
                 last_valid_currcir = all_series['CURRCIR'].dropna().iloc[-1] if 'CURRCIR' in all_series.columns and not all_series['CURRCIR'].dropna().empty else 0
                 gdp_col = 'GDP' if 'GDP' in all_series.columns else ('GDPC1' if 'GDPC1' in all_series.columns else None)
                 last_valid_gdp = all_series[gdp_col].dropna().iloc[-1] if gdp_col and not all_series[gdp_col].dropna().empty else 1
@@ -746,6 +753,8 @@ class IndicatorData:
         try:
             # Fetch New Orders data with monthly frequency
             new_orders_data = _self._fred().get_series('NEWORDER', periods=periods, frequency='M')
+            if new_orders_data is None or new_orders_data.empty:
+                raise ValueError("No NEWORDER data available")
             new_orders_data.columns = ['Date', 'NEWORDER']
             
             # Calculate month-over-month percentage change
@@ -1006,7 +1015,8 @@ class IndicatorData:
             if df.empty:
                 raise ValueError("No overlapping copper, gold, and yield data available")
 
-            df['ratio'] = df['copper'] / df['gold']
+                if new_orders_data is None or new_orders_data.empty:  # Check if data is None or empty
+                    raise ValueError("No NEWORDER data available")
 
             weekly_df = df.resample('W').last()
             weekly_df['ratio_ret'] = weekly_df['ratio'].pct_change()

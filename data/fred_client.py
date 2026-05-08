@@ -282,6 +282,30 @@ class FredClient:
             return df
             
         except Exception as e:
+            # Fallback to on-disk cache when FRED is temporarily unavailable.
+            # This keeps the dashboard usable during transient API outages.
+            cached_df = self._load_cached_data(series_id)
+            if not cached_df.empty:
+                logger.warning(
+                    f"Using stale cached data for {series_id} after API failure: {str(e)}"
+                )
+
+                requested_start = pd.to_datetime(start_date) if start_date else cached_df['Date'].min()
+                requested_end = pd.to_datetime(end_date) if end_date else cached_df['Date'].max()
+
+                filtered_df = cached_df[
+                    (cached_df['Date'] >= requested_start) & (cached_df['Date'] <= requested_end)
+                ].copy()
+
+                if filtered_df.empty:
+                    # If requested window is outside cache coverage, return all cached rows.
+                    filtered_df = cached_df.copy()
+
+                if len(filtered_df.columns) == 2:
+                    filtered_df.columns = ['Date', series_id]
+
+                return filtered_df
+
             logger.error(f"Comprehensive error fetching {series_id}: {str(e)}")
             raise
     
