@@ -1011,12 +1011,11 @@ class IndicatorData:
             df = df.sort_index()
             df['copper'] = df['copper'].ffill()
             df = df.dropna(subset=['yield', 'copper', 'gold'])
+            df['ratio'] = df['copper'] / df['gold']
+            df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=['ratio'])
 
             if df.empty:
                 raise ValueError("No overlapping copper, gold, and yield data available")
-
-                if new_orders_data is None or new_orders_data.empty:  # Check if data is None or empty
-                    raise ValueError("No NEWORDER data available")
 
             weekly_df = df.resample('W').last()
             weekly_df['ratio_ret'] = weekly_df['ratio'].pct_change()

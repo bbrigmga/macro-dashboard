@@ -334,6 +334,9 @@ class IndicatorService:
             result = self.indicator_data.get_copper_gold_ratio(
                 periods=kwargs.get('periods', 365)
             )
+            data_df = result.get('data') if isinstance(result, dict) else None
+            if not isinstance(result, dict) or result.get('current_value') is None or data_df is None or data_df.empty:
+                raise ValueError("Copper/gold ratio data unavailable")
 
             return IndicatorResult(success=True, data=result)
 

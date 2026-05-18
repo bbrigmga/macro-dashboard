@@ -50,3 +50,7 @@
 2026-03-20 10:16:00 - data.iv_scraper - ERROR - _get_current_price:233 - Error getting current price for SPY: Network error
 2026-03-20 10:16:00 - data.iv_scraper - ERROR - _get_atm_iv:531 - Error extracting ATM IV for SPY: No options
 2026-03-20 10:16:00 - data.iv_scraper - ERROR - run_scraper:834 - Fatal error running IV scraper: Database connection failed
+2026-05-18 13:31:59 - data.iv_scraper - ERROR - _days_to_expiration:251 - Error parsing expiration date invalid-date: time data 'invalid-date' does not match format '%Y-%m-%d'
+2026-05-18 13:31:59 - data.iv_scraper - ERROR - _get_current_price:233 - Error getting current price for SPY: Network error
+2026-05-18 13:31:59 - data.iv_scraper - ERROR - _get_atm_iv:531 - Error extracting ATM IV for SPY: No options
+2026-05-18 13:31:59 - data.iv_scraper - ERROR - run_scraper:834 - Fatal error running IV scraper: Database connection failed

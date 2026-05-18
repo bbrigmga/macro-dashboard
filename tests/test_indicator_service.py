@@ -249,7 +249,7 @@ class TestGetIndicator:
     @patch('src.services.indicator_service.FredClient')
     @patch('src.services.indicator_service.IndicatorData')
     def test_get_special_indicator_usd_liquidity(self, mock_indicator_data, mock_fred_client,
-                                               mock_cache_manager, mock_settings):
+                                                mock_cache_manager, mock_settings):
         """Test fetching USD liquidity (special indicator)."""
         cache_instance = mock_cache_manager.return_value
         cache_instance.get.return_value = None
@@ -266,6 +266,32 @@ class TestGetIndicator:
             indicator_instance.calculate_usd_liquidity.assert_called_once()
         
         asyncio.run(test_usd_liquidity())
+
+    @patch('src.services.indicator_service.CacheManager')
+    @patch('src.services.indicator_service.FredClient')
+    @patch('src.services.indicator_service.IndicatorData')
+    def test_get_special_indicator_copper_gold_invalid_data(self, mock_indicator_data, mock_fred_client,
+                                                            mock_cache_manager, mock_settings):
+        """Test copper/gold is treated as failure when payload has no usable data."""
+        cache_instance = mock_cache_manager.return_value
+        cache_instance.get.return_value = None
+
+        indicator_instance = mock_indicator_data.return_value
+        indicator_instance.get_copper_gold_ratio.return_value = {
+            "data": pd.DataFrame(columns=["Date", "ratio", "yield", "corr"]),
+            "current_value": None,
+        }
+
+        service = IndicatorService(settings=mock_settings)
+
+        async def test_copper_gold_invalid():
+            result = await service.get_indicator('copper_gold_ratio')
+
+            assert result.success is False
+            assert result.error and "unavailable" in result.error.lower()
+            cache_instance.set.assert_not_called()
+
+        asyncio.run(test_copper_gold_invalid())
     
     @patch('src.services.indicator_service.CacheManager')
     @patch('src.services.indicator_service.FredClient')
