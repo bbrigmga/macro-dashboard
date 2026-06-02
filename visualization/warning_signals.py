@@ -589,16 +589,24 @@ EPS source: {eps_source}
 def generate_regime_quadrant_warning(data: dict, config=None) -> dict:
     """Generate warning signal for the regime quadrant indicator."""
     regime = data.get('current_regime', 'Unknown')
+    confidence = float(data.get('regime_confidence', 0.0) or 0.0)
+    confidence_threshold = 0.35
     
     status_map = {
         'Goldilocks': 'Bullish',
         'Reflation': 'Neutral',
         'Stagflation': 'Bearish',
         'Deflation': 'Bearish',
+        'Transition': 'Neutral',
     }
-    
+
+    if confidence < confidence_threshold:
+        status = 'Neutral'
+    else:
+        status = status_map.get(regime, 'Neutral')
+
     return {
-        'status': status_map.get(regime, 'Neutral'),
+        'status': status,
         'description': data.get('regime_description', f'Current regime: {regime}'),
-        'indicator': '🟢' if regime == 'Goldilocks' else ('🔴' if regime in ('Stagflation', 'Deflation') else '🟡'),
+        'indicator': '🟢' if status == 'Bullish' else ('🔴' if status == 'Bearish' else '🟡'),
     }

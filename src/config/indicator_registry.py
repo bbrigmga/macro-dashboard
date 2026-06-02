@@ -291,19 +291,21 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         key="regime_quadrant",
         display_name="Growth/Inflation Regime",
         emoji="🧭",
-        fred_series=[],                    # No FRED data needed
-        yahoo_series=["TIP", "IEF", "CPER", "GLD"],
+        fred_series=["T5YIFR", "T10YIE"],
+        yahoo_series=["TIP", "IEF", "CPER", "GLD", "HYG", "LQD", "XLI", "XLU", "SPHB", "SPLV", "XLE", "SPY", "DBC", "TLT"],
         chart_type="custom",
         value_column="growth_zscore",      # Primary display column
-        periods=900,                       # ~2.5 years of daily data; needed for: 252 trail + 252 Z-score window + 60 ROC = 564 trading days ≈ 790 cal days
+        periods=1260,                      # ~3.5 years for multi-horizon momentum + expanding-window anchoring
         frequency="D",
         bullish_condition="custom",
         threshold=None,
         warning_description=(
-            "This chart shows the current macroeconomic regime using market-implied proxies. "
-            "The X-axis measures Growth Momentum (CPER/GLD ratio Z-Score) and the Y-axis measures "
-            "Inflation Momentum (TIP/IEF ratio Z-Score). The trailing 12-month path shows regime "
-            "migration. A dotted arrow projects the near-term trajectory based on the 5-day slope.\n\n"
+            "This chart shows the current macroeconomic regime using composite market-implied proxies. "
+            "The X-axis blends growth-sensitive cross-asset signals (commodities, credit, cyclicals), and "
+            "the Y-axis blends inflation-sensitive signals (breakevens, energy, TIP/IEF). Signals use a "
+            "multi-horizon momentum z-score with an expanding-window anchor and EMA smoothing. "
+            "The trailing path shows regime migration. The projection uses a mean-reverting AR(1)/OU model "
+            "with an uncertainty cone; the description includes a walk-forward hit-rate.\n\n"
             "**Quadrants:**\n"
             "- 🟧 **Top-Right (Reflation):** Growth ↑, Inflation ↑ → Commodities, Energy, Value\n"
             "- 🟩 **Bottom-Right (Goldilocks):** Growth ↑, Inflation ↓ → Tech, Equities, Risk-on\n"

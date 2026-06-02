@@ -537,6 +537,8 @@ def create_regime_quadrant_chart(data: dict):
     current_inflation = data.get('current_inflation', 0.0)
     projected_growth = data.get('projected_growth', current_growth)
     projected_inflation = data.get('projected_inflation', current_inflation)
+    forecast_cov = data.get('forecast_cov')
+    backtest_summary = data.get('backtest_summary', {}) or {}
     current_regime = data.get('current_regime', 'Unknown')
     
     # Handle empty data case
@@ -641,6 +643,39 @@ def create_regime_quadrant_chart(data: dict):
     
     # Add projected arrow if different from current
     if abs(projected_growth - current_growth) > 0.01 or abs(projected_inflation - current_inflation) > 0.01:
+        # Add 1-sigma uncertainty ellipse around the forecast point when covariance is available.
+        if forecast_cov is not None:
+            try:
+                cov = np.asarray(forecast_cov, dtype=float)
+                if cov.shape == (2, 2) and np.isfinite(cov).all():
+                    cov = (cov + cov.T) / 2.0
+                    eigvals, eigvecs = np.linalg.eigh(cov)
+                    eigvals = np.clip(eigvals, 0.0, None)
+                    if np.any(eigvals > 0):
+                        t = np.linspace(0, 2 * np.pi, 80)
+                        circle = np.vstack([np.cos(t), np.sin(t)])
+                        # Keep the cone visible even when modeled covariance is tiny.
+                        axis_std = np.sqrt(eigvals)
+                        axis_std = np.maximum(axis_std, 0.10)  # floor in z-score units
+                        cone_scale = 1.5  # visually clearer than strict 1-sigma
+                        ellipse = eigvecs @ np.diag(axis_std * cone_scale) @ circle
+                        ellipse_x = projected_growth + ellipse[0, :]
+                        ellipse_y = projected_inflation + ellipse[1, :]
+                        fig.add_trace(go.Scatter(
+                            x=ellipse_x,
+                            y=ellipse_y,
+                            mode='lines',
+                            line=dict(color='rgba(255,111,0,0.85)', width=2),
+                            fill='toself',
+                            fillcolor='rgba(255,111,0,0.45)',
+                            hoverinfo='skip',
+                            showlegend=False,
+                            name='Forecast Uncertainty Cone'
+                        ))
+            except Exception:
+                # Keep chart rendering if covariance formatting is unexpected.
+                pass
+
         fig.add_annotation(
             x=projected_growth,
             y=projected_inflation,
@@ -655,17 +690,42 @@ def create_regime_quadrant_chart(data: dict):
             arrowcolor='rgba(255,111,0,0.6)',
             standoff=10,
         )
+
+    # Add compact forecast-method + hit-rate badge.
+    hit_rate_info = backtest_summary.get("hit_rate", {})
+    overall_hit_rate = hit_rate_info.get("overall_hit_rate")
+    hit_rate_obs = hit_rate_info.get("n_obs", 0)
+    if overall_hit_rate is not None and hit_rate_obs:
+        badge_text = f"Forecast: OU (10d) | Hit-rate: {overall_hit_rate:.0%} ({hit_rate_obs} obs)"
+    else:
+        badge_text = "Forecast: OU (10d)"
+
+    fig.add_annotation(
+        x=0.01,
+        y=0.99,
+        xref="paper",
+        yref="paper",
+        xanchor="left",
+        yanchor="top",
+        text=badge_text,
+        showarrow=False,
+        font=dict(size=10, color="#ffb36a"),
+        bgcolor="rgba(20, 20, 20, 0.55)",
+        bordercolor="rgba(255,111,0,0.45)",
+        borderwidth=1,
+        borderpad=4,
+    )
     
     # Apply layout
     fig.update_layout(
         height=500,
         xaxis=dict(
-            title="Growth Momentum (CPER/GLD Z-Score)",
+            title="Growth Momentum (Composite Z-Score)",
             zeroline=True, zerolinewidth=2, zerolinecolor='rgba(128,128,128,0.5)',
             range=x_range,
         ),
         yaxis=dict(
-            title="Inflation Momentum (TIP/IEF Z-Score)",
+            title="Inflation Momentum (Composite Z-Score)",
             zeroline=True, zerolinewidth=2, zerolinecolor='rgba(128,128,128,0.5)',
             range=y_range,
         ),

@@ -9,7 +9,20 @@ import os
 import streamlit as st
 from data.fred_client import FredClient
 from data.yahoo_client import YahooClient
-from data.processing import calculate_pct_change, check_consecutive_increase, check_consecutive_decrease, count_consecutive_changes, calculate_roc_zscore, apply_ema_smoothing
+from analysis.regime_backtest import summarize_regime_backtest
+from data.processing import (
+    calculate_pct_change,
+    check_consecutive_increase,
+    check_consecutive_decrease,
+    count_consecutive_changes,
+    calculate_roc_zscore,
+    apply_ema_smoothing,
+    blended_momentum_zscore,
+    build_composite_axis,
+    anchor_zscore,
+    classify_regime,
+    forecast_ou,
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -1234,108 +1247,235 @@ class IndicatorData:
             dict: Dictionary with regime quadrant data and analysis
         """
         try:
-            # Define tickers for the proxies
-            tickers = ['TIP', 'IEF', 'CPER', 'GLD']
-            
-            # Calculate start date
             start_date = (datetime.datetime.now() - datetime.timedelta(days=lookback_days)).strftime('%Y-%m-%d')
             end_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
-            
-            # Fetch data for all tickers
-            ticker_data = {}
-            for ticker in tickers:
-                df = self.yahoo_client.get_historical_prices(
-                    ticker=ticker,
-                    start_date=start_date,
-                    end_date=end_date,
-                    frequency='1d'
-                )
-                if df is None or df.empty:
-                    raise ValueError(f"{ticker} price download returned no data")
-                
-                # Rename value column to ticker name and set Date as index
-                df_indexed = df.set_index('Date')['value'].rename(ticker)
-                df_indexed.index = pd.to_datetime(df_indexed.index).tz_localize(None)
-                ticker_data[ticker] = df_indexed
-            
-            # Merge all ticker data using inner join to align dates
-            combined_df = pd.concat(list(ticker_data.values()), axis=1, join='inner')
-            combined_df = combined_df.sort_index().dropna()
-            
-            if combined_df.empty:
-                raise ValueError("No overlapping data available for all tickers")
-            
-            # Calculate ratios
-            combined_df['inflation_ratio'] = combined_df['TIP'] / combined_df['IEF']
-            combined_df['growth_ratio'] = combined_df['CPER'] / combined_df['GLD']
-            
-            # Calculate ROC Z-Scores
-            inflation_zscore = calculate_roc_zscore(combined_df['inflation_ratio'], roc_period=60, zscore_window=252)
-            growth_zscore = calculate_roc_zscore(combined_df['growth_ratio'], roc_period=60, zscore_window=252)
-            
-            # Apply EMA smoothing
-            inflation_zscore_smooth = apply_ema_smoothing(inflation_zscore, span=20)
-            growth_zscore_smooth = apply_ema_smoothing(growth_zscore, span=20)
-            
-            # Build output DataFrame
-            result_df = pd.DataFrame({
-                'Date': combined_df.index,
-                'growth_zscore': growth_zscore_smooth,
-                'inflation_zscore': inflation_zscore_smooth
-            }).dropna().reset_index(drop=True)
-            
+
+            # Proxy baskets: first item in each list is the mandatory anchor.
+            growth_proxy_pairs = [
+                ("CPER_GLD", "CPER", "GLD"),
+                ("HYG_LQD", "HYG", "LQD"),
+                ("XLI_XLU", "XLI", "XLU"),
+                ("SPHB_SPLV", "SPHB", "SPLV"),
+            ]
+            inflation_proxy_pairs = [
+                ("TIP_IEF", "TIP", "IEF"),
+                ("XLE_SPY", "XLE", "SPY"),
+                ("DBC_SPY", "DBC", "SPY"),
+            ]
+            inflation_fred_series = ["T5YIFR", "T10YIE"]
+
+            required_tickers = {"CPER", "GLD", "TIP", "IEF"}
+            all_tickers = sorted({
+                ticker
+                for _, num, den in (growth_proxy_pairs + inflation_proxy_pairs)
+                for ticker in (num, den)
+            }.union({"TLT"}))
+
+            ticker_data: dict[str, pd.Series] = {}
+            missing_tickers = set()
+            for ticker in all_tickers:
+                try:
+                    df = self.yahoo_client.get_historical_prices(
+                        ticker=ticker,
+                        start_date=start_date,
+                        end_date=end_date,
+                        frequency='1d'
+                    )
+                    if df is None or df.empty:
+                        raise ValueError(f"{ticker} price download returned no data")
+
+                    series = pd.to_numeric(df.set_index("Date")["value"], errors="coerce")
+                    series.index = pd.to_datetime(series.index).tz_localize(None)
+                    ticker_data[ticker] = series.rename(ticker).dropna()
+                except Exception as ticker_error:
+                    logger.warning(f"Skipping Yahoo proxy ticker {ticker}: {ticker_error}")
+                    missing_tickers.add(ticker)
+
+            missing_required = required_tickers.intersection(missing_tickers)
+            if missing_required:
+                raise ValueError(f"Required proxy ticker(s) unavailable: {', '.join(sorted(missing_required))}")
+
+            def _build_ratio_proxy(pairs: list[tuple[str, str, str]]) -> dict[str, pd.Series]:
+                proxy_zscores: dict[str, pd.Series] = {}
+                for idx, (name, numerator_ticker, denominator_ticker) in enumerate(pairs):
+                    mandatory_proxy = idx == 0
+                    if numerator_ticker not in ticker_data or denominator_ticker not in ticker_data:
+                        if mandatory_proxy:
+                            raise ValueError(f"Mandatory proxy unavailable: {name}")
+                        continue
+
+                    merged_ratio = pd.concat(
+                        [ticker_data[numerator_ticker], ticker_data[denominator_ticker]],
+                        axis=1,
+                        join='inner'
+                    ).dropna()
+                    if merged_ratio.empty:
+                        if mandatory_proxy:
+                            raise ValueError(f"Mandatory proxy has no overlapping data: {name}")
+                        continue
+
+                    ratio = (merged_ratio[numerator_ticker] / merged_ratio[denominator_ticker]).dropna()
+                    ratio = ratio.replace([np.inf, -np.inf], np.nan).dropna()
+                    if ratio.empty:
+                        if mandatory_proxy:
+                            raise ValueError(f"Mandatory proxy produced invalid ratio: {name}")
+                        continue
+
+                    rolling_momentum_z = blended_momentum_zscore(
+                        ratio,
+                        roc_periods=(20, 60, 120),
+                        zscore_window=252
+                    )
+                    anchored_z = anchor_zscore(rolling_momentum_z, ratio, weight=0.30)
+                    proxy_zscores[name] = anchored_z.rename(name)
+                return proxy_zscores
+
+            growth_proxy_zscores = _build_ratio_proxy(growth_proxy_pairs)
+            inflation_proxy_zscores = _build_ratio_proxy(inflation_proxy_pairs)
+
+            for fred_series_id in inflation_fred_series:
+                try:
+                    fred_df = self._fred().get_series(
+                        fred_series_id,
+                        start_date=start_date,
+                        end_date=end_date,
+                        frequency='D'
+                    )
+                    if fred_df is None or fred_df.empty or fred_series_id not in fred_df.columns:
+                        raise ValueError("Series returned no usable data")
+
+                    fred_series = pd.to_numeric(
+                        fred_df.set_index("Date")[fred_series_id],
+                        errors="coerce"
+                    )
+                    fred_series.index = pd.to_datetime(fred_series.index).tz_localize(None)
+                    fred_series = fred_series.sort_index().ffill().dropna()
+                    if fred_series.empty:
+                        raise ValueError("Series became empty after preprocessing")
+
+                    rolling_momentum_z = blended_momentum_zscore(
+                        fred_series,
+                        roc_periods=(20, 60, 120),
+                        zscore_window=252
+                    )
+                    anchored_z = anchor_zscore(rolling_momentum_z, fred_series, weight=0.30)
+                    inflation_proxy_zscores[fred_series_id] = anchored_z.rename(fred_series_id)
+                except Exception as fred_error:
+                    logger.warning(f"Skipping optional FRED inflation proxy {fred_series_id}: {fred_error}")
+
+            growth_composite = build_composite_axis(growth_proxy_zscores, min_series=1)
+            inflation_composite = build_composite_axis(inflation_proxy_zscores, min_series=1)
+            if growth_composite.empty or inflation_composite.empty:
+                raise ValueError("Unable to build regime composite axis from available proxies")
+
+            growth_zscore_smooth = apply_ema_smoothing(growth_composite, span=20)
+            inflation_zscore_smooth = apply_ema_smoothing(inflation_composite, span=20)
+
+            # Align both axes to common dates for plotting.
+            aligned = pd.concat(
+                [
+                    growth_composite.rename("growth_raw"),
+                    inflation_composite.rename("inflation_raw"),
+                    growth_zscore_smooth.rename("growth_zscore"),
+                    inflation_zscore_smooth.rename("inflation_zscore"),
+                ],
+                axis=1,
+                join='inner'
+            ).dropna()
+
+            result_df = aligned.reset_index().rename(columns={"index": "Date"})
             if result_df.empty:
                 raise ValueError("No valid regime data after processing")
-            
+
+            # Classify each observation with dead-zone + hysteresis.
+            regimes = []
+            prev_regime = None
+            for _, row in result_df.iterrows():
+                regime = classify_regime(
+                    float(row["growth_zscore"]),
+                    float(row["inflation_zscore"]),
+                    neutral_band=0.25,
+                    prev_regime=prev_regime
+                )
+                regimes.append(regime)
+                prev_regime = regime
+            result_df["regime"] = regimes
+
             # Get current values
             current_growth = float(result_df['growth_zscore'].iloc[-1])
             current_inflation = float(result_df['inflation_zscore'].iloc[-1])
-            
-            # Determine current regime
-            if current_growth >= 0 and current_inflation >= 0:
-                current_regime = "Reflation"
-            elif current_growth >= 0 and current_inflation < 0:
-                current_regime = "Goldilocks"
-            elif current_growth < 0 and current_inflation >= 0:
-                current_regime = "Stagflation"
-            else:
-                current_regime = "Deflation"
-            
-            # Calculate projected trajectory (5-day slope extrapolation)
-            if len(result_df) >= 6:
-                recent_data = result_df.tail(6)
-                growth_changes = recent_data['growth_zscore'].diff().dropna()
-                inflation_changes = recent_data['inflation_zscore'].diff().dropna()
-                
-                slope_x = growth_changes.tail(5).mean()
-                slope_y = inflation_changes.tail(5).mean()
-                
-                projected_growth = current_growth + slope_x * 10
-                projected_inflation = current_inflation + slope_y * 10
-            else:
-                projected_growth = current_growth
-                projected_inflation = current_inflation
-            
+            current_regime = result_df["regime"].iloc[-1]
+            regime_confidence = float(np.hypot(current_growth, current_inflation))
+
+            # Forecast trajectory with mean-reverting AR(1)/OU model on unsmoothed composites.
+            growth_forecast = forecast_ou(result_df['growth_raw'], horizon=10)
+            inflation_forecast = forecast_ou(result_df['inflation_raw'], horizon=10)
+            projected_growth = float(growth_forecast["projected"])
+            projected_inflation = float(inflation_forecast["projected"])
+
+            var_growth = float(growth_forecast["variance"])
+            var_inflation = float(inflation_forecast["variance"])
+            covariance = 0.0
+            raw_changes = result_df[['growth_raw', 'inflation_raw']].diff().dropna()
+            if len(raw_changes) > 10:
+                corr = raw_changes['growth_raw'].corr(raw_changes['inflation_raw'])
+                if corr is not None and not np.isnan(corr):
+                    covariance = float(np.clip(corr, -0.95, 0.95) * np.sqrt(var_growth * var_inflation))
+            forecast_cov = [
+                [var_growth, covariance],
+                [covariance, var_inflation],
+            ]
+
             # Get trail data
             trail_data = result_df.tail(min(trail_days, len(result_df))).copy()
-            
+
             # Generate regime description
             regime_descriptions = {
                 "Reflation": "Growth ↑, Inflation ↑ - Favors commodities, energy, and value stocks",
-                "Goldilocks": "Growth ↑, Inflation ↓ - Favors tech, equities, and risk-on assets", 
+                "Goldilocks": "Growth ↑, Inflation ↓ - Favors tech, equities, and risk-on assets",
                 "Stagflation": "Growth ↓, Inflation ↑ - Favors gold, cash, and defensive assets",
-                "Deflation": "Growth ↓, Inflation ↓ - Favors long bonds (TLT) and utilities"
+                "Deflation": "Growth ↓, Inflation ↓ - Favors long bonds (TLT) and utilities",
+                "Transition": "Signals are near regime boundaries - positioning is mixed with lower confidence",
             }
-            
+
+            asset_prices = {
+                ticker: series
+                for ticker, series in ticker_data.items()
+                if ticker in {"SPY", "XLE", "GLD", "TLT"}
+            }
+            backtest_summary = summarize_regime_backtest(
+                result_df[['Date', 'growth_raw', 'inflation_raw', 'regime']].copy(),
+                asset_prices=asset_prices,
+                horizon=10,
+                min_train=126
+            )
+            hit_rate = backtest_summary.get("hit_rate", {}).get("overall_hit_rate", 0.0)
+            hit_obs = backtest_summary.get("hit_rate", {}).get("n_obs", 0)
+            hit_rate_note = ""
+            if hit_obs > 0:
+                hit_rate_note = f" | Walk-forward 10d hit-rate: {hit_rate:.0%} ({hit_obs} obs)"
+
             return {
-                'data': result_df,
-                'trail_data': trail_data,
+                'data': result_df[['Date', 'growth_zscore', 'inflation_zscore']],
+                'trail_data': trail_data[['Date', 'growth_zscore', 'inflation_zscore']],
                 'current_regime': current_regime,
                 'current_growth': current_growth,
                 'current_inflation': current_inflation,
                 'projected_growth': projected_growth,
                 'projected_inflation': projected_inflation,
-                'regime_description': regime_descriptions.get(current_regime, f'Current regime: {current_regime}'),
+                'forecast_cov': forecast_cov,
+                'regime_description': (
+                    regime_descriptions.get(current_regime, f'Current regime: {current_regime}') + hit_rate_note
+                ),
+                'regime_confidence': regime_confidence,
+                'regime_series': result_df[['Date', 'regime']].copy(),
+                'backtest_summary': backtest_summary,
+                'growth_raw': result_df['growth_raw'],
+                'inflation_raw': result_df['inflation_raw'],
+                'proxy_counts': {
+                    'growth': len(growth_proxy_zscores),
+                    'inflation': len(inflation_proxy_zscores),
+                },
             }
             
         except Exception as e:
@@ -1349,6 +1489,9 @@ class IndicatorData:
                 'current_inflation': 0.0,
                 'projected_growth': 0.0,
                 'projected_inflation': 0.0,
+                'forecast_cov': [[0.0, 0.0], [0.0, 0.0]],
+                'regime_confidence': 0.0,
+                'backtest_summary': {},
                 'regime_description': f'Unable to fetch regime data: {str(e)}',
             }
 

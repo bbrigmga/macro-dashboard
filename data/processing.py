@@ -213,3 +213,211 @@ def apply_ema_smoothing(series: pd.Series, span: int = 20) -> pd.Series:
         pd.Series: Smoothed series
     """
     return series.ewm(span=span, adjust=False).mean()
+
+
+def blended_momentum_zscore(
+    series: pd.Series,
+    roc_periods: tuple[int, ...] = (20, 60, 120),
+    zscore_window: int = 252
+) -> pd.Series:
+    """
+    Blend multiple ROC-based z-score horizons into one momentum signal.
+
+    Args:
+        series: Input time series (price or ratio)
+        roc_periods: ROC lookbacks to combine (in trading days)
+        zscore_window: Rolling window for z-score normalization
+
+    Returns:
+        pd.Series: Blended z-score series
+    """
+    if series is None or len(series) == 0:
+        return pd.Series(dtype=float)
+
+    components = []
+    for period in roc_periods:
+        if period <= 0:
+            continue
+        z_component = calculate_roc_zscore(series, roc_period=period, zscore_window=zscore_window)
+        components.append(z_component.rename(f"roc_{period}"))
+
+    if not components:
+        return pd.Series(index=series.index, dtype=float)
+
+    blended = pd.concat(components, axis=1).mean(axis=1, skipna=True)
+    blended.name = "blended_momentum_zscore"
+    return blended
+
+
+def build_composite_axis(proxy_zscores: dict[str, pd.Series], min_series: int = 1) -> pd.Series:
+    """
+    Build a composite axis by averaging aligned proxy z-score series.
+
+    Args:
+        proxy_zscores: Mapping of proxy name -> z-score series
+        min_series: Minimum number of available proxies required per date
+
+    Returns:
+        pd.Series: Composite axis z-score
+    """
+    valid_series = []
+    for name, series in proxy_zscores.items():
+        if series is None or len(series) == 0:
+            continue
+        clean = pd.to_numeric(series, errors='coerce')
+        valid_series.append(clean.rename(name))
+
+    if not valid_series:
+        return pd.Series(dtype=float)
+
+    aligned = pd.concat(valid_series, axis=1, join='inner').dropna(how='all')
+    if aligned.empty:
+        return pd.Series(dtype=float)
+
+    available_count = aligned.notna().sum(axis=1)
+    composite = aligned.mean(axis=1, skipna=True)
+    composite = composite.where(available_count >= max(1, min_series))
+    composite.name = "composite_axis"
+    return composite
+
+
+def anchor_zscore(rolling_z: pd.Series, series: pd.Series, weight: float = 0.3, min_periods: int = 126) -> pd.Series:
+    """
+    Anchor rolling z-scores using an expanding baseline to reduce drift.
+
+    Args:
+        rolling_z: Rolling-window z-score series
+        series: Raw underlying series used to compute expanding z-score
+        weight: Blend weight for expanding z-score contribution
+        min_periods: Minimum expanding window observations
+
+    Returns:
+        pd.Series: Anchored z-score series
+    """
+    if rolling_z is None or len(rolling_z) == 0:
+        return pd.Series(dtype=float)
+
+    weight = float(np.clip(weight, 0.0, 1.0))
+    series = pd.to_numeric(series, errors='coerce')
+
+    exp_mean = series.expanding(min_periods=min_periods).mean()
+    exp_std = series.expanding(min_periods=min_periods).std()
+    exp_std = exp_std.replace(0, np.nan)
+    expanding_z = (series - exp_mean) / exp_std
+
+    anchored = (1 - weight) * rolling_z + weight * expanding_z
+    anchored = anchored.where(~rolling_z.isna(), np.nan)
+    anchored = anchored.combine_first(rolling_z)
+    anchored.name = rolling_z.name if rolling_z.name else "anchored_zscore"
+    return anchored
+
+
+def classify_regime(
+    growth: float,
+    inflation: float,
+    neutral_band: float = 0.25,
+    prev_regime: str | None = None
+) -> str:
+    """
+    Classify growth/inflation point into regime with dead-zone and hysteresis.
+
+    Args:
+        growth: Growth axis value
+        inflation: Inflation axis value
+        neutral_band: Absolute dead-zone around each axis
+        prev_regime: Previous regime label for hysteresis behavior
+
+    Returns:
+        str: Regime label
+    """
+    if pd.isna(growth) or pd.isna(inflation):
+        return "Unknown"
+
+    if abs(growth) < neutral_band or abs(inflation) < neutral_band:
+        if prev_regime and prev_regime not in {"Unknown", "Transition"}:
+            # Hold prior regime while signal is in the dead-zone.
+            return prev_regime
+        return "Transition"
+
+    if growth >= 0 and inflation >= 0:
+        return "Reflation"
+    if growth >= 0 and inflation < 0:
+        return "Goldilocks"
+    if growth < 0 and inflation >= 0:
+        return "Stagflation"
+    return "Deflation"
+
+
+def forecast_ou(series: pd.Series, horizon: int = 10) -> dict:
+    """
+    Forecast a mean-reverting series using an AR(1) / OU discretization.
+
+    Args:
+        series: Input series to model
+        horizon: Forecast horizon in steps
+
+    Returns:
+        dict: projected, variance, beta, intercept, residual_std
+    """
+    clean = pd.to_numeric(series, errors='coerce').dropna()
+    if clean.empty:
+        return {
+            "projected": 0.0,
+            "variance": 0.0,
+            "beta": 0.0,
+            "intercept": 0.0,
+            "residual_std": 0.0,
+        }
+
+    if len(clean) < 20:
+        last_val = float(clean.iloc[-1])
+        return {
+            "projected": last_val,
+            "variance": 0.0,
+            "beta": 0.0,
+            "intercept": last_val,
+            "residual_std": 0.0,
+        }
+
+    x_prev = clean.iloc[:-1]
+    x_next = clean.iloc[1:]
+    x_var = float(x_prev.var(ddof=1))
+
+    if x_var <= 0 or np.isnan(x_var):
+        last_val = float(clean.iloc[-1])
+        return {
+            "projected": last_val,
+            "variance": 0.0,
+            "beta": 0.0,
+            "intercept": float(x_next.mean()),
+            "residual_std": 0.0,
+        }
+
+    cov = float(np.cov(x_prev, x_next, ddof=1)[0, 1])
+    beta = cov / x_var
+    beta = float(np.clip(beta, -0.999, 0.999))
+    intercept = float(x_next.mean() - beta * x_prev.mean())
+
+    current = float(clean.iloc[-1])
+    projected = current
+    for _ in range(max(1, int(horizon))):
+        projected = intercept + beta * projected
+
+    residuals = x_next - (intercept + beta * x_prev)
+    sigma2 = float(residuals.var(ddof=1)) if len(residuals) > 1 else 0.0
+    sigma2 = max(0.0, sigma2)
+
+    steps = max(1, int(horizon))
+    denom = 1.0 - (beta ** 2)
+    if abs(denom) < 1e-6:
+        variance = sigma2 * steps
+    else:
+        variance = sigma2 * (1.0 - beta ** (2 * steps)) / denom
+
+    return {
+        "projected": float(projected),
+        "variance": float(max(0.0, variance)),
+        "beta": beta,
+        "intercept": intercept,
+        "residual_std": float(np.sqrt(sigma2)),
+    }
