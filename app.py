@@ -9,14 +9,8 @@ import asyncio
 import logging
 import streamlit as st
 import pandas as pd
-import numpy as np
-import requests
-from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from data.fred_client import FredClient
-from data.indicators import IndicatorData
 from ui.dashboard import create_dashboard, setup_page_config
-from src.config.settings import get_settings
 
 from src.services import IndicatorService
 
@@ -32,19 +26,8 @@ load_dotenv()
 
 # Add cached singletons for shared clients/resources
 @st.cache_resource
-def get_fred_client():
-    # Get configuration settings
-    settings = get_settings()
-
-    # Use configuration for cache settings
-    return FredClient(
-        cache_enabled=settings.cache.enabled,
-        max_cache_size=settings.cache.max_memory_size
-    )
-
-@st.cache_resource
-def get_indicator_data():
-    return IndicatorData(get_fred_client())
+def get_indicator_service():
+    return IndicatorService()
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def check_volatility_data_freshness():
@@ -131,8 +114,7 @@ else:
     try:
         # Use service layer architecture
         logger.info("Using service layer architecture")
-        settings = get_settings()
-        indicator_service = IndicatorService(settings)
+        indicator_service = get_indicator_service()
 
         # Fetch all indicators using service layer
         result = asyncio.run(indicator_service.get_all_indicators())
@@ -141,7 +123,7 @@ else:
             raise ValueError(f"Service layer failed to fetch indicators: {result.error}")
 
         indicators = result.data
-        fred_client = get_fred_client()  # Still needed for dashboard creation
+        fred_client = indicator_service.fred_client
 
         logger.info(f"Service layer fetched indicators in {result.execution_time:.2f}s")
         

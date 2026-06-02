@@ -95,7 +95,8 @@ class TestVolTableDataAssembler:
         
         # Should return empty DataFrame with correct schema
         expected_columns = [
-            'etf_name', 'ticker_display', 'ytd_pct', 'ivol_rvol_current',
+            'etf_name', 'ticker_display', 'bias_score', 'bias_label',
+            'ytd_pct', 'ivol_rvol_current',
             'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
             'ttm_zscore', 'three_yr_zscore'
         ]
@@ -113,7 +114,8 @@ class TestVolTableDataAssembler:
         df = assembler.build_table()
         
         expected_columns = [
-            'etf_name', 'ticker_display', 'ytd_pct', 'ivol_rvol_current',
+            'etf_name', 'ticker_display', 'bias_score', 'bias_label',
+            'ytd_pct', 'ivol_rvol_current',
             'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
             'ttm_zscore', 'three_yr_zscore'
         ]
@@ -151,29 +153,27 @@ class TestVolTableDataAssembler:
         
         # Only universe ticker should be present
         assert len(df) == 1
-        assert df.iloc[0]['ticker_display'] == f"{universe_ticker} US EQUITY"
+        assert df.iloc[0]['ticker_display'] == universe_ticker
     
     def test_sort_order(self, populated_db):
-        """Test DataFrame is sorted by ytd_pct descending."""
+        """Test DataFrame is sorted by bias_score then ytd_pct descending."""
         assembler = VolTableDataAssembler(populated_db)
         df = assembler.build_table()
         
         assert len(df) > 1
         
         # Check sort order
-        ytd_values = list(df['ytd_pct'].astype(float))
-        assert all(ytd_values[i] >= ytd_values[i+1] for i in range(len(ytd_values) - 1)), "Should be sorted by ytd_pct descending"
+        sort_pairs = list(zip(df['bias_score'].astype(float), df['ytd_pct'].astype(float)))
+        assert sort_pairs == sorted(sort_pairs, key=lambda x: (x[0], x[1]), reverse=True)
     
     def test_ticker_display_format(self, populated_db):
-        """Test ticker display format is correct."""
+        """Test ticker display contains universe ticker symbol."""
         assembler = VolTableDataAssembler(populated_db)
         df = assembler.build_table()
         
         for _, row in df.iterrows():
             ticker_display = row['ticker_display']
-            assert ticker_display.endswith(' US EQUITY')
-            ticker = ticker_display.replace(' US EQUITY', '')
-            assert ticker in ETF_NAME_LOOKUP
+            assert ticker_display in ETF_NAME_LOOKUP
     
     def test_etf_name_mapping(self, populated_db):
         """Test ETF names are correctly mapped."""
@@ -181,7 +181,7 @@ class TestVolTableDataAssembler:
         df = assembler.build_table()
         
         for _, row in df.iterrows():
-            ticker = row['ticker_display'].replace(' US EQUITY', '')
+            ticker = row['ticker_display']
             expected_name = ETF_NAME_LOOKUP[ticker]
             assert row['etf_name'] == expected_name
     

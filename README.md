@@ -207,6 +207,25 @@ A PowerShell script is provided to set up the daily scraping task:
    - Logs output to `scripts\scrape_iv.log`.
    - You can verify the task in **Windows Task Scheduler** library.
 
+### GitHub Actions Nightly Scrape
+The repository also includes [`.github/workflows/scrape_iv.yml`](.github/workflows/scrape_iv.yml), which runs on weekdays and commits `data/volatility/iv_data.db` back to `main`.
+
+This means there are two writers for the same IV database:
+- **Local machine (Task Scheduler at 4:30 PM)**: Primary source for day-to-day dashboard use.
+- **GitHub Actions (weekday schedule in UTC)**: Remote backup and sync source.
+
+Operational guidance:
+- If you want your local copy to include remote updates from Actions, run `git pull`.
+- If your local DB has richer history, make sure `data/volatility/iv_data.db` is tracked and committed before relying on Actions updates.
+- Avoid mixing local and remote updates blindly; pull intentionally so you know which DB history is current.
+
+### Runtime Artifacts
+Runtime logs and generated cache snapshots are local-only artifacts and should not be committed:
+- `logs/`
+- `scripts/scrape_iv.log`
+- `data/cache/*.csv`
+- `data/cache/*.pkl`
+
 ### Manual Data Refresh
 You can run the scraper manually at any time to update the SQLite database:
 ```bash

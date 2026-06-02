@@ -78,7 +78,7 @@ class TestIndicatorRegistry:
     
     def test_registry_has_expected_count(self):
         """Test that registry contains expected number of indicators."""
-        assert len(INDICATOR_REGISTRY) == 14
+        assert len(INDICATOR_REGISTRY) == 15
     
     def test_registry_contains_all_expected_indicators(self):
         """Test that all expected indicators are present."""
@@ -86,7 +86,7 @@ class TestIndicatorRegistry:
             'initial_claims', 'pce', 'core_cpi', 'hours_worked',
             'yield_curve', 'credit_spread', 'xlp_xly_ratio', 'pscf_price', 
             'pmi_proxy', 'usd_liquidity', 'new_orders', 'copper_gold_yield',
-            'regime_quadrant', 'implied_realized_vol'
+            'korea_exports_spy_eps', 'regime_quadrant', 'implied_realized_vol'
         ]
         
         for indicator in expected_indicators:
@@ -183,7 +183,7 @@ class TestRegistryHelperFunctions:
         indicators = list_indicators()
         
         assert isinstance(indicators, list)
-        assert len(indicators) == 14
+        assert len(indicators) == 15
         assert 'initial_claims' in indicators
         assert 'pce' in indicators
         assert 'usd_liquidity' in indicators

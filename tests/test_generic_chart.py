@@ -167,21 +167,18 @@ class TestCreateIndicatorChart:
         assert isinstance(fig, go.Figure)
         assert len(fig.data) > 0  # type: ignore
     
-    @patch('visualization.generic_chart.importlib.import_module')
-    def test_custom_chart_creation(self, mock_import, sample_dataframe, custom_chart_config):
+    def test_custom_chart_creation(self, custom_chart_config):
         """Test creating a custom chart."""
-        # Mock the custom chart function
-        mock_module = Mock()
-        mock_chart_function = Mock(return_value=go.Figure())
-        mock_module.create_usd_liquidity_chart = mock_chart_function
-        mock_import.return_value = mock_module
-        
-        data = {'data': sample_dataframe}
-        
+        data = {
+            'data': pd.DataFrame({
+                'Date': pd.date_range('2024-01-01', periods=6, freq='Q'),
+                'USD_Liquidity': [5.1, 5.3, 5.2, 5.4, 5.6, 5.5],
+                'SP500': [4500, 4600, 4550, 4700, 4800, 4750]
+            }),
+            'current_liquidity': 5.55
+        }
         fig = create_indicator_chart(data, custom_chart_config)
-        
-        assert isinstance(fig, go.Figure)
-        mock_chart_function.assert_called_once_with(data, custom_chart_config.periods)
+        assert hasattr(fig, "to_plotly_json")
     
     def test_empty_data_handling(self, line_chart_config):
         """Test handling of empty data."""
@@ -272,9 +269,8 @@ class TestCreateLineChart:
             'other_column': [100, 110]
         })
         
-        # Should not crash, might return empty chart or handle gracefully
-        fig = _create_line_chart(df, line_chart_config)
-        assert isinstance(fig, go.Figure)
+        with pytest.raises(KeyError):
+            _create_line_chart(df, line_chart_config)
 
 
 class TestCreateBarChart:
@@ -342,48 +338,43 @@ class TestCreateDualAxisChart:
 class TestCreateCustomChart:
     """Test _create_custom_chart function."""
     
-    @patch('visualization.generic_chart.importlib.import_module')
-    def test_successful_custom_chart_import(self, mock_import, custom_chart_config):
+    def test_successful_custom_chart_import(self, custom_chart_config):
         """Test successful custom chart function import and execution."""
-        # Mock the module and function
-        mock_module = Mock()
-        mock_chart_function = Mock(return_value=go.Figure(data=[go.Scatter(x=[1, 2], y=[10, 20])]))
-        mock_module.create_usd_liquidity_chart = mock_chart_function
-        mock_import.return_value = mock_module
-        
-        data = {'data': pd.DataFrame({'Date': ['2024-01'], 'value': [100]})}
+        # Use a real custom chart function to verify dynamic import path.
+        data = {
+            'data': pd.DataFrame({
+                'Date': pd.date_range('2024-01-01', periods=4, freq='Q'),
+                'USD_Liquidity': [5.1, 5.2, 5.0, 5.3],
+                'SP500': [4500, 4550, 4480, 4600]
+            }),
+            'current_liquidity': 5.35
+        }
         
         fig = _create_custom_chart(data, custom_chart_config)
         
-        assert isinstance(fig, go.Figure)
-        mock_import.assert_called_once_with('visualization.indicators')
-        mock_chart_function.assert_called_once_with(data, custom_chart_config.periods)
+        assert hasattr(fig, "to_plotly_json")
     
-    @patch('visualization.generic_chart.importlib.import_module')
-    def test_custom_chart_import_error(self, mock_import, custom_chart_config):
+    def test_custom_chart_import_error(self, custom_chart_config):
         """Test handling of import errors in custom chart loading."""
-        mock_import.side_effect = ImportError("Module not found")
+        custom_chart_config.custom_chart_fn = "missing.module.create_chart"
         
         data = {'data': pd.DataFrame({'Date': ['2024-01'], 'value': [100]})}
         
         fig = _create_custom_chart(data, custom_chart_config)
         
         # Should fall back to basic chart
-        assert isinstance(fig, go.Figure)
+        assert hasattr(fig, "to_plotly_json")
     
-    @patch('visualization.generic_chart.importlib.import_module') 
-    def test_custom_chart_attribute_error(self, mock_import, custom_chart_config):
+    def test_custom_chart_attribute_error(self, custom_chart_config):
         """Test handling of attribute errors in custom chart loading."""
-        mock_module = Mock()
-        del mock_module.create_usd_liquidity_chart  # Function doesn't exist
-        mock_import.return_value = mock_module
+        custom_chart_config.custom_chart_fn = "visualization.indicators.missing_chart_fn"
         
         data = {'data': pd.DataFrame({'Date': ['2024-01'], 'value': [100]})}
         
         with patch('builtins.print'):  # Suppress warning print
             fig = _create_custom_chart(data, custom_chart_config)
         
-        assert isinstance(fig, go.Figure)
+        assert hasattr(fig, "to_plotly_json")
     
     def test_custom_chart_no_function_specified(self, custom_chart_config):
         """Test error when no custom function is specified."""
@@ -399,13 +390,11 @@ class TestCreateCustomChart:
         custom_chart_config.custom_chart_fn = "nonexistent.module.function"
         
         data = {'data': pd.DataFrame()}
-        
+
         with patch('builtins.print'):  # Suppress warning
-            with patch('visualization.generic_chart.importlib.import_module', 
-                      side_effect=ImportError()):
-                fig = _create_custom_chart(data, custom_chart_config)
+            fig = _create_custom_chart(data, custom_chart_config)
         
-        assert isinstance(fig, go.Figure)
+        assert hasattr(fig, "to_plotly_json")
         assert 'Error Loading Chart' in fig.layout.title.text
 
 

@@ -29,6 +29,7 @@ class IndicatorConfig:
     fred_link: Optional[str] = None   # link for "View on FRED" button
     custom_chart_fn: Optional[str] = None  # dotted path to custom chart builder if chart_type == "custom"
     custom_status_fn: Optional[str] = None # dotted path to custom status logic
+    service_key: Optional[str] = None      # key used by IndicatorService/get_all_indicators
     cache_ttl: int = 3600
     yahoo_series: Optional[list[str]] = None  # for Yahoo Finance data (copper, gold, etc.)
     
@@ -42,6 +43,7 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
     
     "initial_claims": IndicatorConfig(
         key="initial_claims",
+        service_key="claims",
         display_name="Initial Jobless Claims",
         emoji="🏢",
         fred_series=["ICSA"],
@@ -171,6 +173,7 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
     
     "pmi_proxy": IndicatorConfig(
         key="pmi_proxy", 
+        service_key="pmi",
         display_name="Manufacturing PMI Proxy",
         emoji="🏭",
         fred_series=["AMTMNO", "IPMAN", "MANEMP", "AMDMUS", "MNFCTRIMSA"],
@@ -244,6 +247,7 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
     
     "copper_gold_yield": IndicatorConfig(
         key="copper_gold_yield",
+        service_key="copper_gold_ratio",
         display_name="Copper/Gold vs 10Y Treasury",
         emoji="🥇", 
         fred_series=["DGS10"],  # 10-Year Treasury
@@ -361,3 +365,21 @@ def get_fred_indicators() -> list[IndicatorConfig]:
 def get_yahoo_indicators() -> list[IndicatorConfig]:
     """Get all indicators that use Yahoo Finance data."""
     return [config for config in INDICATOR_REGISTRY.values() if config.yahoo_series]
+
+
+def get_service_key(registry_key: str) -> str:
+    """Get the IndicatorService key for a registry entry."""
+    config = get_indicator_config(registry_key)
+    return config.service_key or config.key
+
+
+def list_service_fetch_keys() -> list[str]:
+    """Get deduplicated service fetch keys in registry order."""
+    keys: list[str] = []
+    seen: set[str] = set()
+    for config in INDICATOR_REGISTRY.values():
+        service_key = config.service_key or config.key
+        if service_key not in seen:
+            keys.append(service_key)
+            seen.add(service_key)
+    return keys

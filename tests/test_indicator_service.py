@@ -35,14 +35,14 @@ def mock_indicator_data():
     data_provider = Mock()
     # Mock all the indicator methods
     data_provider.get_initial_claims = Mock()
-    data_provider.get_pce_data = Mock() 
-    data_provider.get_core_cpi_data = Mock()
-    data_provider.get_hours_worked_data = Mock()
+    data_provider.get_pce = Mock() 
+    data_provider.get_core_cpi = Mock()
+    data_provider.get_hours_worked = Mock()
     data_provider.get_new_orders = Mock()
     data_provider.get_yield_curve = Mock()
     data_provider.get_pscf_price = Mock()
     data_provider.get_credit_spread = Mock()
-    data_provider.calculate_usd_liquidity = Mock()
+    data_provider.get_usd_liquidity = Mock()
     data_provider.calculate_pmi_proxy = Mock()
     data_provider.get_copper_gold_ratio = Mock()
     return data_provider
@@ -255,7 +255,7 @@ class TestGetIndicator:
         cache_instance.get.return_value = None
         
         indicator_instance = mock_indicator_data.return_value
-        indicator_instance.calculate_usd_liquidity.return_value = {"current_liquidity": 4500}
+        indicator_instance.get_usd_liquidity.return_value = {"current_liquidity": 4500}
         
         service = IndicatorService(settings=mock_settings)
         
@@ -263,7 +263,7 @@ class TestGetIndicator:
             result = await service.get_indicator('usd_liquidity')
             
             assert result.success is True
-            indicator_instance.calculate_usd_liquidity.assert_called_once()
+            indicator_instance.get_usd_liquidity.assert_called_once()
         
         asyncio.run(test_usd_liquidity())
 
@@ -349,9 +349,9 @@ class TestGetAllIndicators:
         
         indicator_instance = mock_indicator_data.return_value
         # Mock all indicator methods to return data
-        for method_name in ['get_initial_claims', 'get_pce_data', 'get_core_cpi_data',
-                           'get_hours_worked_data', 'get_new_orders', 'get_yield_curve',
-                           'get_pscf_price', 'get_credit_spread', 'calculate_usd_liquidity',
+        for method_name in ['get_initial_claims', 'get_pce', 'get_core_cpi',
+                           'get_hours_worked', 'get_new_orders', 'get_yield_curve',
+                           'get_pscf_price', 'get_credit_spread', 'get_usd_liquidity',
                            'calculate_pmi_proxy', 'get_copper_gold_ratio']:
             if hasattr(indicator_instance, method_name):
                 getattr(indicator_instance, method_name).return_value = sample_indicator_data
@@ -380,8 +380,8 @@ class TestGetAllIndicators:
         indicator_instance = mock_indicator_data.return_value
         # Some succeed, some fail
         indicator_instance.get_initial_claims.return_value = sample_indicator_data
-        indicator_instance.get_pce_data.side_effect = Exception("PCE Error")
-        indicator_instance.get_core_cpi_data.return_value = sample_indicator_data
+        indicator_instance.get_pce.side_effect = Exception("PCE Error")
+        indicator_instance.get_core_cpi.return_value = sample_indicator_data
         
         service = IndicatorService(settings=mock_settings)
         
@@ -474,14 +474,13 @@ class TestCacheManagement:
                                  mock_cache_manager, mock_settings):
         """Test invalidating all cache."""
         cache_instance = mock_cache_manager.return_value
-        cache_instance.clear.return_value = 10
         
         service = IndicatorService(settings=mock_settings)
         
         result = service.invalidate_indicator_cache()
         
-        assert result == 10
-        cache_instance.clear.assert_called_once()
+        assert result == -1
+        cache_instance.clear_all.assert_called_once()
     
     @patch('src.services.indicator_service.CacheManager')
     @patch('src.services.indicator_service.FredClient')
@@ -490,15 +489,20 @@ class TestCacheManagement:
                             mock_cache_manager, mock_settings):
         """Test getting cache statistics."""
         cache_instance = mock_cache_manager.return_value
-        cache_instance.get_size.return_value = 50
+        cache_instance.get_stats.return_value = {
+            "memory_cache": {"entries": 50},
+            "disk_cache_files": 12,
+            "cache_dir": "cache"
+        }
         
         service = IndicatorService(settings=mock_settings)
         
         stats = service.get_cache_stats()
         
         assert isinstance(stats, dict)
-        assert 'cache_size' in stats
-        assert stats['cache_size'] == 50
+        assert 'memory_cache' in stats
+        assert 'disk_cache_files' in stats
+        assert stats['memory_cache']['entries'] == 50
     
     @patch('src.services.indicator_service.CacheManager')
     @patch('src.services.indicator_service.FredClient')
@@ -507,14 +511,19 @@ class TestCacheManagement:
                           mock_cache_manager, mock_settings):
         """Test cache cleanup."""
         cache_instance = mock_cache_manager.return_value
+        cache_instance.cleanup.return_value = {
+            "expired_disk_entries_removed": 2,
+            "memory_cache_stats": {"entries": 5}
+        }
         
         service = IndicatorService(settings=mock_settings)
         
         result = service.cleanup_cache()
         
         assert isinstance(result, dict)
-        # Cleanup should call cache manager methods
-        assert cache_instance.method_calls  # Some methods should have been called
+        assert 'expired_disk_entries_removed' in result
+        assert 'memory_cache_stats' in result
+        cache_instance.cleanup.assert_called_once()
 
 
 class TestServiceIntegration:

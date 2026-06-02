@@ -38,6 +38,7 @@ env/
 *.swp
 *.swo
 *~
+*.code-workspace
 
 # OS
 .DS_Store
@@ -53,3 +54,8 @@ iv_data.db
 
 # Runtime cache artifacts
 data/cache/*.pkl
+
+# Runtime logs and generated cache snapshots
+logs/
+scripts/scrape_iv.log
+data/cache/*.csv

@@ -1,0 +1,5 @@
+logs/
+scripts/scrape_iv.log
+data/cache/*.csv
+data/cache/*.pkl
+data/volatility/iv_data.db

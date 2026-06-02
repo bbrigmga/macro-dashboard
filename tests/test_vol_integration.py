@@ -123,26 +123,28 @@ class TestVolatilityIntegration:
         assert len(table_df) == 3  # SPY, QQQ, XLF
         
         expected_columns = [
-            'etf_name', 'ticker_display', 'ytd_pct', 'ivol_rvol_current',
+            'etf_name', 'ticker_display', 'bias_score', 'bias_label',
+            'ytd_pct', 'ivol_rvol_current',
             'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
             'ttm_zscore', 'three_yr_zscore'
         ]
         assert list(table_df.columns) == expected_columns
         
-        # Verify data content (sorted by YTD descending)
-        assert table_df.iloc[0]['ticker_display'] == 'QQQ US EQUITY'  # Highest YTD
-        assert table_df.iloc[1]['ticker_display'] == 'SPY US EQUITY'  # Second highest
-        assert table_df.iloc[2]['ticker_display'] == 'XLF US EQUITY'  # Lowest YTD
+        # Verify data content (bias_score first, ytd as tiebreaker)
+        assert set(table_df['ticker_display'].tolist()) == {'QQQ', 'SPY', 'XLF'}
         
         # Verify percentage conversions
-        assert abs(table_df.iloc[0]['ytd_pct'] - 12.0) < 0.1  # QQQ: 0.12 → 12%
-        assert abs(table_df.iloc[1]['ytd_pct'] - 8.0) < 0.1   # SPY: 0.08 → 8%
-        assert abs(table_df.iloc[2]['ytd_pct'] - 5.0) < 0.1   # XLF: 0.05 → 5%
+        qqq_row = table_df[table_df['ticker_display'] == 'QQQ'].iloc[0]
+        spy_row = table_df[table_df['ticker_display'] == 'SPY'].iloc[0]
+        xlf_row = table_df[table_df['ticker_display'] == 'XLF'].iloc[0]
+        assert abs(qqq_row['ytd_pct'] - 12.0) < 0.1  # QQQ: 0.12 → 12%
+        assert abs(spy_row['ytd_pct'] - 8.0) < 0.1   # SPY: 0.08 → 8%
+        assert abs(xlf_row['ytd_pct'] - 5.0) < 0.1   # XLF: 0.05 → 5%
         
         # Verify IV premium calculations
-        assert abs(table_df.iloc[1]['ivol_rvol_current'] - 20.0) < 0.1  # SPY
-        assert abs(table_df.iloc[0]['ivol_rvol_current'] - 10.0) < 0.1  # QQQ
-        assert abs(table_df.iloc[2]['ivol_rvol_current'] - (-11.1)) < 0.2  # XLF
+        assert abs(spy_row['ivol_rvol_current'] - 20.0) < 0.1
+        assert abs(qqq_row['ivol_rvol_current'] - 10.0) < 0.1
+        assert abs(xlf_row['ivol_rvol_current'] - (-11.1)) < 0.2
         
         # Test UI rendering (should not raise exceptions)
         with patch('ui.vol_table.st'):
@@ -159,7 +161,8 @@ class TestVolatilityIntegration:
         assert isinstance(table_df, pd.DataFrame)
         assert len(table_df) == 0
         assert list(table_df.columns) == [
-            'etf_name', 'ticker_display', 'ytd_pct', 'ivol_rvol_current',
+            'etf_name', 'ticker_display', 'bias_score', 'bias_label',
+            'ytd_pct', 'ivol_rvol_current',
             'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
             'ttm_zscore', 'three_yr_zscore'
         ]
@@ -198,7 +201,7 @@ class TestVolatilityIntegration:
         table_df = assembler.build_table()
         
         # Check that Z-scores are calculated (not NaN)
-        spy_row = table_df[table_df['ticker_display'] == 'SPY US EQUITY'].iloc[0]
+        spy_row = table_df[table_df['ticker_display'] == 'SPY'].iloc[0]
         
         # With 60 days of data, both TTM and 3yr Z-scores should be calculated
         assert not pd.isna(spy_row['ttm_zscore'])

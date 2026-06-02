@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from src.config.settings import get_settings
+from src.config.indicator_registry import INDICATOR_REGISTRY, list_service_fetch_keys
 from src.core.caching.cache_manager import CacheManager
 from data.fred_client import FredClient
 from data.indicators import IndicatorData
@@ -36,85 +37,44 @@ class IndicatorService:
     def __init__(self, settings=None):
         self.settings = settings or get_settings()
         self.cache_manager = CacheManager(self.settings)
-        self.fred_client = FredClient(
+        self._fred_client = FredClient(
             cache_enabled=self.settings.cache.enabled,
             max_cache_size=self.settings.cache.max_memory_size
         )
-        self.indicator_data = IndicatorData(self.fred_client)
+        self.indicator_data = IndicatorData(self._fred_client)
         self._indicators_config = self._load_indicators_config()
 
+    @property
+    def fred_client(self) -> FredClient:
+        """Expose the shared FRED client used by this service."""
+        return self._fred_client
+
     def _load_indicators_config(self) -> Dict[str, Any]:
-        """Load indicator configuration from settings."""
-        return {
-            'claims': {
-                'series_id': 'ICSA',
-                'frequency': 'W',
-                'cache_ttl': self.settings.cache.fred_ttl,
-                'default_periods': 52
-            },
-            'pce': {
-                'series_id': 'PCE',
-                'frequency': 'M',
-                'cache_ttl': self.settings.cache.fred_ttl,
-                'default_periods': 24
-            },
-            'core_cpi': {
-                'series_id': 'CPILFESL',
-                'frequency': 'M',
-                'cache_ttl': self.settings.cache.fred_ttl,
-                'default_periods': 24
-            },
-            'hours_worked': {
-                'series_id': 'AWHAETP',
-                'frequency': 'M',
-                'cache_ttl': self.settings.cache.fred_ttl,
-                'default_periods': 24
-            },
-            'new_orders': {
-                'series_id': 'NEWORDER',
-                'frequency': 'M',
-                'cache_ttl': self.settings.cache.fred_ttl,
-                'default_periods': 24
-            },
-            'yield_curve': {
-                'series_id': 'T10Y2Y',
-                'frequency': 'D',
-                'cache_ttl': self.settings.cache.fred_ttl,
-                'default_periods': 36
-            },
-            'pscf_price': {
-                'series_id': 'PSCF',
-                'frequency': 'M',
-                'cache_ttl': self.settings.cache.fred_ttl,
-                'default_periods': 60  # 5 years monthly
-            },
-            'credit_spread': {
-                'series_id': 'BAMLH0A0HYM2',
-                'frequency': 'D',
-                'cache_ttl': self.settings.cache.fred_ttl,
-                'default_periods': 1825  # 5 years daily
-            },
-            'xlp_xly_ratio': {
-                'source': 'yahoo',
-                'tickers': ['XLP', 'XLY'],
-                'frequency': 'D',
-                'cache_ttl': self.settings.cache.fred_ttl,
-                'default_years': 3
-            },
-            'korea_exports_spy_eps': {
-                'source': 'fred',
-                'frequency': 'M',
-                'cache_ttl': self.settings.cache.fred_ttl,
-                'default_periods': 120
-            },
-            'regime_quadrant': {
-                'source': 'yahoo',
-                'tickers': ['TIP', 'IEF', 'CPER', 'GLD'],
-                'frequency': 'D',
-                'cache_ttl': self.settings.cache.yahoo_ttl,
-                'default_lookback_days': 900
+        """Build service fetch configuration from the indicator registry."""
+        config_map: Dict[str, Any] = {}
+        for registry_config in INDICATOR_REGISTRY.values():
+            service_key = registry_config.service_key or registry_config.key
+            config_map[service_key] = {
+                "registry_key": registry_config.key,
+                "series_id": registry_config.fred_series[0] if registry_config.fred_series else None,
+                "frequency": registry_config.frequency or "M",
+                "cache_ttl": registry_config.cache_ttl or self.settings.cache.default_ttl,
+                "default_periods": registry_config.periods,
+                "default_years": 3,
+                "default_lookback_days": registry_config.periods,
+                "source": "fred" if registry_config.fred_series else ("yahoo" if registry_config.yahoo_series else "custom"),
+                "tickers": registry_config.yahoo_series or []
             }
-        }
+
+        # Preserve historical behavior for indicators that fetch in year windows.
+        if "pscf_price" in config_map:
+            config_map["pscf_price"]["default_years"] = 5
+        if "credit_spread" in config_map:
+            config_map["credit_spread"]["default_years"] = 5
+        if "xlp_xly_ratio" in config_map:
+            config_map["xlp_xly_ratio"]["default_years"] = 3
+
+        return config_map
 
     def _get_cache_key(self, indicator_name: str, **kwargs) -> str:
         """Generate cache key for indicator."""
@@ -200,12 +160,7 @@ class IndicatorService:
 
         try:
             # Define all indicators to fetch
-            indicators = [
-                'claims', 'pce', 'core_cpi', 'hours_worked',
-                'pmi', 'usd_liquidity', 'new_orders', 'yield_curve', 'copper_gold_ratio',
-                'pscf_price', 'credit_spread', 'xlp_xly_ratio', 'korea_exports_spy_eps', 'regime_quadrant',
-                'implied_realized_vol'
-            ]
+            indicators = list_service_fetch_keys()
 
             # Fetch all indicators in parallel
             tasks = [self.get_indicator(indicator) for indicator in indicators]
@@ -289,7 +244,7 @@ class IndicatorService:
             periods = kwargs.get('periods', config.get('default_periods', 24))
             frequency = kwargs.get('frequency', config.get('frequency', 'M'))
 
-            df = self.fred_client.get_series(
+            df = self._fred_client.get_series(
                 config['series_id'],
                 periods=periods,
                 frequency=frequency
@@ -306,8 +261,9 @@ class IndicatorService:
     def _get_usd_liquidity_data(self, **kwargs) -> IndicatorResult:
         """Get USD liquidity data."""
         try:
+            config = self._indicators_config.get("usd_liquidity", {})
             result = self.indicator_data.get_usd_liquidity(
-                periods=kwargs.get('periods', 120),
+                periods=kwargs.get('periods', config.get('default_periods', 120)),
                 use_sample_data=kwargs.get('use_sample_data', False)
             )
 
@@ -319,8 +275,9 @@ class IndicatorService:
     def _get_pmi_data(self, **kwargs) -> IndicatorResult:
         """Get PMI proxy data."""
         try:
+            config = self._indicators_config.get("pmi", {})
             result = self.indicator_data.calculate_pmi_proxy(
-                periods=kwargs.get('periods', 36)
+                periods=kwargs.get('periods', config.get('default_periods', 36))
             )
 
             return IndicatorResult(success=True, data=result)
@@ -331,8 +288,9 @@ class IndicatorService:
     def _get_copper_gold_ratio_data(self, **kwargs) -> IndicatorResult:
         """Get copper/gold ratio data."""
         try:
+            config = self._indicators_config.get("copper_gold_ratio", {})
             result = self.indicator_data.get_copper_gold_ratio(
-                periods=kwargs.get('periods', 365)
+                periods=kwargs.get('periods', config.get('default_periods', 365))
             )
             data_df = result.get('data') if isinstance(result, dict) else None
             if not isinstance(result, dict) or result.get('current_value') is None or data_df is None or data_df.empty:
@@ -346,8 +304,9 @@ class IndicatorService:
     def _get_regime_quadrant_data(self, **kwargs) -> IndicatorResult:
         """Get regime quadrant data from Yahoo Finance proxies."""
         try:
+            config = self._indicators_config.get("regime_quadrant", {})
             result = self.indicator_data.get_regime_quadrant_data(
-                lookback_days=kwargs.get('lookback_days', 900),
+                lookback_days=kwargs.get('lookback_days', config.get('default_lookback_days', 900)),
                 trail_days=kwargs.get('trail_days', 252)
             )
             return IndicatorResult(success=True, data=result)
