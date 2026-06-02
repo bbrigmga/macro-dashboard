@@ -701,11 +701,11 @@ def create_regime_quadrant_chart(data: dict):
         badge_text = "Forecast: OU (10d)"
 
     fig.add_annotation(
-        x=0.01,
+        x=0.5,
         y=0.99,
         xref="paper",
         yref="paper",
-        xanchor="left",
+        xanchor="center",
         yanchor="top",
         text=badge_text,
         showarrow=False,
