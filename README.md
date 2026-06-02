@@ -87,9 +87,7 @@ macro_dashboard/
 │   │   ├── caching/
 │   │   │   └── cache_manager.py    # Intelligent caching
 │   └── services/
-│       ├── indicator_service.py    # Service layer logic
-│       ├── optimized_indicators.py # Vectorized algorithms
-│       └── performance_monitor.py  # Real-time metrics tracking
+│       └── indicator_service.py    # Service layer logic
 │
 ├── data/                           # Data fetching & processing
 │   ├── fred_client.py              # FRED API with caching
@@ -99,8 +97,7 @@ macro_dashboard/
 │   ├── iv_scraper.py               # ✨ Options chain scraper (30-day ATM)
 │   ├── rv_calculator.py            # ✨ Realized volatility (RV) calculator
 │   ├── vol_table_data.py           # ✨ Volatility table assembly & Z-scores
-│   ├── market_utils.py             # Trading days & market holidays
-│   └── performance_utils.py        # Volatility processing utilities
+│   └── market_utils.py             # Trading days & market holidays
 │
 ├── ui/                             # Streamlit UI components
 │   ├── dashboard.py                # Main layout & status tables
@@ -161,8 +158,6 @@ pip install -r requirements.txt
 - `fredapi` - FRED (Federal Reserve Economic Data) API client
 - `yfinance` - Yahoo Finance data access (options chains and price data)
 - `python-dotenv` - Environment variable management
-- `psutil` - System performance monitoring (optional, enhances performance tracking)
-- `aiohttp` - Async HTTP client for performance optimization
 - `APScheduler` - Advanced Python Scheduler for data collection timing
 
 4. Get a FRED API key:
@@ -597,10 +592,9 @@ USE_SERVICE_LAYER=true python app.py
 ```
 
 ### Debugging & Monitoring
-- **Performance Monitor**: Real-time tracking via `PerformanceMonitor` class
-- **Cache Statistics**: Detailed caching performance metrics
-- **Algorithm Benchmarks**: Individual algorithm performance tracking
-- **Memory Analysis**: Memory usage trends and leak detection
+- **Service-layer caching**: TTL and cache invalidation live in `src/core/caching/cache_manager.py`
+- **Volatility logging**: Scraper/data-quality/performance logs are emitted via `data/volatility_logging.py`
+- **Test coverage**: Use `python -m pytest tests/ -q --tb=no` for quick regression checks
 
 ## Contributing
 
