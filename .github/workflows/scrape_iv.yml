@@ -1,5 +1,9 @@
 name: Daily IV Scrape
 
+# Required for the commit/push step at the end of the job
+permissions:
+  contents: write
+
 env:
   # Opt-in to Node.js 24 for all actions following deprecation of Node 20
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -23,6 +27,10 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        # Scheduled workflows default to detached HEAD; must checkout a branch to push
+        ref: ${{ github.event.repository.default_branch }}
+        token: ${{ secrets.GITHUB_TOKEN }}
       
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -68,12 +76,19 @@ jobs:
         name: iv-database-${{ github.run_number }}
         path: data/volatility/iv_data.db
         retention-days: 30
+        if-no-files-found: warn
         
     - name: Commit database updates
       if: success()
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        # Ensure we don't have issues if the file is ignored locally but tracked
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        # Force-add: iv_data.db is in .gitignore but we persist it via Actions
         git add -f data/volatility/iv_data.db
-        git diff --cached --quiet || (git commit -m "Update IV database $(date -u +%Y-%m-%d)" && git push)
+        if git diff --staged --quiet; then
+          echo "No database changes to commit"
+        else
+          git commit -m "Update IV database $(date -u +%Y-%m-%d)"
+          git pull --rebase origin "${{ github.event.repository.default_branch }}"
+          git push origin "HEAD:${{ github.event.repository.default_branch }}"
+        fi

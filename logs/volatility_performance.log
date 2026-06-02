@@ -251,3 +251,7 @@
 2026-05-21 16:25:18 - PERF - vol_table_build_total: 0.0415 seconds | rows_built=14 | tickers_available=14
 2026-05-26 09:28:04 - PERF - vol_table_batch_fetch: 0.0337 seconds | tickers=14 | history_records=742
 2026-05-26 09:28:04 - PERF - vol_table_build_total: 0.0966 seconds | rows_built=14 | tickers_available=14
+2026-05-27 15:30:29 - PERF - vol_table_batch_fetch: 0.0704 seconds | tickers=14 | history_records=756
+2026-05-27 15:30:29 - PERF - vol_table_build_total: 0.1264 seconds | rows_built=14 | tickers_available=14
+2026-06-02 10:21:08 - PERF - vol_table_batch_fetch: 0.0104 seconds | tickers=14 | history_records=812
+2026-06-02 10:21:08 - PERF - vol_table_build_total: 0.0584 seconds | rows_built=14 | tickers_available=14
