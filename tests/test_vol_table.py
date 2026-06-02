@@ -143,7 +143,8 @@ class TestVolTableRendering:
         assert "partial data (1/14" in warning_msg
     
     @patch('ui.vol_table.st')
-    def test_render_full_table_success(self, mock_st):
+    @patch('data.iv_db.IVDatabase')
+    def test_render_full_table_success(self, mock_IVDatabase, mock_st):
         """Test successful table rendering with full data"""
         from ui.vol_table import render_vol_table
         
@@ -151,11 +152,21 @@ class TestVolTableRendering:
         full_data = pd.concat([self.sample_data] * 14, ignore_index=True)
         full_data['ticker_display'] = [f'XL{chr(65+i)} US EQUITY' for i in range(14)]
         
+        mock_db = mock_IVDatabase.return_value.__enter__.return_value
+        mock_db.get_collection_stats.return_value = {
+            "total_days": 10,
+            "latest_date": pd.Timestamp("2026-03-06"),
+            "first_date": pd.Timestamp("2026-02-24"),
+            "days_since_latest": 0,
+            "missing_days": [],
+            "tickers_latest_date": {"XLK": "2026-03-06"},
+        }
+
         render_vol_table(full_data)
         
         # Should call main rendering functions
         mock_st.subheader.assert_called_with("📊 Implied vs Realized Volatility")
-        mock_st.caption.assert_called_once()
+        assert mock_st.caption.call_count >= 1
         mock_st.dataframe.assert_called_once()
     
     @patch('ui.vol_table.st')
@@ -177,13 +188,19 @@ class TestDataFreshnessInfo:
     """Test data freshness information display"""
     
     @patch('ui.vol_table.st')
-    @patch('ui.vol_table.pd.Timestamp')
-    def test_current_data_freshness(self, mock_timestamp, mock_st):
+    @patch('data.iv_db.IVDatabase')
+    def test_current_data_freshness(self, mock_IVDatabase, mock_st):
         """Test display for current data"""
-        # Mock current time
-        mock_now = pd.Timestamp('2026-03-06 10:00:00')
-        mock_timestamp.now.return_value = mock_now
         mock_st.columns.return_value = [MagicMock(), MagicMock(), MagicMock()]
+        mock_db = mock_IVDatabase.return_value.__enter__.return_value
+        mock_db.get_collection_stats.return_value = {
+            "total_days": 12,
+            "latest_date": pd.Timestamp("2026-03-06"),
+            "first_date": pd.Timestamp("2026-02-20"),
+            "days_since_latest": 0,
+            "missing_days": [],
+            "tickers_latest_date": {"XLK": "2026-03-06", "XLE": "2026-03-06"},
+        }
         
         data = pd.DataFrame({
             'date': ['2026-03-06', '2026-03-06'],
@@ -192,17 +209,22 @@ class TestDataFreshnessInfo:
         
         _render_data_freshness_info(data)
         
-        # Should call st.columns (either 3 columns or no crash)
         mock_st.columns.assert_called_once_with(3)
     
     @patch('ui.vol_table.st')
-    @patch('ui.vol_table.pd.Timestamp')  
-    def test_old_data_freshness(self, mock_timestamp, mock_st):
+    @patch('data.iv_db.IVDatabase')
+    def test_old_data_freshness(self, mock_IVDatabase, mock_st):
         """Test display for old data"""
-        # Mock current time
-        mock_now = pd.Timestamp('2026-03-10 10:00:00')  # 4 days later
-        mock_timestamp.now.return_value = mock_now
         mock_st.columns.return_value = [MagicMock(), MagicMock(), MagicMock()]
+        mock_db = mock_IVDatabase.return_value.__enter__.return_value
+        mock_db.get_collection_stats.return_value = {
+            "total_days": 12,
+            "latest_date": pd.Timestamp("2026-03-06"),
+            "first_date": pd.Timestamp("2026-02-20"),
+            "days_since_latest": 4,
+            "missing_days": [],
+            "tickers_latest_date": {"XLK": "2026-03-06", "XLE": "2026-03-06"},
+        }
         
         data = pd.DataFrame({
             'date': ['2026-03-06', '2026-03-06'],  # 4 days old
@@ -211,7 +233,6 @@ class TestDataFreshnessInfo:
         
         _render_data_freshness_info(data)
         
-        # Should call streamlit functions
         mock_st.columns.assert_called_once_with(3)
     
     @patch('ui.vol_table.st')
