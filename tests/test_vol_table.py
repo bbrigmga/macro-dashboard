@@ -19,11 +19,21 @@ class TestVolTableFormatting:
         """Create sample volatility data for testing"""
         self.sample_data = pd.DataFrame({
             'etf_name': ['Technology Select SPDR'],
-            'ticker_display': ['XLK US EQUITY'],
-            'bias_score': [1],
-            'bias_label': ['Mild Bullish (+1)'],
+            'ticker_display': ['XLK'],
+            'vol_valuation': ['Expensive'],
+            'contrarian_signal': ['Mild Bearish (-12)'],
+            'contrarian_net_score': [-12],
+            'contrarian_bull_score': [30.0],
+            'contrarian_bear_score': [42.0],
             'ytd_pct': [15.2],
             'ivol_rvol_current': [25.3],
+            'ivol_rvol_percentile_1y': [72.0],
+            'ivol_rvol_percentile_3y': [68.0],
+            'iv_rv_spread': [3.5],
+            'iv_rv_ratio': [1.25],
+            'prem_change_1w': [6.4],
+            'prem_change_1m': [5.2],
+            'premium_cs_rank': [2.0],
             'ivol_prem_yesterday': [22.1],
             'ivol_prem_1w': [18.9],
             'ivol_prem_1m': [20.1],
@@ -37,7 +47,8 @@ class TestVolTableFormatting:
         df = styled.data  # type: ignore
         
         expected_columns = [
-            "ETF Name", "Ticker", "Bias", "YTD %", "IVOL/RVOL Current",
+            "ETF Name", "Ticker", "Vol Valuation", "Contrarian Signal",
+            "YTD %", "IVOL/RVOL Current",
             "IVOL Prem % Yesterday", "IVOL Prem % 1W Ago", "IVOL Prem % 1M Ago",
             "TTM Z-Score", "3Yr Z-Score",
         ]
@@ -151,12 +162,28 @@ class TestVolTableRendering:
     def test_render_full_table_success(self, mock_IVDatabase, mock_st):
         """Test successful table rendering with full data"""
         from ui.vol_table import render_vol_table
+
+        mock_st.columns.return_value = [MagicMock(), MagicMock(), MagicMock()]
+        mock_expander = MagicMock()
+        mock_expander.__enter__ = MagicMock(return_value=mock_expander)
+        mock_expander.__exit__ = MagicMock(return_value=False)
+        mock_st.expander.return_value = mock_expander
         
         # Create data with 14 tickers to avoid partial data warning
         full_data = pd.concat([self.sample_data] * 14, ignore_index=True)
         full_data['ticker_display'] = [f'TICK{i}' for i in range(14)]
-        full_data['bias_score'] = 0
-        full_data['bias_label'] = 'Neutral (+0)'
+        full_data['vol_valuation'] = 'Fair'
+        full_data['contrarian_signal'] = 'Neutral (+0)'
+        full_data['contrarian_net_score'] = 0
+        full_data['contrarian_bull_score'] = 40.0
+        full_data['contrarian_bear_score'] = 40.0
+        for col in [
+            'ivol_rvol_percentile_1y', 'ivol_rvol_percentile_3y',
+            'iv_rv_spread', 'iv_rv_ratio', 'prem_change_1w', 'prem_change_1m',
+            'premium_cs_rank',
+        ]:
+            if col not in full_data.columns:
+                full_data[col] = 50.0
         
         mock_db = mock_IVDatabase.return_value.__enter__.return_value
         mock_db.get_collection_stats.return_value = {
@@ -170,10 +197,10 @@ class TestVolTableRendering:
 
         render_vol_table(full_data)
         
-        # Should call main rendering functions
         mock_st.subheader.assert_called_with("📊 Implied vs Realized Volatility")
         assert mock_st.caption.call_count >= 1
-        mock_st.dataframe.assert_called_once()
+        # Main table + detail expander table
+        assert mock_st.dataframe.call_count >= 2
     
     @patch('ui.vol_table.st')
     @patch('ui.vol_table.logger')

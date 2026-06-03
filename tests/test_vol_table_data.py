@@ -10,7 +10,14 @@ import tempfile
 import os
 
 from data.iv_db import IVDatabase
-from data.vol_table_data import VolTableDataAssembler, ETF_UNIVERSE, ETF_NAME_LOOKUP
+from data.vol_table_data import (
+    VolTableDataAssembler,
+    ETF_UNIVERSE,
+    ETF_NAME_LOOKUP,
+    TABLE_COLUMNS,
+    _compute_contrarian_scores,
+    _compute_vol_valuation,
+)
 
 
 @pytest.fixture
@@ -94,14 +101,7 @@ class TestVolTableDataAssembler:
         df = assembler.build_table()
         
         # Should return empty DataFrame with correct schema
-        expected_columns = [
-            'etf_name', 'ticker_display', 'bias_score', 'bias_label',
-            'ytd_pct', 'ivol_rvol_current',
-            'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
-            'ttm_zscore', 'three_yr_zscore'
-        ]
-        
-        assert list(df.columns) == expected_columns
+        assert list(df.columns) == TABLE_COLUMNS
         assert len(df) == 0
     
     def test_column_names_and_types(self, temp_db, sample_data):
@@ -113,14 +113,7 @@ class TestVolTableDataAssembler:
         assembler = VolTableDataAssembler(temp_db)
         df = assembler.build_table()
         
-        expected_columns = [
-            'etf_name', 'ticker_display', 'bias_score', 'bias_label',
-            'ytd_pct', 'ivol_rvol_current',
-            'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
-            'ttm_zscore', 'three_yr_zscore'
-        ]
-        
-        assert list(df.columns) == expected_columns
+        assert list(df.columns) == TABLE_COLUMNS
         assert len(df) > 0
         
         # Check data types
@@ -156,15 +149,18 @@ class TestVolTableDataAssembler:
         assert df.iloc[0]['ticker_display'] == universe_ticker
     
     def test_sort_order(self, populated_db):
-        """Test DataFrame is sorted by bias_score then ytd_pct descending."""
+        """Test DataFrame is sorted by contrarian_net_score then bull score descending."""
         assembler = VolTableDataAssembler(populated_db)
         df = assembler.build_table()
         
         assert len(df) > 1
         
-        # Check sort order
-        sort_pairs = list(zip(df['bias_score'].astype(float), df['ytd_pct'].astype(float)))
-        assert sort_pairs == sorted(sort_pairs, key=lambda x: (x[0], x[1]), reverse=True)
+        sort_pairs = list(zip(
+            df['contrarian_net_score'].astype(float),
+            df['contrarian_bull_score'].astype(float),
+            df['ytd_pct'].astype(float),
+        ))
+        assert sort_pairs == sorted(sort_pairs, key=lambda x: (x[0], x[1], x[2]), reverse=True)
     
     def test_ticker_display_format(self, populated_db):
         """Test ticker display contains universe ticker symbol."""
@@ -400,6 +396,58 @@ class TestVolTableDataAssembler:
         
         result = assembler._build_ticker_row(fake_row)
         assert result is None  # Should return None for non-universe ticker
+
+    def test_iv_rv_spread_and_ratio(self, temp_db):
+        """Spread and ratio derived from IV/RV decimals."""
+        temp_db.upsert_daily(
+            date=date.today().isoformat(),
+            ticker="SPY",
+            close_price=100.0,
+            iv_30d=0.18,
+            rv_30d=0.15,
+            iv_premium=20.0,
+            ytd_return=0.05,
+        )
+        assembler = VolTableDataAssembler(temp_db)
+        df = assembler.build_table()
+        row = df.iloc[0]
+        assert abs(row['iv_rv_spread'] - 3.0) < 0.1  # (0.18-0.15)*100
+        assert abs(row['iv_rv_ratio'] - 1.2) < 0.01
+
+    def test_vol_valuation_expensive(self):
+        assert _compute_vol_valuation(80.0, 2.0) == "Expensive"
+
+    def test_vol_valuation_cheap(self):
+        assert _compute_vol_valuation(15.0, -2.0) == "Cheap"
+
+    def test_contrarian_scores_bounded(self):
+        bull, bear = _compute_contrarian_scores(
+            pct_1y=90.0,
+            ttm_z=2.0,
+            ytd_pct=-10.0,
+            current=40.0,
+            week=50.0,
+            month=55.0,
+            cs_rank=1.0,
+            n_tickers=14,
+        )
+        assert 0 <= bull <= 100
+        assert 0 <= bear <= 100
+
+    def test_contrarian_signal_columns_present(self, populated_db):
+        assembler = VolTableDataAssembler(populated_db)
+        df = assembler.build_table()
+        assert 'contrarian_signal' in df.columns
+        assert 'vol_valuation' in df.columns
+        assert df['contrarian_signal'].str.contains('Bullish|Bearish|Neutral').all()
+
+    def test_premium_cs_rank(self, populated_db):
+        assembler = VolTableDataAssembler(populated_db)
+        df = assembler.build_table()
+        valid = df['premium_cs_rank'].dropna()
+        if len(valid) >= 2:
+            assert valid.min() >= 1
+            assert valid.max() <= len(df)
 
 
 class TestETFUniverse:

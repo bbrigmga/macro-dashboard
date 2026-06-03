@@ -385,7 +385,34 @@ class IVDatabase:
         
         logger.debug(f"Retrieved historical data for {len(df)} total records across {len(tickers)} tickers")
         return df
-    
+
+    def get_panel_history(self, tickers: list[str]) -> pd.DataFrame:
+        """
+        Full daily history for tickers (no per-ticker row cap).
+
+        Used by signal backtests that need point-in-time features and forward returns.
+        """
+        if not tickers:
+            return pd.DataFrame()
+
+        placeholders = ','.join(['?'] * len(tickers))
+        sql = f"""
+        SELECT date, ticker, close_price, iv_30d, rv_30d, iv_premium, ytd_return
+        FROM daily_iv
+        WHERE ticker IN ({placeholders})
+        ORDER BY ticker, date
+        """
+        df = pd.read_sql_query(
+            sql,
+            self.conn,
+            params=tuple(tickers),
+            parse_dates=['date'],
+        )
+        logger.debug(
+            f"Retrieved panel history: {len(df)} rows across {len(tickers)} tickers"
+        )
+        return df
+
     def get_collection_stats(self, anchor_ticker: str = 'SPY') -> dict:
         """
         Return collection health stats for the status panel.

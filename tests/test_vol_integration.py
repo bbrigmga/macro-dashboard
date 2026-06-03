@@ -122,15 +122,9 @@ class TestVolatilityIntegration:
         assert isinstance(table_df, pd.DataFrame)
         assert len(table_df) == 3  # SPY, QQQ, XLF
         
-        expected_columns = [
-            'etf_name', 'ticker_display', 'bias_score', 'bias_label',
-            'ytd_pct', 'ivol_rvol_current',
-            'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
-            'ttm_zscore', 'three_yr_zscore'
-        ]
-        assert list(table_df.columns) == expected_columns
+        from data.vol_table_data import TABLE_COLUMNS
+        assert list(table_df.columns) == TABLE_COLUMNS
         
-        # Verify data content (bias_score first, ytd as tiebreaker)
         assert set(table_df['ticker_display'].tolist()) == {'QQQ', 'SPY', 'XLF'}
         
         # Verify percentage conversions
@@ -160,12 +154,8 @@ class TestVolatilityIntegration:
         # Should return empty DataFrame with correct columns
         assert isinstance(table_df, pd.DataFrame)
         assert len(table_df) == 0
-        assert list(table_df.columns) == [
-            'etf_name', 'ticker_display', 'bias_score', 'bias_label',
-            'ytd_pct', 'ivol_rvol_current',
-            'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
-            'ttm_zscore', 'three_yr_zscore'
-        ]
+        from data.vol_table_data import TABLE_COLUMNS
+        assert list(table_df.columns) == TABLE_COLUMNS
         
         # UI should handle empty DataFrame gracefully
         with patch('ui.vol_table.st'):
