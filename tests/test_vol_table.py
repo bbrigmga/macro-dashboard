@@ -18,16 +18,17 @@ class TestVolTableFormatting:
     def setup_method(self):
         """Create sample volatility data for testing"""
         self.sample_data = pd.DataFrame({
-            'etf_name': ['Technology Select SPDR', 'Energy Select SPDR'],
-            'ticker_display': ['XLK US EQUITY', 'XLE US EQUITY'],
-            'ytd_pct': [15.2, -8.7],
-            'ivol_rvol_current': [25.3, 45.8],
-            'ivol_prem_yesterday': [22.1, 40.2],
-            'ivol_prem_1w': [18.9, 38.5],
-            'ivol_prem_1m': [20.1, 42.1],
-            'ttm_zscore': [0.85, 1.92],
-            'three_yr_zscore': [-0.34, 1.45],
-            'date': ['2026-03-06', '2026-03-06']
+            'etf_name': ['Technology Select SPDR'],
+            'ticker_display': ['XLK US EQUITY'],
+            'bias_score': [1],
+            'bias_label': ['Mild Bullish (+1)'],
+            'ytd_pct': [15.2],
+            'ivol_rvol_current': [25.3],
+            'ivol_prem_yesterday': [22.1],
+            'ivol_prem_1w': [18.9],
+            'ivol_prem_1m': [20.1],
+            'ttm_zscore': [0.85],
+            'three_yr_zscore': [-0.34],
         })
     
     def test_column_renaming(self):
@@ -36,9 +37,9 @@ class TestVolTableFormatting:
         df = styled.data  # type: ignore
         
         expected_columns = [
-            "ETF Name", "Ticker", "YTD %", "IVOL/RVOL Current",
+            "ETF Name", "Ticker", "Bias", "YTD %", "IVOL/RVOL Current",
             "IVOL Prem % Yesterday", "IVOL Prem % 1W Ago", "IVOL Prem % 1M Ago",
-            "TTM Z-Score", "3Yr Z-Score", "date"
+            "TTM Z-Score", "3Yr Z-Score",
         ]
         
         assert list(df.columns) == expected_columns
@@ -138,9 +139,12 @@ class TestVolTableRendering:
         from ui.vol_table import render_vol_table
         
         render_vol_table(self.sample_data)  # Only 1 ticker
-        mock_st.warning.assert_called_once()
-        warning_msg = mock_st.warning.call_args[0][0]
-        assert "partial data (1/14" in warning_msg
+        partial_calls = [
+            c[0][0] for c in mock_st.warning.call_args_list
+            if c[0] and "partial data" in str(c[0][0])
+        ]
+        assert len(partial_calls) == 1
+        assert "partial data (1/14" in partial_calls[0]
     
     @patch('ui.vol_table.st')
     @patch('data.iv_db.IVDatabase')
@@ -150,7 +154,9 @@ class TestVolTableRendering:
         
         # Create data with 14 tickers to avoid partial data warning
         full_data = pd.concat([self.sample_data] * 14, ignore_index=True)
-        full_data['ticker_display'] = [f'XL{chr(65+i)} US EQUITY' for i in range(14)]
+        full_data['ticker_display'] = [f'TICK{i}' for i in range(14)]
+        full_data['bias_score'] = 0
+        full_data['bias_label'] = 'Neutral (+0)'
         
         mock_db = mock_IVDatabase.return_value.__enter__.return_value
         mock_db.get_collection_stats.return_value = {

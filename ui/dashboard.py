@@ -246,9 +246,9 @@ def create_dashboard(indicators, fred_client):
             display_indicator_card('korea_exports_spy_eps', indicators['korea_exports_spy_eps'], fred_client)
 
     # --- Volatility Table Section ---
-    if 'implied_realized_vol' in indicators:
-        st.divider()
-        render_vol_table(indicators['implied_realized_vol']['data'])
+    # Always build from DB via vol_table cache (not indicator-service disk cache).
+    st.divider()
+    render_vol_table()
 
     # Display footer
     display_footer()

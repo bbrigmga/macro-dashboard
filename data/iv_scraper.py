@@ -14,7 +14,7 @@ import yfinance as yf
 from .iv_db import IVDatabase
 from .rv_calculator import RealizedVolCalculator
 from .yahoo_client import YahooClient
-from .market_utils import should_skip_scraping
+from .market_utils import should_skip_scraping, is_trading_day
 from .volatility_logging import get_volatility_logger, log_performance_metric, log_data_quality_metric
 
 # Set up enhanced logging
@@ -321,9 +321,11 @@ class IVScraper:
             elif bid_ask_spread_pct > 10:
                 quality_score *= 0.8  # Moderate spread
                 
-            # Sanity check on IV values (typical ETF IV range: 0.05 to 2.0)
+            # Sanity check on IV values (typical ETF IV range: 0.05 to 2.0).
+            # Sub-2% annualized ATM IV is usually a Yahoo chain placeholder and
+            # creates false ~-99% IV/RV premiums, so do not accept it.
             if iv < 0.02 or iv > 3.0:
-                quality_score *= 0.4  # Suspicious IV value
+                return None
                 
             quality_metrics = {
                 'volume': volume,
@@ -802,6 +804,346 @@ class IVScraper:
             "total": total,
             "failed_tickers": failed_tickers
         }
+
+    def backfill_date(self, target_date: dt.date, force: bool = False) -> Dict[str, Any]:
+        """
+        Backfill one missing trading day using historical close/RV and estimated IV.
+
+        Historical options chains are not available for past dates, so IV is estimated
+        from the nearest stored neighbors in the database (linear interpolation when both
+        sides exist, otherwise the closest neighbor).
+
+        Args:
+            target_date: Trading day to backfill (YYYY-MM-DD as date)
+            force: Replace rows if they already exist for target_date
+
+        Returns:
+            Dict with success/failed counts and per-ticker status metadata
+        """
+        if target_date > dt.date.today():
+            raise ValueError(f"Cannot backfill future date {target_date}")
+        if not is_trading_day(target_date):
+            raise ValueError(f"{target_date} is not a US market trading day")
+
+        date_str = target_date.isoformat()
+        success_count = 0
+        failed_count = 0
+        skipped_count = 0
+        failed_tickers: List[str] = []
+        ticker_meta: Dict[str, str] = {}
+
+        logger.info(f"Starting IV backfill for {date_str} (force={force})")
+
+        for etf_info in ETF_UNIVERSE:
+            ticker = etf_info["ticker"]
+            name = etf_info["name"]
+
+            try:
+                existing = self.db.get_snapshot(date_str, ticker)
+                if existing and not force:
+                    logger.info(f"Skipping {ticker} - already have {date_str}")
+                    skipped_count += 1
+                    ticker_meta[ticker] = "skipped_exists"
+                    continue
+
+                prices = self._fetch_prices_through_date(ticker, target_date, lookback_calendar_days=120)
+                close_price = self._close_on_date_from_prices(prices, target_date)
+                if not close_price:
+                    logger.warning(f"No close price for {ticker} on {date_str}")
+                    failed_count += 1
+                    failed_tickers.append(ticker)
+                    ticker_meta[ticker] = "no_close"
+                    continue
+
+                rv_30d = self._rv_as_of_from_prices(prices, target_date, window=30)
+                if rv_30d is None:
+                    logger.warning(f"No RV for {ticker} on {date_str}")
+                    failed_count += 1
+                    failed_tickers.append(ticker)
+                    ticker_meta[ticker] = "no_rv"
+                    continue
+
+                iv_30d, iv_method = self._estimate_iv_from_neighbors(ticker, target_date)
+                if iv_30d is None:
+                    logger.warning(f"No IV estimate for {ticker} on {date_str}")
+                    failed_count += 1
+                    failed_tickers.append(ticker)
+                    ticker_meta[ticker] = "no_iv_estimate"
+                    continue
+
+                if rv_30d > 0:
+                    iv_premium = ((iv_30d / rv_30d) - 1.0) * 100.0
+                else:
+                    iv_premium = None
+
+                ytd_return = self._ytd_as_of_from_prices(prices, target_date)
+
+                self.db.upsert_daily(
+                    date=date_str,
+                    ticker=ticker,
+                    close_price=close_price,
+                    iv_30d=iv_30d,
+                    rv_30d=rv_30d,
+                    iv_premium=iv_premium,
+                    ytd_return=ytd_return,
+                )
+
+                logger.info(
+                    f"Backfilled {ticker} ({name}) {date_str}: "
+                    f"close={close_price:.2f}, iv={iv_30d:.4f} ({iv_method}), "
+                    f"rv={rv_30d:.4f}, prem={iv_premium}"
+                )
+                success_count += 1
+                ticker_meta[ticker] = iv_method
+
+            except Exception as e:
+                logger.error(f"Backfill error for {ticker} on {date_str}: {e}")
+                failed_count += 1
+                failed_tickers.append(ticker)
+                ticker_meta[ticker] = "error"
+
+        total = len(ETF_UNIVERSE)
+        logger.info(
+            f"Backfill {date_str} complete: {success_count} ok, {skipped_count} skipped, "
+            f"{failed_count} failed"
+        )
+        return {
+            "date": date_str,
+            "success": success_count,
+            "skipped": skipped_count,
+            "failed": failed_count,
+            "total": total,
+            "failed_tickers": failed_tickers,
+            "ticker_meta": ticker_meta,
+        }
+
+    def _fetch_prices_chart_direct(
+        self,
+        ticker: str,
+        target_date: dt.date,
+        lookback_calendar_days: int = 120,
+    ) -> pd.DataFrame:
+        """
+        Fetch daily closes via Yahoo v8 chart API with authenticated curl_cffi session.
+
+        Same session path as options scraping; works when yfinance history returns empty JSON.
+        """
+        session, crumb = self._get_authenticated_session()
+        if not session:
+            return pd.DataFrame(columns=['Date', 'value'])
+
+        start_date = target_date - dt.timedelta(days=lookback_calendar_days)
+        period1 = int(dt.datetime.combine(start_date, dt.time.min).timestamp())
+        period2 = int(dt.datetime.combine(target_date + dt.timedelta(days=1), dt.time.min).timestamp())
+
+        try:
+            r = session.get(
+                f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}',
+                params={
+                    'period1': period1,
+                    'period2': period2,
+                    'interval': '1d',
+                    'crumb': crumb,
+                },
+                timeout=25,
+            )
+            if r.status_code != 200:
+                self._session = None
+                self._crumb = None
+                logger.debug(f"Chart API HTTP {r.status_code} for {ticker}")
+                return pd.DataFrame(columns=['Date', 'value'])
+
+            payload = r.json()
+            results = payload.get('chart', {}).get('result') or []
+            if not results:
+                return pd.DataFrame(columns=['Date', 'value'])
+
+            block = results[0]
+            timestamps = block.get('timestamp') or []
+            quotes = (block.get('indicators') or {}).get('quote') or []
+            if not timestamps or not quotes:
+                return pd.DataFrame(columns=['Date', 'value'])
+
+            closes = quotes[0].get('close') or []
+            rows = []
+            for ts, close in zip(timestamps, closes):
+                if ts is None or close is None or (isinstance(close, float) and np.isnan(close)):
+                    continue
+                day = dt.datetime.fromtimestamp(ts, tz=dt.timezone.utc).date()
+                if day <= target_date:
+                    rows.append({'Date': day, 'value': float(close)})
+
+            if not rows:
+                return pd.DataFrame(columns=['Date', 'value'])
+
+            df = pd.DataFrame(rows)
+            df['Date'] = pd.to_datetime(df['Date'])
+            return df.sort_values('Date').reset_index(drop=True)
+        except Exception as e:
+            logger.debug(f"Chart price fetch failed for {ticker} through {target_date}: {e}")
+            return pd.DataFrame(columns=['Date', 'value'])
+
+    def _fetch_prices_through_date(
+        self,
+        ticker: str,
+        target_date: dt.date,
+        lookback_calendar_days: int = 120,
+    ) -> pd.DataFrame:
+        """
+        Fetch daily closes through target_date for backfill (close, RV, YTD).
+
+        Prefers Yahoo chart API with authenticated session, then merges local cache,
+        then falls back to yfinance history.
+        """
+        empty = pd.DataFrame(columns=['Date', 'value'])
+        cached = self.yahoo_client._load_cached_data(ticker)
+
+        chart_df = self._fetch_prices_chart_direct(ticker, target_date, lookback_calendar_days)
+        yf_df = empty
+        if chart_df.empty:
+            start = (target_date - dt.timedelta(days=lookback_calendar_days)).strftime('%Y-%m-%d')
+            end = (target_date + dt.timedelta(days=1)).strftime('%Y-%m-%d')
+            try:
+                raw = yf.Ticker(ticker).history(start=start, end=end, interval='1d')
+                if raw is not None and not raw.empty:
+                    yf_df = raw[['Close']].reset_index()
+                    yf_df.columns = ['Date', 'value']
+                    yf_df['Date'] = pd.to_datetime(yf_df['Date'], utc=True).dt.tz_localize(None).dt.normalize()
+            except Exception as e:
+                logger.debug(f"yfinance price fetch failed for {ticker} through {target_date}: {e}")
+
+        frames = [f for f in (cached, chart_df, yf_df) if f is not None and not f.empty]
+        if not frames:
+            return empty
+
+        combined = pd.concat(frames, ignore_index=True)
+        combined['Date'] = pd.to_datetime(combined['Date'], utc=True).dt.tz_localize(None).dt.normalize()
+        combined = combined.drop_duplicates(subset='Date', keep='last').sort_values('Date')
+        combined = combined[combined['Date'].dt.date <= target_date].reset_index(drop=True)
+
+        if not chart_df.empty and (cached.empty or chart_df['Date'].max() > cached['Date'].max()):
+            try:
+                self.yahoo_client._save_cached_data(ticker, combined)
+            except Exception:
+                pass
+
+        return combined
+
+    @staticmethod
+    def _close_on_date_from_prices(prices: pd.DataFrame, target_date: dt.date) -> Optional[float]:
+        if prices is None or prices.empty:
+            return None
+        work = prices.copy()
+        work['Date'] = pd.to_datetime(work['Date']).dt.date
+        row = work[work['Date'] == target_date]
+        if row.empty:
+            return None
+        price = float(row['value'].iloc[-1])
+        return price if price > 0 and not pd.isna(price) else None
+
+    def _rv_as_of_from_prices(
+        self,
+        prices: pd.DataFrame,
+        target_date: dt.date,
+        window: int = 30,
+    ) -> Optional[float]:
+        if prices is None or prices.empty:
+            return None
+        work = prices.copy()
+        work['Date'] = pd.to_datetime(work['Date']).dt.date
+        series = work[work['Date'] <= target_date].sort_values('Date')['value']
+        if len(series) < window + 1:
+            return None
+        rv = self.rv_calculator.calculate_rv(series, window)
+        return None if rv is None or (isinstance(rv, float) and np.isnan(rv)) else float(rv)
+
+    @staticmethod
+    def _ytd_as_of_from_prices(prices: pd.DataFrame, target_date: dt.date) -> Optional[float]:
+        if prices is None or prices.empty:
+            return None
+        jan_1 = dt.date(target_date.year, 1, 1)
+        work = prices.copy()
+        work['Date'] = pd.to_datetime(work['Date']).dt.date
+        ytd = work[(work['Date'] >= jan_1) & (work['Date'] <= target_date)].sort_values('Date')
+        if len(ytd) < 2:
+            return None
+        start_price = float(ytd['value'].iloc[0])
+        end_price = float(ytd['value'].iloc[-1])
+        if start_price <= 0:
+            return None
+        return (end_price / start_price) - 1.0
+
+    def _estimate_iv_from_neighbors(
+        self,
+        ticker: str,
+        target_date: dt.date,
+    ) -> Tuple[Optional[float], str]:
+        """
+        Estimate IV for a past date from nearest database snapshots.
+
+        Returns:
+            (iv_30d, method) where method is prior_day | next_day | interpolated
+        """
+        history = self.db.get_history(ticker, lookback_days=900)
+        if history is None or history.empty:
+            return None, "none"
+
+        history = history.copy()
+        history['date'] = pd.to_datetime(history['date']).dt.date
+        history = history.dropna(subset=['iv_30d']).sort_values('date')
+
+        before = history[history['date'] < target_date]
+        after = history[history['date'] > target_date]
+
+        if before.empty and after.empty:
+            return None, "none"
+        if after.empty:
+            return float(before.iloc[-1]['iv_30d']), "prior_day"
+        if before.empty:
+            return float(after.iloc[0]['iv_30d']), "next_day"
+
+        prior = before.iloc[-1]
+        nxt = after.iloc[0]
+        d0, d1 = prior['date'], nxt['date']
+        iv0, iv1 = float(prior['iv_30d']), float(nxt['iv_30d'])
+
+        if d0 == d1:
+            return iv0, "prior_day"
+
+        span = (d1 - d0).days
+        if span <= 0:
+            return iv0, "prior_day"
+
+        weight = (target_date - d0).days / span
+        iv_est = iv0 + weight * (iv1 - iv0)
+        return iv_est, "interpolated"
+
+    def _get_ytd_return_as_of(self, ticker: str, as_of_date: dt.date) -> Optional[float]:
+        """Year-to-date return through as_of_date."""
+        try:
+            jan_1 = dt.date(as_of_date.year, 1, 1)
+            df = self.yahoo_client.get_historical_prices(
+                ticker=ticker,
+                start_date=jan_1.isoformat(),
+                end_date=(as_of_date + dt.timedelta(days=1)).isoformat(),
+                frequency='1d',
+            )
+            if df is None or df.empty:
+                return None
+
+            df['Date'] = pd.to_datetime(df['Date']).dt.date
+            df = df[df['Date'] <= as_of_date].sort_values('Date')
+            if len(df) < 2:
+                return None
+
+            start_price = float(df['value'].iloc[0])
+            end_price = float(df['value'].iloc[-1])
+            if start_price <= 0:
+                return None
+            return (end_price / start_price) - 1.0
+        except Exception as e:
+            logger.debug(f"YTD lookup failed for {ticker} as of {as_of_date}: {e}")
+            return None
 
 
 def run_scraper():

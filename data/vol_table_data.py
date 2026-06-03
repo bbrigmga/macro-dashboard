@@ -41,6 +41,24 @@ ETF_UNIVERSE = [
 ETF_NAME_LOOKUP = {etf["ticker"]: etf["name"] for etf in ETF_UNIVERSE}
 
 
+def _premium_from_iv_rv(row: pd.Series) -> Optional[float]:
+    """Return IV/RV premium from valid IV and RV inputs, otherwise None."""
+    try:
+        iv = row.get('iv_30d')
+        rv = row.get('rv_30d')
+        if pd.isna(iv) or pd.isna(rv):
+            return None
+
+        iv = float(iv)
+        rv = float(rv)
+        if iv < 0.02 or iv > 3.0 or rv <= 0:
+            return None
+
+        return ((iv / rv) - 1.0) * 100.0
+    except (TypeError, ValueError):
+        return None
+
+
 class VolTableDataAssembler:
     """
     Assembles volatility table data from the database into a display-ready format.
@@ -166,7 +184,7 @@ class VolTableDataAssembler:
             return None
         
         # Build the row using pre-fetched history
-        current = latest_row.get('iv_premium', 0.0)
+        current = _premium_from_iv_rv(latest_row)
         yesterday = self._get_historical_premium_from_data(history, 1)
         week = self._get_historical_premium_from_data(history, 5)
         month = self._get_historical_premium_from_data(history, 21)
@@ -259,6 +277,9 @@ class VolTableDataAssembler:
         """
         Get IV premium from N trading days ago using pre-fetched historical data.
         
+        Uses calendar trading-day targets (not raw row offsets) so DB gaps do not
+        shift "yesterday" / "1W" / "1M" columns.
+        
         Args:
             history_df: Historical data DataFrame (newest first)
             days_ago: Number of trading days to look back
@@ -267,20 +288,25 @@ class VolTableDataAssembler:
             IV premium percentage, or None if insufficient history
         """
         try:
-            # Check if we have enough data
-            if len(history_df) <= days_ago:
+            if history_df is None or history_df.empty:
                 return None
-            
-            # Get the row that's days_ago back (0-indexed, so days_ago row is what we want)
-            target_row = history_df.iloc[days_ago]
-            iv_premium = target_row.get('iv_premium')
-            
-            if pd.isna(iv_premium):
+
+            target_date = get_previous_trading_day(date.today(), days_ago)
+            hist = history_df.copy()
+            hist['date'] = pd.to_datetime(hist['date']).dt.date
+
+            # Exact trading-day match
+            exact = hist[hist['date'] == target_date]
+            if not exact.empty:
+                return _premium_from_iv_rv(exact.iloc[0])
+
+            # Nearest prior stored date (handles scrape misses like 6/2)
+            prior = hist[hist['date'] <= target_date]
+            if prior.empty:
                 return None
-                
-            return iv_premium
-            
-        except (IndexError, Exception) as e:
+            return _premium_from_iv_rv(prior.iloc[0])
+
+        except Exception as e:
             logger.debug(f"Could not get historical premium -{days_ago}d: {e}")
             return None
             
@@ -308,7 +334,7 @@ class VolTableDataAssembler:
             'etf_name': ETF_NAME_LOOKUP[ticker],
             'ticker_display': ticker,
             'ytd_pct': latest_row.get('ytd_return', 0.0) * 100,  # Convert to percentage
-            'ivol_rvol_current': latest_row.get('iv_premium', 0.0),
+            'ivol_rvol_current': _premium_from_iv_rv(latest_row),
             'ivol_prem_yesterday': self._get_historical_premium(ticker, 1),
             'ivol_prem_1w': self._get_historical_premium(ticker, 5),
             'ivol_prem_1m': self._get_historical_premium(ticker, 21),
@@ -337,20 +363,20 @@ class VolTableDataAssembler:
             # First try exact date match
             snapshot = self.db.get_snapshot(target_date.isoformat(), ticker)
             if snapshot:
-                return snapshot.get('iv_premium')
+                return _premium_from_iv_rv(pd.Series(snapshot))
             
             # If no exact match, try approximate trading day with buffer
             approximate_date = get_approximate_trading_day(today, days_ago)
             snapshot = self.db.get_snapshot(approximate_date.isoformat(), ticker)
             if snapshot:
-                return snapshot.get('iv_premium')
+                return _premium_from_iv_rv(pd.Series(snapshot))
             
             # If still no match, try to find closest within reasonable range
             history = self.db.get_history(ticker, lookback_days=days_ago + 10)  # More buffer for trading days
             if len(history) > days_ago:
                 # Take the row that's approximately days_ago back
                 target_idx = min(days_ago - 1, len(history) - 1)
-                return history.iloc[-(target_idx + 1)]['iv_premium']
+                return _premium_from_iv_rv(history.iloc[-(target_idx + 1)])
             elif len(history) > 0 and days_ago == 1:
                 # For yesterday, if we only have today's data, return None
                 return None
@@ -376,16 +402,20 @@ class VolTableDataAssembler:
             if len(history) < 5:  # Need at least 5 data points
                 return None
             
-            # Get IV premium series (newest first, so reverse for calculation)
-            iv_premiums = history['iv_premium'].dropna()
-            
-            if len(iv_premiums) < 5:
+            # Recompute premiums from IV/RV so bad stored iv_premium rows do not
+            # contaminate z-scores.
+            iv_premiums = history.apply(_premium_from_iv_rv, axis=1)
+            if iv_premiums.empty or pd.isna(iv_premiums.iloc[0]):
+                return None
+
+            valid_premiums = iv_premiums.dropna()
+            if len(valid_premiums) < 5:
                 return None
             
             # Calculate Z-score using available data (not requiring full window)
             current_premium = iv_premiums.iloc[0]  # Most recent
             # Use all available historical data, but limit to window size
-            historical_window = iv_premiums.iloc[1:min(window + 1, len(iv_premiums))]
+            historical_window = iv_premiums.iloc[1:min(window + 1, len(iv_premiums))].dropna()
             
             if len(historical_window) < 4:  # Need at least 4 historical points
                 return None

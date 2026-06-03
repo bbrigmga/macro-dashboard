@@ -255,15 +255,24 @@ class CacheManager:
         return False
 
     def invalidate_pattern(self, pattern: str) -> int:
-        """Invalidate all cache entries matching pattern."""
-        # This is a simple implementation - in production you might want more sophisticated pattern matching
+        """Invalidate all cache entries matching pattern (memory + disk)."""
         count = 0
 
-        # Check memory cache
         keys_to_remove = [key for key in self.memory_cache.cache.keys() if pattern in key]
         for key in keys_to_remove:
             if self.invalidate(key):
                 count += 1
+
+        for cache_file in self.disk_cache.cache_dir.glob("*.pkl"):
+            try:
+                with open(cache_file, "rb") as f:
+                    entry: CacheEntry = pickle.load(f)
+                key_repr = str(getattr(entry, "data", ""))
+                if pattern in key_repr:
+                    cache_file.unlink(missing_ok=True)
+                    count += 1
+            except Exception:
+                continue
 
         return count
 

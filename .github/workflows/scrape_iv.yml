@@ -44,9 +44,29 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        
+
     - name: Create volatility data directory
       run: mkdir -p data/volatility
+
+    - name: Restore latest IV database artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: iv-database-latest
+        path: data/volatility/
+      continue-on-error: true
+
+    - name: Record pre-scrape DB stats
+      id: pre_stats
+      run: |
+        set -e
+        if [ -f "data/volatility/iv_data.db" ]; then
+          eval "$(python scripts/iv_db_stats.py --format env)"
+          echo "pre_spy_days=${IV_SPY_DAYS}" >> "$GITHUB_OUTPUT"
+          echo "Pre-scrape SPY days in DB: ${IV_SPY_DAYS}"
+        else
+          echo "pre_spy_days=0" >> "$GITHUB_OUTPUT"
+          echo "Pre-scrape: no database file yet"
+        fi
       
     - name: Run IV scraper
       env:
@@ -56,22 +76,34 @@ jobs:
         python scripts/scrape_iv.py
         echo "Scrape completed"
         
-    - name: Check database exists
+    - name: Verify DB history was preserved
+      id: post_stats
       run: |
-        if [ -f "data/volatility/iv_data.db" ]; then
-          echo "Database exists, size: $(stat -f%z data/volatility/iv_data.db 2>/dev/null || stat -c%s data/volatility/iv_data.db) bytes"
-          # Simplified sqlite query for check
-        else
-          echo "Warning: Database file not found"
+        set -e
+        if [ ! -f "data/volatility/iv_data.db" ]; then
+          echo "Post-scrape: database file missing"
+          exit 1
         fi
+        eval "$(python scripts/iv_db_stats.py --format env)"
+        echo "post_spy_days=${IV_SPY_DAYS}" >> "$GITHUB_OUTPUT"
+        echo "Post-scrape SPY days in DB: ${IV_SPY_DAYS}"
+
+        PRE="${{ steps.pre_stats.outputs.pre_spy_days }}"
+        POST="${IV_SPY_DAYS}"
+        if [ "$PRE" -gt 0 ] && [ "$POST" -lt "$PRE" ]; then
+          echo "ERROR: Database history shrank ($PRE -> $POST). Refusing to publish."
+          exit 1
+        fi
+        python scripts/iv_db_stats.py
         
     - name: Upload IV database as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: iv-database-${{ github.run_number }}
+        name: iv-database-latest
         path: data/volatility/iv_data.db
-        retention-days: 30
-        if-no-files-found: warn
+        overwrite: true
+        retention-days: 90
+        if-no-files-found: error
         
     - name: Commit database updates
       if: success()

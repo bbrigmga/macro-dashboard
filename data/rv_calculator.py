@@ -4,6 +4,7 @@ Realized Volatility Calculator for computing annualized volatility from price hi
 import pandas as pd
 import numpy as np
 import logging
+from datetime import date, timedelta
 from typing import Optional, Dict, List
 from data.yahoo_client import YahooClient
 
@@ -94,6 +95,55 @@ class RealizedVolCalculator:
             
         except Exception as e:
             logger.error(f"Error calculating RV for {ticker}: {str(e)}")
+            return None
+
+    def get_rv_for_ticker_as_of(
+        self,
+        ticker: str,
+        as_of_date: date,
+        window: int = 30,
+    ) -> Optional[float]:
+        """
+        Calculate realized volatility using prices ending on a specific date.
+
+        Args:
+            ticker: Yahoo Finance ticker symbol
+            as_of_date: Last date included in the RV window
+            window: Number of trading-day returns in the window
+
+        Returns:
+            Annualized realized volatility, or None if calculation fails
+        """
+        try:
+            buffer_days = window + 45
+            start_date = (as_of_date - timedelta(days=buffer_days)).strftime('%Y-%m-%d')
+            end_date = (as_of_date + timedelta(days=1)).strftime('%Y-%m-%d')
+
+            df = self.yahoo_client.get_historical_prices(
+                ticker=ticker,
+                start_date=start_date,
+                end_date=end_date,
+                frequency='1d',
+            )
+            if df is None or df.empty:
+                logger.warning(f"No price history for {ticker} through {as_of_date}")
+                return None
+
+            df['Date'] = pd.to_datetime(df['Date']).dt.date
+            prices = df[df['Date'] <= as_of_date].sort_values('Date')['value']
+            if len(prices) < window + 1:
+                logger.warning(
+                    f"Insufficient history for {ticker} as of {as_of_date}: {len(prices)} rows"
+                )
+                return None
+
+            rv = self.calculate_rv(prices, window)
+            if np.isnan(rv):
+                return None
+            logger.info(f"RV for {ticker} as of {as_of_date}: {rv:.4f}")
+            return rv
+        except Exception as e:
+            logger.error(f"Error calculating RV for {ticker} as of {as_of_date}: {e}")
             return None
     
     def get_rv_batch(self, tickers: List[str], window: int = 30) -> Dict[str, Optional[float]]:

@@ -51,6 +51,24 @@ def main():
         # Initialize database and scraper
         logger.info("Initializing database and scraper...")
         db = IVDatabase()
+
+        # Preserve existing history before each run (protects against accidental overwrites).
+        try:
+            stats = db.get_collection_stats(anchor_ticker="SPY")
+            if stats.get("total_days", 0) > 0:
+                from pathlib import Path
+                import shutil
+                db_file = Path(db.db_path)
+                latest_backup = db_file.with_name(f"{db_file.stem}.latest_backup{db_file.suffix}")
+                shutil.copy2(db_file, latest_backup)
+                logger.info(
+                    "Backed up IV database (%s SPY days) to %s",
+                    stats["total_days"],
+                    latest_backup,
+                )
+        except Exception as backup_error:
+            logger.warning(f"Could not create IV DB backup before scrape: {backup_error}")
+
         scraper = IVScraper(db)
         
         # Run the daily scrape

@@ -69,6 +69,15 @@ def check_volatility_data_freshness():
             'show_refresh': False
         }
 
+def reload_vol_table_from_db():
+    """Clear vol table caches and rerun (no live Yahoo scrape)."""
+    from ui.vol_table import reload_vol_table_caches
+
+    reload_vol_table_caches()
+    check_volatility_data_freshness.clear()
+    st.rerun()
+
+
 def refresh_volatility_data():
     """
     Manually trigger volatility data refresh.
@@ -76,6 +85,7 @@ def refresh_volatility_data():
     try:
         from data.iv_scraper import IVScraper
         from data.iv_db import IVDatabase
+        from ui.vol_table import reload_vol_table_caches
         
         with st.spinner("Refreshing volatility data... This may take 30-40 seconds."):
             db = IVDatabase()
@@ -84,8 +94,10 @@ def refresh_volatility_data():
             
         if result['success'] > 0:
             st.success(f"✅ Successfully updated {result['success']} tickers. Failed: {result['failed']}")
-            # Clear the cache so fresh data is displayed
+            # Clear caches so fresh data is displayed
             check_volatility_data_freshness.clear()
+            reload_vol_table_caches()
+            get_indicator_service().invalidate_indicator_cache("implied_realized_vol")
             st.rerun()
         else:
             st.error(f"❌ Failed to update volatility data. Check logs for details.")
@@ -134,9 +146,18 @@ else:
         with st.sidebar:
             st.markdown("### 📊 Volatility Data Status")
             st.info(vol_status['message'])
-            
+
+            if st.button(
+                "↻ Reload Vol Table",
+                help="Rebuild the IV/RV table from the local database (fast; fixes empty Yesterday/1W/1M columns)",
+            ):
+                reload_vol_table_from_db()
+
             if vol_status['show_refresh']:
-                if st.button("🔄 Refresh Volatility Data", help="Manually update implied volatility data from options markets"):
+                if st.button(
+                    "🔄 Scrape Volatility Data",
+                    help="Fetch today's implied vol from Yahoo options (~30–40s)",
+                ):
                     refresh_volatility_data()
 
         # Create and display the dashboard (pass shared fred_client)

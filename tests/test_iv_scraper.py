@@ -160,6 +160,14 @@ class TestIVScraper:
         # Test nearby strike fallback
         result = iv_scraper._get_iv_at_strike(options_data, 101.0)
         assert result[0] == 0.20  # Should find 100.0 as closest within 5%
+
+        # Test invalid exact-match IV falls back to a nearby valid strike
+        placeholder_data = pd.DataFrame({
+            'strike': [100.0, 101.0],
+            'impliedVolatility': [0.0009, 0.20]
+        })
+        result = iv_scraper._get_iv_at_strike(placeholder_data, 100.0)
+        assert result[0] == 0.20
         
         # Test no valid IV (NaN)
         invalid_data = pd.DataFrame({

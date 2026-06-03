@@ -202,6 +202,42 @@ class TestVolTableDataAssembler:
         
         assert len(df) == 1
         assert abs(df.iloc[0]['ytd_pct'] - 5.67) < 0.01  # Should be converted to percentage
+
+    def test_current_premium_recomputed_from_iv_rv(self, temp_db):
+        """Stored premium is derived data and should not override valid IV/RV inputs."""
+        temp_db.upsert_daily(
+            date=date.today().isoformat(),
+            ticker="SPY",
+            close_price=100.0,
+            iv_30d=0.15,
+            rv_30d=0.12,
+            iv_premium=-99.0,
+            ytd_return=0.05
+        )
+
+        assembler = VolTableDataAssembler(temp_db)
+        df = assembler.build_table()
+
+        assert len(df) == 1
+        assert abs(df.iloc[0]['ivol_rvol_current'] - 25.0) < 0.01
+
+    def test_current_premium_rejects_placeholder_iv(self, temp_db):
+        """Sub-2% ATM IV placeholders should not produce false ~-99 premiums."""
+        temp_db.upsert_daily(
+            date=date.today().isoformat(),
+            ticker="SPY",
+            close_price=100.0,
+            iv_30d=0.0009,
+            rv_30d=0.12,
+            iv_premium=-99.25,
+            ytd_return=0.05
+        )
+
+        assembler = VolTableDataAssembler(temp_db)
+        df = assembler.build_table()
+
+        assert len(df) == 1
+        assert pd.isna(df.iloc[0]['ivol_rvol_current'])
     
     def test_zscore_calculation_sufficient_data(self, populated_db):
         """Test Z-score calculation with sufficient data."""

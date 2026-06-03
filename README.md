@@ -210,9 +210,16 @@ This means there are two writers for the same IV database:
 - **GitHub Actions (weekday schedule in UTC)**: Remote backup and sync source.
 
 Operational guidance:
-- If you want your local copy to include remote updates from Actions, run `git pull`.
-- If your local DB has richer history, make sure `data/volatility/iv_data.db` is tracked and committed before relying on Actions updates.
+- **Back up before `git pull`:** `python scripts/backup_iv_db.py` (creates `data/volatility/iv_data.latest_backup.db`).
+- If a pull overwrote your richer local DB, restore with: `python scripts/restore_iv_db.py`
+- Check collection health anytime: `python scripts/iv_db_stats.py`
+- Backfill a missing trading day (historical close/RV; IV estimated from neighbors):
+  `python scripts/backfill_iv.py --date 2026-06-02`
+- If you want your local copy to include remote updates from Actions, run `git pull` only after backing up.
+- GitHub Actions restores the `iv-database-latest` artifact before each scrape and refuses to publish if SPY day-count shrinks.
 - Avoid mixing local and remote updates blindly; pull intentionally so you know which DB history is current.
+
+**Recovery tip (Windows/NAS):** If you previously had many days collected, right-click `data/volatility/iv_data.db` → **Properties** → **Previous Versions** and restore an older copy if available.
 
 ### Runtime Artifacts
 Runtime logs and generated cache snapshots are local-only artifacts and should not be committed:

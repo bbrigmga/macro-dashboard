@@ -12,6 +12,36 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def clear_vol_table_cache() -> None:
+    """Clear cached volatility table so UI reflects latest database state."""
+    _get_cached_vol_table_data.clear()
+
+
+def reload_vol_table_caches() -> None:
+    """
+    Clear all caches that can serve stale vol table rows (Streamlit + indicator service).
+    """
+    clear_vol_table_cache()
+    try:
+        from src.services.indicator_service import IndicatorService
+
+        service = IndicatorService()
+        cache_key = service._get_cache_key("implied_realized_vol")
+        service.cache_manager.invalidate(cache_key)
+        service.invalidate_indicator_cache("implied_realized_vol")
+    except Exception as e:
+        logger.warning("Could not invalidate implied_realized_vol indicator cache: %s", e)
+
+
+def _historical_premium_columns_empty(data: pd.DataFrame) -> bool:
+    """True when yesterday / 1W / 1M premium columns have no usable values."""
+    hist_cols = ["ivol_prem_yesterday", "ivol_prem_1w", "ivol_prem_1m"]
+    if not all(c in data.columns for c in hist_cols):
+        return True
+    subset = data[hist_cols]
+    return subset.isna().all().all() or (subset.astype(str) == "None").all().all()
+
+
 @st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
 def _get_cached_vol_table_data() -> Optional[pd.DataFrame]:
     """
@@ -52,6 +82,20 @@ def render_vol_table(data: Optional[pd.DataFrame] = None) -> None:
     if data is None:
         with st.spinner("Loading volatility data..."):
             data = _get_cached_vol_table_data()
+    
+    # Hint when historical columns are empty but we should have history (stale cache).
+    if data is not None and not data.empty and _historical_premium_columns_empty(data):
+        st.warning(
+            "Historical IV premium columns look empty — usually stale cached table data, "
+            "not missing database rows."
+        )
+        if st.button(
+            "Reload Vol Table from Database",
+            key="reload_vol_table_from_db",
+            help="Clears vol table caches and rebuilds from iv_data.db (does not scrape Yahoo)",
+        ):
+            reload_vol_table_caches()
+            st.rerun()
     
     # Handle empty/sparse data cases
     if data is None or data.empty:

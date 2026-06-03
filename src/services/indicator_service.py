@@ -32,7 +32,7 @@ class IndicatorResult:
 class IndicatorService:
     """Service layer for economic indicator operations."""
 
-    CACHE_SCHEMA_VERSION = "v4"
+    CACHE_SCHEMA_VERSION = "v5"
 
     def __init__(self, settings=None):
         self.settings = settings or get_settings()
