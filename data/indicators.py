@@ -802,46 +802,52 @@ class IndicatorData:
         """
         Get the 10Y-2Y Treasury Yield Spread data from FRED.
 
+        T10Y2Y is a daily series. When frequency is 'M', daily observations are
+        resampled to month-end means so charts show `periods` months (not trading days).
+
         Args:
-            periods (int, optional): Number of periods to fetch
+            periods (int, optional): Number of periods to fetch (months when frequency='M')
             frequency (str, optional): Frequency of data - 'D' for daily, 'M' for monthly
 
         Returns:
             dict: Dictionary with yield curve data and analysis
         """
         try:
-            # Fetch yield curve spread data with specified frequency
-            # For monthly data, we need more periods to get the same time span
-            observation_period = periods
-            if frequency == 'D':
-                # For daily data, fetch ~3 years (756 trading days)
-                observation_period = 756
+            import datetime as dt
 
-            yield_curve_data = _self._fred().get_series('T10Y2Y', periods=observation_period, frequency=frequency)
+            if frequency == 'M':
+                start_date = (
+                    dt.datetime.now() - dt.timedelta(days=(periods + 2) * 30)
+                ).strftime('%Y-%m-%d')
+                yield_curve_data = _self._fred().get_series(
+                    'T10Y2Y', start_date=start_date, frequency='D'
+                )
+            else:
+                observation_period = 756 if frequency == 'D' else periods
+                yield_curve_data = _self._fred().get_series(
+                    'T10Y2Y', periods=observation_period, frequency='D'
+                )
+
             yield_curve_data.columns = ['Date', 'T10Y2Y']
+            yield_curve_data['Date'] = pd.to_datetime(yield_curve_data['Date'])
+            yield_curve_data = yield_curve_data.dropna(subset=['T10Y2Y'])
+            yield_curve_data = yield_curve_data.sort_values('Date').reset_index(drop=True)
 
-            # If daily data but we want monthly for display, aggregate to monthly
-            if frequency == 'D' and periods <= 60:  # Only aggregate if we're looking at a reasonable timeframe
-                # Convert Date to datetime
-                yield_curve_data['Date'] = pd.to_datetime(yield_curve_data['Date'])
+            if yield_curve_data.empty:
+                raise ValueError("T10Y2Y returned no data")
 
-                # Create a year-month column for grouping
-                yield_curve_data['YearMonth'] = pd.PeriodIndex(yield_curve_data['Date'], freq='M')
+            latest_value = float(yield_curve_data['T10Y2Y'].iloc[-1])
 
-                # Group by year-month and get last day of each month (or avg)
-                monthly_data = yield_curve_data.groupby('YearMonth').agg({
-                    'Date': 'last',  # Last day of month
-                    'T10Y2Y': 'mean'  # Average for the month
-                }).reset_index()
+            if frequency == 'M':
+                yield_curve_data = (
+                    yield_curve_data.set_index('Date')
+                    .resample('ME')['T10Y2Y']
+                    .mean()
+                    .reset_index()
+                )
+                yield_curve_data = yield_curve_data.dropna(subset=['T10Y2Y'])
+                yield_curve_data = yield_curve_data.tail(periods)
 
-                # Drop the YearMonth column
-                monthly_data = monthly_data.drop('YearMonth', axis=1)
-
-                # Limit to the specified number of periods
-                yield_curve_data = monthly_data.tail(periods)
-
-            # Get latest value
-            latest_value = yield_curve_data['T10Y2Y'].iloc[-1]
             is_inverted = latest_value < 0
 
             return {

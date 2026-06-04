@@ -4,8 +4,16 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
+
+# CI uses stdout for KEY=value lines; keep logs off stdout in env mode.
+if "--format" in sys.argv:
+    fmt_idx = sys.argv.index("--format")
+    if fmt_idx + 1 < len(sys.argv) and sys.argv[fmt_idx + 1] == "env":
+        os.environ.setdefault("LOG_TO_CONSOLE", "false")
+        os.environ.setdefault("LOG_TO_FILE", "false")
 
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))

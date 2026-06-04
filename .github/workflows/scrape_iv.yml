@@ -57,10 +57,13 @@ jobs:
 
     - name: Record pre-scrape DB stats
       id: pre_stats
+      env:
+        LOG_TO_CONSOLE: "false"
+        LOG_TO_FILE: "false"
       run: |
         set -e
         if [ -f "data/volatility/iv_data.db" ]; then
-          eval "$(python scripts/iv_db_stats.py --format env)"
+          IV_SPY_DAYS=$(python scripts/iv_db_stats.py --format env | grep '^IV_SPY_DAYS=' | cut -d= -f2)
           echo "pre_spy_days=${IV_SPY_DAYS}" >> "$GITHUB_OUTPUT"
           echo "Pre-scrape SPY days in DB: ${IV_SPY_DAYS}"
         else
@@ -78,13 +81,16 @@ jobs:
         
     - name: Verify DB history was preserved
       id: post_stats
+      env:
+        LOG_TO_CONSOLE: "false"
+        LOG_TO_FILE: "false"
       run: |
         set -e
         if [ ! -f "data/volatility/iv_data.db" ]; then
           echo "Post-scrape: database file missing"
           exit 1
         fi
-        eval "$(python scripts/iv_db_stats.py --format env)"
+        IV_SPY_DAYS=$(python scripts/iv_db_stats.py --format env | grep '^IV_SPY_DAYS=' | cut -d= -f2)
         echo "post_spy_days=${IV_SPY_DAYS}" >> "$GITHUB_OUTPUT"
         echo "Post-scrape SPY days in DB: ${IV_SPY_DAYS}"
 
