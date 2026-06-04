@@ -111,7 +111,7 @@ def render_vol_table(data: Optional[pd.DataFrame] = None) -> None:
         )
 
     try:
-        styled_df = _format_and_style_table(data, show_detail_columns=False)
+        styled_df = _format_and_style_table(data)
 
         st.dataframe(
             styled_df,
@@ -137,12 +137,17 @@ def render_vol_table(data: Optional[pd.DataFrame] = None) -> None:
                 "IVOL Prem % 1M Ago": st.column_config.NumberColumn(width="medium"),
                 "TTM Z-Score": st.column_config.NumberColumn(width="small"),
                 "3Yr Z-Score": st.column_config.NumberColumn(width="small"),
+                "Prem %ile 1Y": st.column_config.NumberColumn(width="small"),
+                "Prem %ile 3Y": st.column_config.NumberColumn(width="small"),
+                "IV−RV Spread": st.column_config.NumberColumn(width="small"),
+                "IV/RV Ratio": st.column_config.NumberColumn(width="small"),
+                "Prem Δ 1W": st.column_config.NumberColumn(width="small"),
+                "Prem Δ 1M": st.column_config.NumberColumn(width="small"),
+                "CS Rank": st.column_config.NumberColumn(width="small"),
+                "Bull Score": st.column_config.NumberColumn(width="small"),
+                "Bear Score": st.column_config.NumberColumn(width="small"),
             },
         )
-
-        with st.expander("Signal detail (percentiles, spreads, scores)"):
-            detail_styled = _format_and_style_table(data, show_detail_columns=True)
-            st.dataframe(detail_styled, use_container_width=True, hide_index=True)
 
         _render_signal_backtest_panel()
 
@@ -153,16 +158,12 @@ def render_vol_table(data: Optional[pd.DataFrame] = None) -> None:
         st.error(f"Error rendering volatility table: {e}")
 
 
-def _format_and_style_table(
-    data: pd.DataFrame,
-    show_detail_columns: bool = False,
-) -> Styler:
+def _format_and_style_table(data: pd.DataFrame) -> Styler:
     """
     Format and apply conditional styling to the volatility table.
 
     Args:
         data: Raw DataFrame from VolTableDataAssembler
-        show_detail_columns: Include percentile/spread/score columns in output
 
     Returns:
         Styled DataFrame ready for Streamlit display
@@ -205,11 +206,7 @@ def _format_and_style_table(
         "Prem Δ 1W", "Prem Δ 1M", "CS Rank", "Bull Score", "Bear Score",
     ]
 
-    if show_detail_columns:
-        cols = [c for c in main_display + detail_display if c in df.columns]
-    else:
-        cols = [c for c in main_display if c in df.columns]
-
+    cols = [c for c in main_display + detail_display if c in df.columns]
     df = df[cols]
 
     percentage_cols = [

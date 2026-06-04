@@ -51,6 +51,8 @@ class TestVolTableFormatting:
             "YTD %", "IVOL/RVOL Current",
             "IVOL Prem % Yesterday", "IVOL Prem % 1W Ago", "IVOL Prem % 1M Ago",
             "TTM Z-Score", "3Yr Z-Score",
+            "Prem %ile 1Y", "Prem %ile 3Y", "IV−RV Spread", "IV/RV Ratio",
+            "Prem Δ 1W", "Prem Δ 1M", "CS Rank", "Bull Score", "Bear Score",
         ]
         
         assert list(df.columns) == expected_columns
@@ -199,8 +201,12 @@ class TestVolTableRendering:
         
         mock_st.subheader.assert_called_with("📊 Implied vs Realized Volatility")
         assert mock_st.caption.call_count >= 1
-        # Main table + detail expander table
-        assert mock_st.dataframe.call_count >= 2
+        assert mock_st.dataframe.call_count >= 1
+        signal_detail_expanders = [
+            c for c in mock_st.expander.call_args_list
+            if c[0] and c[0][0] == "Signal detail (percentiles, spreads, scores)"
+        ]
+        assert signal_detail_expanders == []
     
     @patch('ui.vol_table.st')
     @patch('ui.vol_table.logger')
