@@ -467,10 +467,18 @@ class VolTableDataAssembler:
         if ticker not in ETF_NAME_LOOKUP:
             return None
 
-        current = _premium_from_iv_rv(latest_row)
-        yesterday = self._get_historical_premium_from_data(history, 1)
-        week = self._get_historical_premium_from_data(history, 5)
-        month = self._get_historical_premium_from_data(history, 21)
+        current, anchor_date = self._get_latest_valid_premium_from_data(history)
+        if current is None:
+            current = _premium_from_iv_rv(latest_row)
+            if current is not None and 'date' in latest_row.index:
+                try:
+                    anchor_date = pd.to_datetime(latest_row.get('date')).date()
+                except Exception:
+                    anchor_date = None
+
+        yesterday = self._get_historical_premium_from_data(history, 1, anchor_date=anchor_date)
+        week = self._get_historical_premium_from_data(history, 5, anchor_date=anchor_date)
+        month = self._get_historical_premium_from_data(history, 21, anchor_date=anchor_date)
         spread, ratio = _iv_rv_spread_and_ratio(latest_row)
         pct_1y = _percentile_from_history(history, 252)
         pct_3y = _percentile_from_history(history, 756)
@@ -502,8 +510,36 @@ class VolTableDataAssembler:
             'three_yr_zscore': three_yr_z,
         }
 
+    def _get_latest_valid_premium_from_data(
+        self, history_df: pd.DataFrame
+    ) -> Tuple[Optional[float], Optional[date]]:
+        """
+        Return latest valid premium and its date from pre-fetched history.
+
+        A single bad scrape day can contain placeholder IV values for all tickers.
+        This fallback skips invalid latest rows and uses the newest valid premium
+        so "current" columns do not go fully blank.
+        """
+        try:
+            if history_df is None or history_df.empty:
+                return None, None
+
+            hist = history_df.copy()
+            hist['date'] = pd.to_datetime(hist['date']).dt.date
+            hist = hist.sort_values('date', ascending=False).reset_index(drop=True)
+
+            for _, row in hist.iterrows():
+                premium = _premium_from_iv_rv(row)
+                if premium is not None:
+                    return premium, row['date']
+
+            return None, None
+        except Exception as e:
+            logger.debug(f"Could not compute latest valid premium anchor: {e}")
+            return None, None
+
     def _get_historical_premium_from_data(
-        self, history_df: pd.DataFrame, days_ago: int
+        self, history_df: pd.DataFrame, days_ago: int, anchor_date: Optional[date] = None
     ) -> Optional[float]:
         """
         Get IV premium from N trading days ago using pre-fetched historical data.
@@ -515,7 +551,8 @@ class VolTableDataAssembler:
             if history_df is None or history_df.empty:
                 return None
 
-            target_date = get_previous_trading_day(date.today(), days_ago)
+            base_date = anchor_date or date.today()
+            target_date = get_previous_trading_day(base_date, days_ago)
             hist = history_df.copy()
             hist['date'] = pd.to_datetime(hist['date']).dt.date
 

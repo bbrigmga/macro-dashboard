@@ -18,6 +18,7 @@ from data.vol_table_data import (
     _compute_contrarian_scores,
     _compute_vol_valuation,
 )
+from data.market_utils import get_previous_trading_day
 
 
 @pytest.fixture
@@ -234,6 +235,49 @@ class TestVolTableDataAssembler:
 
         assert len(df) == 1
         assert pd.isna(df.iloc[0]['ivol_rvol_current'])
+
+    def test_fallback_to_latest_valid_premium_when_latest_day_invalid(self, temp_db):
+        """Current/yesterday columns should anchor to latest valid premium day."""
+        today = date.today()
+        latest_bad = today
+        latest_valid = get_previous_trading_day(today, 1)
+        prev_valid = get_previous_trading_day(latest_valid, 1)
+
+        temp_db.upsert_daily(
+            date=latest_bad.isoformat(),
+            ticker="SPY",
+            close_price=100.0,
+            iv_30d=0.0009,
+            rv_30d=0.12,
+            iv_premium=-99.25,
+            ytd_return=0.05,
+        )
+        temp_db.upsert_daily(
+            date=latest_valid.isoformat(),
+            ticker="SPY",
+            close_price=101.0,
+            iv_30d=0.15,
+            rv_30d=0.12,
+            iv_premium=25.0,
+            ytd_return=0.05,
+        )
+        temp_db.upsert_daily(
+            date=prev_valid.isoformat(),
+            ticker="SPY",
+            close_price=102.0,
+            iv_30d=0.14,
+            rv_30d=0.12,
+            iv_premium=((0.14 / 0.12) - 1) * 100.0,
+            ytd_return=0.05,
+        )
+
+        assembler = VolTableDataAssembler(temp_db)
+        df = assembler.build_table()
+
+        assert len(df) == 1
+        row = df.iloc[0]
+        assert abs(row['ivol_rvol_current'] - 25.0) < 0.01
+        assert abs(row['ivol_prem_yesterday'] - (((0.14 / 0.12) - 1) * 100.0)) < 0.01
     
     def test_zscore_calculation_sufficient_data(self, populated_db):
         """Test Z-score calculation with sufficient data."""
