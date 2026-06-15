@@ -22,6 +22,8 @@ from .vol_table_data import (
     _percentile_from_history,
     _premium_from_iv_rv,
     _safe_float,
+    _zscore_from_history,
+    _zscore_velocity_from_history,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,27 +46,22 @@ SIGNAL_BUCKETS = (
 )
 
 
-def _zscore_from_history(history_newest_first: pd.DataFrame, window: int) -> Optional[float]:
-    """Z-score of current IV premium vs trailing window (history newest-first)."""
-    try:
-        if len(history_newest_first) < 5:
-            return None
-        iv_premiums = history_newest_first.apply(_premium_from_iv_rv, axis=1)
-        if iv_premiums.empty or pd.isna(iv_premiums.iloc[0]):
-            return None
-        if iv_premiums.dropna().shape[0] < 5:
-            return None
-        current_premium = iv_premiums.iloc[0]
-        historical_window = iv_premiums.iloc[1 : min(window + 1, len(iv_premiums))].dropna()
-        if len(historical_window) < 4:
-            return None
-        mean = historical_window.mean()
-        std = historical_window.std()
-        if std == 0 or pd.isna(std) or std < 0.01:
-            return 0.0
-        return round(float((current_premium - mean) / std), 2)
-    except Exception:
-        return None
+def _combo_bucket(signal_bucket: str, extreme_bucket: Optional[str]) -> str:
+    if extreme_bucket:
+        return f"{signal_bucket}|{extreme_bucket}"
+    return signal_bucket
+
+
+def _ensemble_composite_score(net: int, pct_1y: Optional[float]) -> float:
+    """Reinforce net score when 1Y premium percentile aligns with contrarian direction."""
+    if pct_1y is None:
+        return float(net)
+    adj = 0.0
+    if net > 0:
+        adj = max(0.0, (pct_1y - 50.0) / 5.0)
+    elif net < 0:
+        adj = max(0.0, (50.0 - pct_1y) / 5.0)
+    return round(float(net) + adj, 2)
 
 
 def signal_bucket_from_net(net: int) -> str:
@@ -194,6 +191,7 @@ def build_signal_events(
             prem_21d = _premium_at_row_offset(g, i, 21)
             pct_1y = _percentile_from_history(hist_newest, 252)
             ttm_z = _zscore_from_history(hist_newest, 252)
+            prem_z_velocity = _zscore_velocity_from_history(hist_newest, 252, 5)
             ytd_pct = _safe_float(row.get("ytd_return"))
             if ytd_pct is not None:
                 ytd_pct = ytd_pct * 100.0
@@ -225,6 +223,7 @@ def build_signal_events(
                 "premium": current,
                 "ivol_rvol_percentile_1y": pct_1y,
                 "ttm_zscore": ttm_z,
+                "prem_z_velocity": prem_z_velocity,
                 "vol_valuation": _compute_vol_valuation(pct_1y, ttm_z),
                 "contrarian_bull_score": bull,
                 "contrarian_bear_score": bear,
@@ -246,6 +245,9 @@ def build_signal_events(
                 event["extreme_bucket"] = "low_premium"
             else:
                 event["extreme_bucket"] = None
+
+            event["combo_bucket"] = _combo_bucket(bucket, event.get("extreme_bucket"))
+            event["ensemble_score"] = _ensemble_composite_score(net, pct_1y)
 
             events.append(event)
 
@@ -316,17 +318,69 @@ def summarize_extreme_premium_performance(
 def information_coefficient(
     events: pd.DataFrame,
     horizon: int = 21,
+    score_col: str = "contrarian_net_score",
 ) -> Optional[float]:
-    """Correlation between contrarian_net_score and forward return."""
+    """Spearman rank correlation between signal score and forward return."""
     ret_col = f"fwd_return_{horizon}d"
-    if events is None or events.empty:
+    if events is None or events.empty or score_col not in events.columns:
         return None
-    df = events[["contrarian_net_score", ret_col]].dropna()
+    df = events[[score_col, ret_col]].dropna()
     if len(df) < 10:
         return None
-    if df[ret_col].std() == 0 or df["contrarian_net_score"].std() == 0:
+    if df[ret_col].std() == 0 or df[score_col].std() == 0:
         return None
-    return round(float(df["contrarian_net_score"].corr(df[ret_col])), 4)
+    return round(float(df[score_col].corr(df[ret_col], method="spearman")), 4)
+
+
+def signal_calibration(events: pd.DataFrame, horizon: int = 21) -> dict:
+    """
+    Spearman IC diagnostics for net score, negated net score, and per-bucket IC.
+    """
+    ret_col = f"fwd_return_{horizon}d"
+    empty = {
+        "horizon_days": horizon,
+        "ic_net_score": None,
+        "ic_negated_net_score": None,
+        "ic_ensemble_score": None,
+        "ic_prem_z_velocity": None,
+        "ic_by_bucket": {},
+    }
+    if events is None or events.empty or ret_col not in events.columns:
+        return empty
+
+    ic_net = information_coefficient(events, horizon=horizon)
+    ic_negated = information_coefficient(
+        events.assign(_negated_net=-events["contrarian_net_score"]),
+        horizon=horizon,
+        score_col="_negated_net",
+    )
+    ic_ensemble = information_coefficient(
+        events, horizon=horizon, score_col="ensemble_score"
+    )
+    ic_prem_z_velocity = information_coefficient(
+        events, horizon=horizon, score_col="prem_z_velocity"
+    )
+
+    ic_by_bucket: Dict[str, float] = {}
+    subset = events[["signal_bucket", "contrarian_net_score", ret_col]].dropna(subset=[ret_col])
+    for bucket, grp in subset.groupby("signal_bucket"):
+        if len(grp) < 10:
+            continue
+        if grp[ret_col].std() == 0 or grp["contrarian_net_score"].std() == 0:
+            continue
+        ic_by_bucket[str(bucket)] = round(
+            float(grp["contrarian_net_score"].corr(grp[ret_col], method="spearman")),
+            4,
+        )
+
+    return {
+        "horizon_days": horizon,
+        "ic_net_score": ic_net,
+        "ic_negated_net_score": ic_negated,
+        "ic_ensemble_score": ic_ensemble,
+        "ic_prem_z_velocity": ic_prem_z_velocity,
+        "ic_by_bucket": ic_by_bucket,
+    }
 
 
 def run_vol_signal_backtest(
@@ -351,11 +405,21 @@ def run_vol_signal_backtest(
 
         summary_by_horizon = {}
         extreme_by_horizon = {}
+        combo_summary_by_horizon = {}
         ic_by_horizon = {}
+        ic_ensemble_by_horizon = {}
+        calibration_by_horizon = {}
         for h in FORWARD_HORIZONS:
             summary_by_horizon[h] = summarize_bucket_performance(events, horizon=h)
             extreme_by_horizon[h] = summarize_extreme_premium_performance(events, horizon=h)
+            combo_summary_by_horizon[h] = summarize_bucket_performance(
+                events, horizon=h, bucket_col="combo_bucket"
+            )
             ic_by_horizon[h] = information_coefficient(events, horizon=h)
+            ic_ensemble_by_horizon[h] = information_coefficient(
+                events, horizon=h, score_col="ensemble_score"
+            )
+            calibration_by_horizon[h] = signal_calibration(events, horizon=h)
 
         date_min = events["date"].min() if not events.empty else None
         date_max = events["date"].max() if not events.empty else None
@@ -364,7 +428,10 @@ def run_vol_signal_backtest(
             "events": events,
             "summary_by_horizon": summary_by_horizon,
             "extreme_summary_by_horizon": extreme_by_horizon,
+            "combo_summary_by_horizon": combo_summary_by_horizon,
             "ic_by_horizon": ic_by_horizon,
+            "ic_ensemble_by_horizon": ic_ensemble_by_horizon,
+            "calibration_by_horizon": calibration_by_horizon,
             "metadata": {
                 "n_events": len(events),
                 "tickers": sorted(events["ticker"].unique().tolist()) if not events.empty else [],
@@ -386,6 +453,9 @@ def format_backtest_summary_table(result: Dict, horizon: int = 21) -> pd.DataFra
     extreme = result.get("extreme_summary_by_horizon", {}).get(horizon)
     if extreme is not None and not extreme.empty:
         parts.append(extreme.assign(category="premium_extreme"))
+    combo = result.get("combo_summary_by_horizon", {}).get(horizon)
+    if combo is not None and not combo.empty:
+        parts.append(combo.assign(category="combo_signal"))
     if not parts:
         return pd.DataFrame()
     return pd.concat(parts, ignore_index=True)

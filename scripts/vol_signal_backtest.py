@@ -51,7 +51,36 @@ def main() -> int:
 
     ic = result.get("ic_by_horizon", {}).get(args.horizon)
     if ic is not None:
-        print(f"Information coefficient (net score vs fwd {args.horizon}d return): {ic:.4f}")
+        print(
+            f"Information coefficient (Spearman, net score vs fwd {args.horizon}d return): "
+            f"{ic:.4f}"
+        )
+
+    calibration = result.get("calibration_by_horizon", {}).get(args.horizon, {})
+    if calibration:
+        ic_neg = calibration.get("ic_negated_net_score")
+        if ic_neg is not None:
+            print(
+                f"Information coefficient (Spearman, negated net score vs fwd "
+                f"{args.horizon}d return): {ic_neg:.4f}"
+            )
+        ic_by_bucket = calibration.get("ic_by_bucket") or {}
+        if ic_by_bucket:
+            print(f"\n=== Per-bucket Spearman IC ({args.horizon}d) ===")
+            for bucket, bucket_ic in sorted(ic_by_bucket.items()):
+                print(f"  {bucket}: {bucket_ic:.4f}")
+        ic_ensemble = calibration.get("ic_ensemble_score")
+        if ic_ensemble is not None:
+            print(
+                f"Information coefficient (Spearman, ensemble score vs fwd "
+                f"{args.horizon}d return): {ic_ensemble:.4f}"
+            )
+        ic_velocity = calibration.get("ic_prem_z_velocity")
+        if ic_velocity is not None:
+            print(
+                f"Information coefficient (Spearman, prem_z_velocity vs fwd "
+                f"{args.horizon}d return): {ic_velocity:.4f}"
+            )
 
     table = format_backtest_summary_table(result, horizon=args.horizon)
     if table.empty:

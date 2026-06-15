@@ -137,6 +137,7 @@ def render_vol_table(data: Optional[pd.DataFrame] = None) -> None:
                 "IVOL Prem % 1M Ago": st.column_config.NumberColumn(width="medium"),
                 "TTM Z-Score": st.column_config.NumberColumn(width="small"),
                 "3Yr Z-Score": st.column_config.NumberColumn(width="small"),
+                "Prem Z Velocity": st.column_config.NumberColumn(width="small"),
                 "Prem %ile 1Y": st.column_config.NumberColumn(width="small"),
                 "Prem %ile 3Y": st.column_config.NumberColumn(width="small"),
                 "IV−RV Spread": st.column_config.NumberColumn(width="small"),
@@ -182,6 +183,7 @@ def _format_and_style_table(data: pd.DataFrame) -> Styler:
         "ivol_prem_1m": "IVOL Prem % 1M Ago",
         "ttm_zscore": "TTM Z-Score",
         "three_yr_zscore": "3Yr Z-Score",
+        "prem_z_velocity": "Prem Z Velocity",
         "ivol_rvol_percentile_1y": "Prem %ile 1Y",
         "ivol_rvol_percentile_3y": "Prem %ile 3Y",
         "iv_rv_spread": "IV−RV Spread",
@@ -199,7 +201,7 @@ def _format_and_style_table(data: pd.DataFrame) -> Styler:
         "ETF Name", "Ticker", "Vol Valuation", "Contrarian Signal",
         "YTD %", "IVOL/RVOL Current",
         "IVOL Prem % Yesterday", "IVOL Prem % 1W Ago", "IVOL Prem % 1M Ago",
-        "TTM Z-Score", "3Yr Z-Score",
+        "TTM Z-Score", "3Yr Z-Score", "Prem Z Velocity",
     ]
     detail_display = [
         "Prem %ile 1Y", "Prem %ile 3Y", "IV−RV Spread", "IV/RV Ratio",
@@ -215,7 +217,7 @@ def _format_and_style_table(data: pd.DataFrame) -> Styler:
         "Prem Δ 1W", "Prem Δ 1M",
     ]
     percentage_cols = [c for c in percentage_cols if c in df.columns]
-    zscore_cols = [c for c in ["TTM Z-Score", "3Yr Z-Score"] if c in df.columns]
+    zscore_cols = [c for c in ["TTM Z-Score", "3Yr Z-Score", "Prem Z Velocity"] if c in df.columns]
     percentile_cols = [c for c in ["Prem %ile 1Y", "Prem %ile 3Y"] if c in df.columns]
     score_cols = [c for c in ["Bull Score", "Bear Score"] if c in df.columns]
 

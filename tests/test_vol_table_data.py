@@ -17,6 +17,8 @@ from data.vol_table_data import (
     TABLE_COLUMNS,
     _compute_contrarian_scores,
     _compute_vol_valuation,
+    _score_premium_compression,
+    _zscore_velocity_from_history,
 )
 from data.market_utils import get_previous_trading_day
 
@@ -477,6 +479,59 @@ class TestVolTableDataAssembler:
         )
         assert 0 <= bull <= 100
         assert 0 <= bear <= 100
+
+    def test_contrarian_no_double_count_premium_compression(self):
+        """1-week premium compression is weighted once (0.20), not twice."""
+        bull, bear = _compute_contrarian_scores(
+            pct_1y=50.0,
+            ttm_z=0.0,
+            ytd_pct=0.0,
+            current=40.0,
+            week=50.0,
+            month=55.0,
+            cs_rank=8.0,
+            n_tickers=14,
+        )
+        expected_bull = 0.20 * _score_premium_compression(40.0, 50.0, 55.0)
+        assert bull == pytest.approx(expected_bull, abs=0.1)
+        assert bear == pytest.approx(0.0, abs=0.1)
+
+    def test_contrarian_weights_sum_to_one_at_max(self):
+        bull, _ = _compute_contrarian_scores(
+            pct_1y=100.0,
+            ttm_z=2.0,
+            ytd_pct=-20.0,
+            current=20.0,
+            week=35.0,
+            month=50.0,
+            cs_rank=1.0,
+            n_tickers=14,
+        )
+        _, bear = _compute_contrarian_scores(
+            pct_1y=0.0,
+            ttm_z=-2.0,
+            ytd_pct=30.0,
+            current=70.0,
+            week=55.0,
+            month=40.0,
+            cs_rank=14.0,
+            n_tickers=14,
+        )
+        assert bull == pytest.approx(100.0, abs=0.2)
+        assert bear == pytest.approx(100.0, abs=0.2)
+
+    def test_prem_z_velocity_none_with_short_history(self):
+        history = pd.DataFrame([
+            {"iv_30d": 0.18, "rv_30d": 0.15},
+            {"iv_30d": 0.17, "rv_30d": 0.15},
+        ])
+        assert _zscore_velocity_from_history(history, window=252, velocity_lag=5) is None
+
+    def test_prem_z_velocity_column_present(self, populated_db):
+        assembler = VolTableDataAssembler(populated_db)
+        df = assembler.build_table()
+        assert "prem_z_velocity" in df.columns
+        assert "prem_z_velocity" in TABLE_COLUMNS
 
     def test_contrarian_signal_columns_present(self, populated_db):
         assembler = VolTableDataAssembler(populated_db)

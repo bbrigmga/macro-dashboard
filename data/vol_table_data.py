@@ -50,7 +50,7 @@ TABLE_COLUMNS: List[str] = [
     'iv_rv_spread', 'iv_rv_ratio',
     'prem_change_1w', 'prem_change_1m', 'premium_cs_rank',
     'ivol_prem_yesterday', 'ivol_prem_1w', 'ivol_prem_1m',
-    'ttm_zscore', 'three_yr_zscore',
+    'ttm_zscore', 'three_yr_zscore', 'prem_z_velocity',
 ]
 
 
@@ -285,18 +285,16 @@ def _compute_contrarian_scores(
     bull = (
         0.30 * _score_high_percentile(pct_1y)
         + 0.20 * _score_high_zscore(ttm_z)
-        + 0.15 * _score_weak_ytd(ytd_pct)
-        + 0.15 * _score_premium_compression(current, week, month)
+        + 0.20 * _score_weak_ytd(ytd_pct)
+        + 0.20 * _score_premium_compression(current, week, month)
         + 0.10 * _score_cs_rank_bull(cs_rank, n_tickers)
-        + 0.10 * _score_premium_compression(current, _safe_float(week), None)
     )
     bear = (
         0.30 * _score_low_percentile(pct_1y)
         + 0.20 * _score_low_zscore(ttm_z)
-        + 0.15 * _score_strong_ytd(ytd_pct)
-        + 0.15 * _score_premium_expansion(current, week, month)
+        + 0.20 * _score_strong_ytd(ytd_pct)
+        + 0.20 * _score_premium_expansion(current, week, month)
         + 0.10 * _score_cs_rank_bear(cs_rank, n_tickers)
-        + 0.10 * _score_premium_expansion(_safe_float(current), _safe_float(week), None)
     )
     return round(bull, 1), round(bear, 1)
 
@@ -315,6 +313,60 @@ def _contrarian_signal_label(bull: float, bear: float) -> Tuple[str, int]:
     else:
         label = f"Neutral ({net:+d})"
     return label, net
+
+
+def _zscore_from_history(history: pd.DataFrame, window: int) -> Optional[float]:
+    """Z-score of current IV premium relative to historical window (newest-first)."""
+    try:
+        if history is None or len(history) < 5:
+            return None
+
+        iv_premiums = history.apply(_premium_from_iv_rv, axis=1)
+        if iv_premiums.empty or pd.isna(iv_premiums.iloc[0]):
+            return None
+
+        valid_premiums = iv_premiums.dropna()
+        if len(valid_premiums) < 5:
+            return None
+
+        current_premium = iv_premiums.iloc[0]
+        historical_window = iv_premiums.iloc[1:min(window + 1, len(iv_premiums))].dropna()
+
+        if len(historical_window) < 4:
+            return None
+
+        mean = historical_window.mean()
+        std = historical_window.std()
+
+        if std == 0 or pd.isna(std) or std < 0.01:
+            return 0.0
+
+        return round(float((current_premium - mean) / std), 2)
+
+    except Exception as e:
+        logger.debug(f"Could not calculate Z-score for window {window}: {e}")
+        return None
+
+
+def _zscore_velocity_from_history(
+    history: pd.DataFrame,
+    window: int = 252,
+    velocity_lag: int = 5,
+) -> Optional[float]:
+    """5-day rate of change of TTM z-score (current minus lagged z-score)."""
+    try:
+        if history is None or len(history) < velocity_lag + 5:
+            return None
+
+        z_now = _zscore_from_history(history, window)
+        hist_lag = history.iloc[velocity_lag:].reset_index(drop=True)
+        z_past = _zscore_from_history(hist_lag, window)
+        if z_now is None or z_past is None:
+            return None
+        return round(z_now - z_past, 2)
+    except Exception as e:
+        logger.debug(f"Could not calculate z-score velocity: {e}")
+        return None
 
 
 class VolTableDataAssembler:
@@ -482,8 +534,9 @@ class VolTableDataAssembler:
         spread, ratio = _iv_rv_spread_and_ratio(latest_row)
         pct_1y = _percentile_from_history(history, 252)
         pct_3y = _percentile_from_history(history, 756)
-        ttm_z = self._calculate_zscore_from_history(history, 252)
-        three_yr_z = self._calculate_zscore_from_history(history, 756)
+        ttm_z = _zscore_from_history(history, 252)
+        three_yr_z = _zscore_from_history(history, 756)
+        prem_z_velocity = _zscore_velocity_from_history(history, 252, 5)
         ytd_pct = latest_row.get('ytd_return', 0.0) * 100
 
         return {
@@ -508,6 +561,7 @@ class VolTableDataAssembler:
             'ivol_prem_1m': month,
             'ttm_zscore': ttm_z,
             'three_yr_zscore': three_yr_z,
+            'prem_z_velocity': prem_z_velocity,
         }
 
     def _get_latest_valid_premium_from_data(
@@ -611,36 +665,7 @@ class VolTableDataAssembler:
         self, history: pd.DataFrame, window: int
     ) -> Optional[float]:
         """Calculate Z-score of current IV premium relative to historical window."""
-        try:
-            if len(history) < 5:
-                return None
-
-            iv_premiums = history.apply(_premium_from_iv_rv, axis=1)
-            if iv_premiums.empty or pd.isna(iv_premiums.iloc[0]):
-                return None
-
-            valid_premiums = iv_premiums.dropna()
-            if len(valid_premiums) < 5:
-                return None
-
-            current_premium = iv_premiums.iloc[0]
-            historical_window = iv_premiums.iloc[1:min(window + 1, len(iv_premiums))].dropna()
-
-            if len(historical_window) < 4:
-                return None
-
-            mean = historical_window.mean()
-            std = historical_window.std()
-
-            if std == 0 or pd.isna(std) or std < 0.01:
-                return 0.0
-
-            zscore = (current_premium - mean) / std
-            return round(zscore, 2)
-
-        except Exception as e:
-            logger.debug(f"Could not calculate Z-score for window {window}: {e}")
-            return None
+        return _zscore_from_history(history, window)
 
     def get_data_freshness_info(self) -> dict:
         """Get information about data freshness and availability."""

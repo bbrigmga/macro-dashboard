@@ -12,6 +12,7 @@ from data.vol_signal_backtest import (
     summarize_extreme_premium_performance,
     signal_bucket_from_net,
     information_coefficient,
+    signal_calibration,
     run_vol_signal_backtest,
     format_backtest_summary_table,
     _forward_return_pct,
@@ -93,6 +94,9 @@ class TestBuildSignalEvents:
         assert "fwd_return_21d" in events.columns
         assert "contrarian_net_score" in events.columns
         assert "signal_bucket" in events.columns
+        assert "combo_bucket" in events.columns
+        assert "ensemble_score" in events.columns
+        assert "prem_z_velocity" in events.columns
         assert events["ticker"].isin(["SPY", "QQQ", "XLF"]).all()
 
     def test_forward_columns_populated(self, seeded_db):
@@ -124,6 +128,44 @@ class TestSummarize:
         ic = information_coefficient(result["events"], horizon=21)
         # May be None with short/random data; just ensure callable
         assert ic is None or isinstance(ic, float)
+
+    def test_information_coefficient_spearman_monotonic(self):
+        scores = list(range(-30, 31))
+        events = pd.DataFrame({
+            "contrarian_net_score": scores,
+            "fwd_return_21d": scores,
+        })
+        ic = information_coefficient(events, horizon=21)
+        assert ic == pytest.approx(1.0, abs=0.01)
+
+    def test_signal_calibration_negated_ic(self):
+        scores = list(range(-30, 31))
+        events = pd.DataFrame({
+            "contrarian_net_score": scores,
+            "fwd_return_21d": scores,
+            "signal_bucket": ["neutral"] * len(scores),
+        })
+        cal = signal_calibration(events, horizon=21)
+        assert cal["ic_net_score"] == pytest.approx(1.0, abs=0.01)
+        assert cal["ic_negated_net_score"] == pytest.approx(-1.0, abs=0.01)
+
+    def test_combo_bucket_format(self, seeded_db):
+        result = run_vol_signal_backtest(db=seeded_db, close_db=False)
+        events = result["events"]
+        assert not events.empty
+        assert events["combo_bucket"].str.contains(r"\|", regex=True).any() or (
+            events["combo_bucket"] == events["signal_bucket"]
+        ).any()
+
+    def test_ensemble_ic_monotonic(self):
+        scores = list(range(-30, 31))
+        events = pd.DataFrame({
+            "contrarian_net_score": scores,
+            "ensemble_score": scores,
+            "fwd_return_21d": scores,
+        })
+        ic = information_coefficient(events, horizon=21, score_col="ensemble_score")
+        assert ic == pytest.approx(1.0, abs=0.01)
 
     def test_format_summary_table(self, seeded_db):
         result = run_vol_signal_backtest(db=seeded_db, close_db=False)
