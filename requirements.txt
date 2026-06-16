@@ -5,3 +5,4 @@ yfinance==1.2.0
 fredapi==0.5.1
 python-dotenv==1.0.1
 APScheduler==3.10.4
+scipy==1.13.1

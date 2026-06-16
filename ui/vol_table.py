@@ -351,14 +351,62 @@ def _render_signal_backtest_panel() -> None:
                 return
 
             ic = result.get("ic_by_horizon", {}).get(horizon)
+            calib = result.get("calibration_by_horizon", {}).get(horizon, {})
+            ic_negated = calib.get("ic_negated_net_score")
+            ic_velocity = calib.get("ic_prem_z_velocity")
+            ic_by_bucket = calib.get("ic_by_bucket") or {}
+
             c1, c2, c3 = st.columns(3)
             c1.metric("Backtest events", f"{n_events:,}")
             c2.metric("History", f"{meta.get('date_start')} → {meta.get('date_end')}")
             c3.metric(
                 f"IC (score vs {horizon}D return)",
                 f"{ic:.3f}" if ic is not None else "N/A",
-                help="Correlation of contrarian net score with forward return",
+                help="Spearman correlation of contrarian net score with forward return",
             )
+
+            d1, d2, d3 = st.columns(3)
+            d1.metric(
+                f"IC negated score ({horizon}D)",
+                f"{ic_negated:.3f}" if ic_negated is not None else "N/A",
+                help="Spearman IC if the net score sign were inverted (momentum read)",
+            )
+            d2.metric(
+                f"IC prem Z velocity ({horizon}D)",
+                f"{ic_velocity:.3f}" if ic_velocity is not None else "N/A",
+                help="Spearman IC of premium z-score velocity vs forward return",
+            )
+            d3.metric(
+                "IC ensemble score",
+                f"{calib.get('ic_ensemble_score'):.3f}"
+                if calib.get("ic_ensemble_score") is not None
+                else "N/A",
+                help="Net score reinforced by 1Y premium percentile alignment",
+            )
+
+            if (
+                ic is not None
+                and ic_negated is not None
+                and ic_negated > ic
+            ):
+                st.info(
+                    "Net-score IC is negative on stored history — the contrarian signal is "
+                    "anti-predictive in this window. Negated IC is higher, but the sample spans "
+                    "a single trending regime with overlapping dates; not a basis to invert the "
+                    "live signal without more history."
+                )
+
+            if ic_by_bucket:
+                bucket_rows = [
+                    {"Bucket": bucket, "IC": f"{bucket_ic:.3f}"}
+                    for bucket, bucket_ic in sorted(ic_by_bucket.items())
+                ]
+                with st.expander("Per-bucket Spearman IC", expanded=False):
+                    st.dataframe(
+                        pd.DataFrame(bucket_rows),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
 
             from data.vol_signal_backtest import format_backtest_summary_table
 
