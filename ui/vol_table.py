@@ -401,7 +401,11 @@ def _render_signal_backtest_panel() -> None:
                     {"Bucket": bucket, "IC": f"{bucket_ic:.3f}"}
                     for bucket, bucket_ic in sorted(ic_by_bucket.items())
                 ]
-                with st.expander("Per-bucket Spearman IC", expanded=False):
+                if st.checkbox(
+                    "Show per-bucket Spearman IC",
+                    value=False,
+                    key="vol_backtest_show_bucket_ic",
+                ):
                     st.dataframe(
                         pd.DataFrame(bucket_rows),
                         use_container_width=True,

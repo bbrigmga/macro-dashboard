@@ -252,6 +252,21 @@ class IVDatabase:
         sql = "SELECT DISTINCT ticker FROM daily_iv ORDER BY ticker"
         cursor = self.conn.execute(sql)
         return [row[0] for row in cursor.fetchall()]
+
+    def get_all(self) -> pd.DataFrame:
+        """Get every stored daily IV/RV snapshot (all tickers, all dates).
+
+        Returns:
+            DataFrame ordered by date then ticker
+        """
+        sql = """
+        SELECT date, ticker, close_price, iv_30d, rv_30d, iv_premium, ytd_return
+        FROM daily_iv
+        ORDER BY date, ticker
+        """
+        df = pd.read_sql_query(sql, self.conn, parse_dates=["date"])
+        logger.debug(f"Retrieved {len(df)} total daily_iv records")
+        return df
     
     def delete_ticker(self, ticker: str) -> int:  
         """Delete all data for a ticker.

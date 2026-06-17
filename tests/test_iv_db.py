@@ -213,6 +213,23 @@ class TestIVDatabase:
         assert latest["iv_premium"] is None
         assert latest["ytd_return"] is None
     
+    def test_get_all(self, db):
+        """Test retrieving all stored snapshots across tickers and dates."""
+        db.upsert_daily("2024-01-10", "SPY", 445.00, iv_30d=0.17)
+        db.upsert_daily("2024-01-15", "SPY", 450.25, iv_30d=0.18)
+        db.upsert_daily("2024-01-12", "QQQ", 350.00, iv_30d=0.20)
+
+        all_rows = db.get_all()
+
+        assert len(all_rows) == 3
+        assert list(all_rows.columns) == [
+            "date", "ticker", "close_price", "iv_30d", "rv_30d", "iv_premium", "ytd_return"
+        ]
+        assert all_rows.iloc[0]["date"].strftime("%Y-%m-%d") == "2024-01-10"
+        assert all_rows.iloc[0]["ticker"] == "SPY"
+        assert all_rows.iloc[1]["ticker"] == "QQQ"
+        assert all_rows.iloc[-1]["date"].strftime("%Y-%m-%d") == "2024-01-15"
+
     def test_get_all_tickers(self, db):
         """Test retrieving list of all tickers."""
         # Initially empty

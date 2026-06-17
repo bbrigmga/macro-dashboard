@@ -13,6 +13,8 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+import data.numpy_compat  # noqa: F401
+
 from .iv_db import IVDatabase
 from .vol_table_data import (
     ETF_UNIVERSE,
@@ -315,6 +317,23 @@ def summarize_extreme_premium_performance(
     )
 
 
+def _spearman_corr(a: pd.Series, b: pd.Series) -> Optional[float]:
+    """
+    Spearman rank correlation without scipy.
+
+    Pandas' ``Series.corr(method='spearman')`` imports scipy, which breaks on
+    NumPy 2.4+ where ``np.in1d`` was removed.
+    """
+    aligned = pd.concat([a, b], axis=1).dropna()
+    if len(aligned) < 10:
+        return None
+    x = aligned.iloc[:, 0]
+    y = aligned.iloc[:, 1]
+    if x.std() == 0 or y.std() == 0:
+        return None
+    return float(x.rank(method="average").corr(y.rank(method="average")))
+
+
 def information_coefficient(
     events: pd.DataFrame,
     horizon: int = 21,
@@ -329,7 +348,10 @@ def information_coefficient(
         return None
     if df[ret_col].std() == 0 or df[score_col].std() == 0:
         return None
-    return round(float(df[score_col].corr(df[ret_col], method="spearman")), 4)
+    ic = _spearman_corr(df[score_col], df[ret_col])
+    if ic is None:
+        return None
+    return round(ic, 4)
 
 
 def signal_calibration(events: pd.DataFrame, horizon: int = 21) -> dict:
@@ -368,10 +390,10 @@ def signal_calibration(events: pd.DataFrame, horizon: int = 21) -> dict:
             continue
         if grp[ret_col].std() == 0 or grp["contrarian_net_score"].std() == 0:
             continue
-        ic_by_bucket[str(bucket)] = round(
-            float(grp["contrarian_net_score"].corr(grp[ret_col], method="spearman")),
-            4,
-        )
+        ic = _spearman_corr(grp["contrarian_net_score"], grp[ret_col])
+        if ic is None:
+            continue
+        ic_by_bucket[str(bucket)] = round(ic, 4)
 
     return {
         "horizon_days": horizon,

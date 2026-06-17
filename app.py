@@ -4,9 +4,12 @@ Macro Economic Indicators Dashboard
 This application displays key macro economic indicators to help forecast
 market conditions and economic trends.
 """
+import data.numpy_compat  # noqa: F401 — before scipy/pandas may import NumPy APIs
+
 import os
 import asyncio
 import logging
+from datetime import date
 import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
@@ -69,12 +72,27 @@ def check_volatility_data_freshness():
             'show_refresh': False
         }
 
+@st.cache_data(ttl=300)
+def _get_iv_data_csv() -> bytes:
+    """Build CSV bytes for all scraped IV/RV snapshots in the local database."""
+    from data.iv_db import IVDatabase
+
+    with IVDatabase() as db:
+        df = db.get_all()
+    if df.empty:
+        return b""
+    export = df.copy()
+    export["date"] = pd.to_datetime(export["date"]).dt.strftime("%Y-%m-%d")
+    return export.to_csv(index=False).encode("utf-8")
+
+
 def reload_vol_table_from_db():
     """Clear vol table caches and rerun (no live Yahoo scrape)."""
     from ui.vol_table import reload_vol_table_caches
 
     reload_vol_table_caches()
     check_volatility_data_freshness.clear()
+    _get_iv_data_csv.clear()
     st.rerun()
 
 
@@ -96,6 +114,7 @@ def refresh_volatility_data():
             st.success(f"✅ Successfully updated {result['success']} tickers. Failed: {result['failed']}")
             # Clear caches so fresh data is displayed
             check_volatility_data_freshness.clear()
+            _get_iv_data_csv.clear()
             reload_vol_table_caches()
             get_indicator_service().invalidate_indicator_cache("implied_realized_vol")
             st.rerun()
@@ -159,6 +178,19 @@ else:
                     help="Fetch today's implied vol from Yahoo options (~30–40s)",
                 ):
                     refresh_volatility_data()
+
+            if vol_status['has_data']:
+                csv_bytes = _get_iv_data_csv()
+                st.download_button(
+                    label="⬇️ Export Options Data (CSV)",
+                    data=csv_bytes,
+                    file_name=f"iv_options_data_{date.today().isoformat()}.csv",
+                    mime="text/csv",
+                    help=(
+                        "Download all daily IV/RV snapshots from the local database "
+                        "(date, ticker, close, iv_30d, rv_30d, iv_premium, ytd_return)"
+                    ),
+                )
 
         # Create and display the dashboard (pass shared fred_client)
         create_dashboard(indicators, fred_client=fred_client)

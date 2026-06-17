@@ -138,6 +138,23 @@ class TestSummarize:
         ic = information_coefficient(events, horizon=21)
         assert ic == pytest.approx(1.0, abs=0.01)
 
+    def test_information_coefficient_without_numpy_in1d(self):
+        """Backtest IC must not depend on scipy importing np.in1d (removed in NumPy 2.4)."""
+        scores = list(range(-30, 31))
+        events = pd.DataFrame({
+            "contrarian_net_score": scores,
+            "fwd_return_21d": scores,
+        })
+        had_in1d = hasattr(np, "in1d")
+        if had_in1d:
+            delattr(np, "in1d")
+        try:
+            ic = information_coefficient(events, horizon=21)
+            assert ic == pytest.approx(1.0, abs=0.01)
+        finally:
+            if had_in1d:
+                np.in1d = np.isin
+
     def test_signal_calibration_negated_ic(self):
         scores = list(range(-30, 31))
         events = pd.DataFrame({
