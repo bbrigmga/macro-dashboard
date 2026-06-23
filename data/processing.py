@@ -421,3 +421,79 @@ def forecast_ou(series: pd.Series, horizon: int = 10) -> dict:
         "intercept": intercept,
         "residual_std": float(np.sqrt(sigma2)),
     }
+
+
+def align_series_asof(
+    calendar: pd.DatetimeIndex | pd.Series,
+    series: pd.Series,
+    column_name: str,
+) -> pd.Series:
+    """
+    Backward as-of join: each calendar date gets the last known observation on or before that date.
+
+    Rows before the first macro observation receive NaN (no forward-fill before first release).
+    """
+    cal_normalized = pd.to_datetime(calendar)
+    if isinstance(cal_normalized, pd.DatetimeIndex):
+        cal_normalized = cal_normalized.normalize()
+    else:
+        cal_normalized = cal_normalized.dt.normalize()
+    cal_series = pd.Series(cal_normalized)
+    cal_df = pd.DataFrame({
+        'Date': cal_series.values,
+        '_ord': np.arange(len(cal_series)),
+    })
+
+    if series.empty:
+        return pd.Series(np.nan, index=cal_series.index, name=column_name)
+
+    aligned = series.copy()
+    aligned.index = pd.to_datetime(aligned.index).tz_localize(None).normalize()
+    aligned = aligned.sort_index()
+    aligned = aligned[~aligned.index.duplicated(keep='last')]
+    right = aligned.rename(column_name).reset_index()
+    right.columns = ['Date', column_name]
+
+    cal_sorted = cal_df.sort_values('Date')
+    merged = pd.merge_asof(cal_sorted, right, on='Date', direction='backward')
+    merged = merged.sort_values('_ord')
+    return pd.Series(merged[column_name].values, index=cal_series.index, name=column_name)
+
+
+def log_ratio(numerator: pd.Series, denominator: pd.Series) -> pd.Series:
+    """Natural log of price ratio, dropping non-positive values."""
+    ratio = numerator / denominator
+    ratio = ratio.where(ratio > 0)
+    return np.log(ratio)
+
+
+def log_delta(series: pd.Series, periods: int = 63) -> pd.Series:
+    """Change in log series over N periods (trading days)."""
+    return series.diff(periods)
+
+
+def rolling_zscore(
+    series: pd.Series,
+    window: int = 252,
+    min_periods: int | None = None,
+) -> pd.Series:
+    """Rolling z-score normalization."""
+    if min_periods is None:
+        min_periods = max(1, window // 2)
+
+    rolling_mean = series.rolling(window=window, min_periods=min_periods).mean()
+    rolling_std = series.rolling(window=window, min_periods=min_periods).std()
+    return (series - rolling_mean) / rolling_std
+
+
+def log_ratio_delta_zscore(
+    numerator: pd.Series,
+    denominator: pd.Series,
+    delta_days: int = 63,
+    zscore_window: int = 252,
+    min_zscore_periods: int = 126,
+) -> pd.Series:
+    """z(ΔN log(numerator/denominator)) — GDP growth proxy pair signal."""
+    lr = log_ratio(numerator, denominator)
+    delta = log_delta(lr, periods=delta_days)
+    return rolling_zscore(delta, window=zscore_window, min_periods=min_zscore_periods)

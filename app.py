@@ -72,6 +72,14 @@ def check_volatility_data_freshness():
             'show_refresh': False
         }
 
+@st.cache_data(ttl=3600)
+def _get_market_macro_csv() -> bytes:
+    """Build CSV bytes for aligned daily ETF + macro export (3 years)."""
+    from data.market_macro_export import market_macro_export_csv_bytes
+
+    return market_macro_export_csv_bytes(years=3)
+
+
 @st.cache_data(ttl=300)
 def _get_iv_data_csv() -> bytes:
     """Build CSV bytes for all scraped IV/RV snapshots in the local database."""
@@ -193,7 +201,11 @@ else:
                 )
 
         # Create and display the dashboard (pass shared fred_client)
-        create_dashboard(indicators, fred_client=fred_client)
+        create_dashboard(
+            indicators,
+            fred_client=fred_client,
+            market_macro_csv=_get_market_macro_csv(),
+        )
     except Exception as e:
         logger.exception("Error in dashboard initialization")
         st.error(f"An error occurred while initializing the dashboard: {str(e)}")

@@ -292,7 +292,10 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         display_name="Growth/Inflation Regime",
         emoji="🧭",
         fred_series=["T5YIFR", "T10YIE"],
-        yahoo_series=["TIP", "IEF", "CPER", "GLD", "HYG", "LQD", "XLI", "XLU", "SPHB", "SPLV", "XLE", "SPY", "DBC", "TLT"],
+        yahoo_series=[
+            "TIP", "IEF", "CPER", "GLD", "XHB", "IWM", "EFA", "FXI",
+            "XLE", "SPY", "DBC", "TLT",
+        ],
         chart_type="custom",
         value_column="growth_zscore",      # Primary display column
         periods=1260,                      # ~3.5 years for multi-horizon momentum + expanding-window anchoring
@@ -301,9 +304,10 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         threshold=None,
         warning_description=(
             "This chart shows the current macroeconomic regime using composite market-implied proxies. "
-            "The X-axis blends growth-sensitive cross-asset signals (commodities, credit, cyclicals), and "
-            "the Y-axis blends inflation-sensitive signals (breakevens, energy, TIP/IEF). Signals use a "
-            "multi-horizon momentum z-score with an expanding-window anchor and EMA smoothing. "
+            "The X-axis is a GDP growth proxy: equal-weight z(Δ63d log ratio) across CPER/GLD, XHB/IWM, "
+            "EFA/SLV, and CPER/FXI (config in src/config/growth_proxy.py). "
+            "The Y-axis blends inflation-sensitive signals (breakevens, energy, TIP/IEF) using "
+            "multi-horizon momentum z-scores with an expanding-window anchor and EMA smoothing. "
             "The trailing path shows regime migration. The projection uses a mean-reverting AR(1)/OU model "
             "with an uncertainty cone; the description includes a walk-forward hit-rate.\n\n"
             "**Quadrants:**\n"

@@ -529,6 +529,7 @@ def create_regime_quadrant_chart(data: dict):
     Returns:
         go.Figure: Plotly figure object
     """
+    from src.config.growth_proxy import GROWTH_AXIS_LABEL
     import numpy as np
     
     # Extract data
@@ -720,7 +721,7 @@ def create_regime_quadrant_chart(data: dict):
     fig.update_layout(
         height=500,
         xaxis=dict(
-            title="Growth Momentum (Composite Z-Score)",
+            title=GROWTH_AXIS_LABEL,
             zeroline=True, zerolinewidth=2, zerolinecolor='rgba(128,128,128,0.5)',
             range=x_range,
         ),

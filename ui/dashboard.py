@@ -53,13 +53,14 @@ def display_footer():
     st.caption("Data sourced from FRED (Federal Reserve Economic Data). Updated automatically with each release.")
 
 
-def create_dashboard(indicators, fred_client):
+def create_dashboard(indicators, fred_client, market_macro_csv: bytes | None = None):
     """
     Create the complete dashboard layout with a modern grid-based design.
-    
+
     Args:
         indicators (dict): Dictionary with all indicator data
         fred_client (FredClient): Shared FRED client instance
+        market_macro_csv: Optional pre-built CSV bytes for macro analysis export
     """
     # Initialize FRED client for release dates
     # fred_client is provided by the caller; do not instantiate here
@@ -171,6 +172,17 @@ def create_dashboard(indicators, fred_client):
             regime = indicators['regime_quadrant'].get('current_regime', 'Unknown')
             st.markdown(f"### 🧭 Current Regime: **{regime}**")
             st.markdown(indicators['regime_quadrant'].get('regime_description', ''))
+            if market_macro_csv:
+                st.download_button(
+                    label="⬇️ Export Macro Analysis Data (CSV)",
+                    data=market_macro_csv,
+                    file_name=f"market_macro_analysis_{datetime.date.today().isoformat()}.csv",
+                    mime="text/csv",
+                    help=(
+                        "Daily trading-day export (3 years): CPER, GLD, IEF, TIP closes; "
+                        "GDP and headline CPI (CPIAUCSL) aligned as-of each date."
+                    ),
+                )
             # Show the warning description from registry
             config = INDICATOR_REGISTRY['regime_quadrant']
             with st.expander("📖 How to read this chart"):

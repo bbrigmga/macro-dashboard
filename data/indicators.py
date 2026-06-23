@@ -10,6 +10,8 @@ import streamlit as st
 from data.fred_client import FredClient
 from data.yahoo_client import YahooClient
 from analysis.regime_backtest import summarize_regime_backtest
+from data.growth_proxy import build_gdp_growth_proxy
+from src.config.growth_proxy import GROWTH_PROXY_REQUIRED_TICKERS
 from data.processing import (
     calculate_pct_change,
     check_consecutive_increase,
@@ -1256,13 +1258,7 @@ class IndicatorData:
             start_date = (datetime.datetime.now() - datetime.timedelta(days=lookback_days)).strftime('%Y-%m-%d')
             end_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 
-            # Proxy baskets: first item in each list is the mandatory anchor.
-            growth_proxy_pairs = [
-                ("CPER_GLD", "CPER", "GLD"),
-                ("HYG_LQD", "HYG", "LQD"),
-                ("XLI_XLU", "XLI", "XLU"),
-                ("SPHB_SPLV", "SPHB", "SPLV"),
-            ]
+            # Growth axis: standalone GDP growth proxy (see src/config/growth_proxy.py).
             inflation_proxy_pairs = [
                 ("TIP_IEF", "TIP", "IEF"),
                 ("XLE_SPY", "XLE", "SPY"),
@@ -1270,12 +1266,12 @@ class IndicatorData:
             ]
             inflation_fred_series = ["T5YIFR", "T10YIE"]
 
-            required_tickers = {"CPER", "GLD", "TIP", "IEF"}
+            required_tickers = GROWTH_PROXY_REQUIRED_TICKERS | {"TIP", "IEF"}
             all_tickers = sorted({
                 ticker
-                for _, num, den in (growth_proxy_pairs + inflation_proxy_pairs)
+                for _, num, den in inflation_proxy_pairs
                 for ticker in (num, den)
-            }.union({"TLT"}))
+            }.union(GROWTH_PROXY_REQUIRED_TICKERS).union({"TLT"}))
 
             ticker_data: dict[str, pd.Series] = {}
             missing_tickers = set()
@@ -1336,7 +1332,7 @@ class IndicatorData:
                     proxy_zscores[name] = anchored_z.rename(name)
                 return proxy_zscores
 
-            growth_proxy_zscores = _build_ratio_proxy(growth_proxy_pairs)
+            growth_composite, growth_proxy_zscores = build_gdp_growth_proxy(ticker_data)
             inflation_proxy_zscores = _build_ratio_proxy(inflation_proxy_pairs)
 
             for fred_series_id in inflation_fred_series:
