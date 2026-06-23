@@ -6,7 +6,7 @@ import pytest
 
 from data.growth_proxy import build_gdp_growth_proxy, build_pair_zscore
 from data.processing import log_ratio_delta_zscore
-from src.config.growth_proxy import GROWTH_PROXY_PAIRS, GrowthProxyPair
+from src.config.growth_proxy import GROWTH_PROXY_PAIRS, GrowthProxyPair, DELTA_DAYS, FORECAST_HORIZON_DAYS
 
 
 def _synthetic_ticker_data(n: int = 400, seed: int = 0) -> dict[str, pd.Series]:
@@ -50,3 +50,7 @@ class TestGdpGrowthProxy:
         merged = pd.DataFrame({"CPER": data["CPER"], "GLD": data["GLD"]}).dropna()
         z2 = log_ratio_delta_zscore(merged["CPER"], merged["GLD"])
         pd.testing.assert_series_equal(z1, z2.rename("CPER_GLD"))
+
+
+def test_forecast_horizon_matches_proxy_delta():
+    assert FORECAST_HORIZON_DAYS == DELTA_DAYS == 63

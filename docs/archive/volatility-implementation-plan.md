@@ -1,3 +1,5 @@
+> Historical spec — feature implemented; see README.md for current behavior.
+
 # Implied vs Realized Volatility Table â€” Implementation Plan
 
 > **Spec Source:** `# Implied & Realized Volatility Dashboar.md`  

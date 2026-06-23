@@ -98,7 +98,7 @@ def render_vol_table(data: Optional[pd.DataFrame] = None) -> None:
         st.info(
             "🔄 No volatility data available. Run the daily scraper first:\n\n"
             "```bash\n"
-            "python -m data.iv_scraper\n"
+            "python scripts/scrape_iv.py\n"
             "```"
         )
         return

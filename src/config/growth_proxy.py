@@ -29,6 +29,9 @@ DELTA_DAYS = 63
 ZSCORE_DAYS = 252
 MIN_ZSCORE_PERIODS = 126
 
+# OU regime projection horizon — aligned with proxy momentum window (~3 months).
+FORECAST_HORIZON_DAYS = DELTA_DAYS
+
 GROWTH_PROXY_REQUIRED_TICKERS: frozenset[str] = frozenset(
     ticker for pair in GROWTH_PROXY_PAIRS for ticker in (pair.num, pair.denom)
 )

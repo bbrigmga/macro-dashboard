@@ -137,7 +137,7 @@ class TestVolTableRendering:
         # Test with None data
         render_vol_table(None)
         mock_st.info.assert_called_once()
-        assert "python -m data.iv_scraper" in mock_st.info.call_args[0][0]
+        assert "python scripts/scrape_iv.py" in mock_st.info.call_args[0][0]
         
         # Reset mock
         mock_st.reset_mock()

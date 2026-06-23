@@ -6,6 +6,7 @@
 
 # Python
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 *.so
@@ -51,11 +52,13 @@ Thumbs.db
 
 # Volatility database
 iv_data.db
+data/volatility/iv_data.db
 data/volatility/iv_data.*.db
 data/volatility/*latest_backup*
 
 # Runtime cache artifacts
 data/cache/*.pkl
+data/macro_exports/*.json
 
 # Runtime logs and generated cache snapshots
 logs/

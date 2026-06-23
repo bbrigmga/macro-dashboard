@@ -529,7 +529,8 @@ def create_regime_quadrant_chart(data: dict):
     Returns:
         go.Figure: Plotly figure object
     """
-    from src.config.growth_proxy import GROWTH_AXIS_LABEL
+    from src.config.growth_proxy import GROWTH_AXIS_LABEL, FORECAST_HORIZON_DAYS
+    from src.config.inflation_proxy import INFLATION_AXIS_LABEL
     import numpy as np
     
     # Extract data
@@ -697,9 +698,12 @@ def create_regime_quadrant_chart(data: dict):
     overall_hit_rate = hit_rate_info.get("overall_hit_rate")
     hit_rate_obs = hit_rate_info.get("n_obs", 0)
     if overall_hit_rate is not None and hit_rate_obs:
-        badge_text = f"Forecast: OU (10d) | Hit-rate: {overall_hit_rate:.0%} ({hit_rate_obs} obs)"
+        badge_text = (
+            f"Forecast: OU ({FORECAST_HORIZON_DAYS}d) | "
+            f"Hit-rate: {overall_hit_rate:.0%} ({hit_rate_obs} obs)"
+        )
     else:
-        badge_text = "Forecast: OU (10d)"
+        badge_text = f"Forecast: OU ({FORECAST_HORIZON_DAYS}d)"
 
     fig.add_annotation(
         x=0.5,
@@ -726,7 +730,7 @@ def create_regime_quadrant_chart(data: dict):
             range=x_range,
         ),
         yaxis=dict(
-            title="Inflation Momentum (Composite Z-Score)",
+            title=INFLATION_AXIS_LABEL,
             zeroline=True, zerolinewidth=2, zerolinecolor='rgba(128,128,128,0.5)',
             range=y_range,
         ),

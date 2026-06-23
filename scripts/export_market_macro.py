@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Export aligned daily CPER/GLD/IEF/TIP + GDP/CPI spreadsheet (CSV)."
+        description="Export aligned daily ETF + FRED spreadsheet (CSV) for all dashboard series."
     )
     parser.add_argument(
         "--years",
@@ -38,6 +38,7 @@ def main() -> int:
     args = parser.parse_args()
 
     from datetime import date
+    from pathlib import Path
 
     output = args.output or f"market_macro_analysis_{date.today().isoformat()}.csv"
 
@@ -51,8 +52,10 @@ def main() -> int:
         logger.error("No data to export")
         return 1
 
-    df.to_csv(output, index=False)
-    logger.info("Exported %d rows to %s", len(df), output)
+    out_path = Path(output)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(out_path, index=False)
+    logger.info("Exported %d rows x %d columns to %s", len(df), len(df.columns), out_path)
     return 0
 
 

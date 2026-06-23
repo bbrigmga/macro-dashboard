@@ -1147,7 +1147,10 @@ class IVScraper:
 
 
 def run_scraper():
-    """Standalone entry point for running the IV scraper."""
+    """Standalone entry point for running the IV scraper.
+
+    Prefer ``python scripts/scrape_iv.py`` (CI, Task Scheduler, logging, DB backup).
+    """
     # Set up logging
     logging.basicConfig(
         level=logging.INFO,

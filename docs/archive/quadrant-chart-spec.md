@@ -1,3 +1,5 @@
+> Historical spec � feature implemented; see README.md for current behavior.
+
 # Quadrant Regime Chart — Implementation Spec
 
 > **Recommended Model:** Use **Claude Sonnet 4** in VS Code Copilot Chat (Agent mode). This codebase uses a declarative registry pattern with custom chart functions, Plotly for visualization, and async data fetching — Sonnet 4 handles this multi-file, pattern-following work efficiently and at lower cost than Opus. Feed the entire spec as a single prompt in Agent mode.

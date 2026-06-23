@@ -1,620 +1,356 @@
 # Macro Economic Indicators Dashboard
 
-A high-performance Streamlit dashboard that tracks and visualizes key macro economic indicators to help forecast market conditions and economic trends. The dashboard displays 9 comprehensive indicators with real-time data from FRED (Federal Reserve Economic Data) and Yahoo Finance, providing interactive charts, warning signals, interpretation guidelines, and risk assessment frameworks.
+A Streamlit dashboard that tracks macro economic indicators and market-implied signals to help assess economic conditions, positioning, and volatility regimes. Data comes from FRED (Federal Reserve Economic Data) and Yahoo Finance. The app includes interactive charts, warning signals, a growth/inflation regime quadrant, and a daily-scraped implied vs realized volatility table for 14 US equity ETFs.
 
-## 🚀 Performance & Architecture
+## How the codebase works
 
-This dashboard has been optimized through a comprehensive three-phase enhancement process:
+### Runtime flow
 
-### ✅ Phase 1: Foundation & Configuration
-- **Fixed module structure** issues (eliminated `sys.path.append()` usage)
-- **Implemented centralized configuration management** with environment-based settings
-- **Enhanced error handling** and import robustness
+```
+app.py
+  ├── IndicatorService.get_all_indicators()   # async fetch of all macro indicators
+  ├── check_volatility_data_freshness()       # reads iv_data.db for sidebar status
+  └── create_dashboard()                      # ui/dashboard.py
+        ├── Regime quadrant chart             # growth/inflation proxy from Yahoo ratios
+        ├── 13 indicator cards                # charts + warnings from registry metadata
+        └── render_vol_table()                # built directly from iv_data.db (not service cache)
+```
 
-### ✅ Phase 2: Service Layer & Caching
-- **Added service layer architecture** for better separation of concerns
-- **Implemented multi-level intelligent caching** (memory + disk with LRU eviction)
-- **Added async operations** for parallel indicator fetching
-- **Enhanced error recovery** and fallback mechanisms
+**Macro indicators** are fetched once at startup through `IndicatorService`, which reads configuration from `src/config/indicator_registry.py`, pulls data via `data/indicators.py` / `FredClient` / `YahooClient`, and caches results in memory + disk (`src/core/caching/cache_manager.py`).
 
-### ✅ Phase 3: Algorithm Optimization & Monitoring
-- **Vectorized critical algorithms** (USD Liquidity: 60-80% faster, PMI: 40-60% faster)
-- **Added comprehensive performance monitoring** with real-time metrics
-- **Implemented algorithm benchmarking** and optimization tracking
-- **Enhanced memory management** with leak detection
+**Volatility table data** follows a separate path. The nightly scraper writes to SQLite (`data/volatility/iv_data.db`). The dashboard always rebuilds the table from that database via `ui/vol_table.py` → `VolTableDataAssembler`, so stale indicator-service cache cannot leave historical premium columns empty.
 
-**Performance Improvements:**
-- ⚡ **40-80% faster** algorithm execution
-- 📊 **Real-time performance monitoring** and benchmarking
-- 🛡️ **Enhanced reliability** with robust error handling
-- 🔧 **Better maintainability** with clean architecture
-- 🕒 **Automated Data Pipeline** for daily volatility scraping
+### Indicator registry
 
-## 📊 Volatility Dashboard (IVOL/RVOL)
+`src/config/indicator_registry.py` is the single source of truth for indicator metadata: FRED/Yahoo series, chart type, warning text, cache TTL, and optional custom chart/status functions. Adding a new indicator typically means:
 
-A major new feature that provides real-time and historical analysis of **Implied Volatility (IV)** vs **Realized Volatility (RV)** across 14 US equity sector ETFs.
+1. Add an `IndicatorConfig` entry to the registry
+2. Implement fetch logic in `data/indicators.py` (if not covered by generic paths)
+3. Wire display in `ui/dashboard.py` and/or add a custom chart in `visualization/`
 
-### Core Features
-- **ATM IV Interpolation**: Extracts 30-day at-the-money implied volatility from Yahoo Finance options chains using cubic spline interpolation.
-- **RV Calculation**: Annualized 30-day realized volatility based on log returns.
-- **IV Premium/Discount**: Real-time tracking of the "volatility risk premium" (`(IV/RV - 1) * 100`).
-- **Z-Score Analysis**: TTM (252-day) and 3-Year (756-day) relative value ranking of volatility premiums.
-- **Automated Pipeline**: Integrated Windows Task Scheduler automation for daily data collection.
+Proxy configs for the regime quadrant live separately in `src/config/growth_proxy.py` and `src/config/inflation_proxy.py`.
 
-### ETF Universe (14 Symbols)
-Tracks XLRE, XLF, XLE, XLC, XLK, QQQ, SPY, XLV, XLB, XLI, XLY, IWM, XLU, XLP.
+### Volatility pipeline
+
+```
+scripts/scrape_iv.py  (or Windows Task Scheduler / GitHub Actions)
+  └── IVScraper.scrape_daily()
+        ├── Yahoo options chains → 30-day ATM IV (DTE-weighted interpolation)
+        ├── RealizedVolCalculator → 30-day annualized RV from closes
+        └── IVDatabase.upsert_daily() → data/volatility/iv_data.db
+
+VolTableDataAssembler.build_table()
+  └── Z-scores, percentiles, contrarian scores, historical premiums
+```
 
 ## Features
 
-- **Real-time data** from FRED (Federal Reserve Economic Data) and Yahoo Finance
-- **Interactive charts** for 9 comprehensive economic indicators
-- **Implied vs Realized Volatility table** with 14 major ETFs and quality-weighted options data
-- **Warning signals** and interpretation guidelines for each indicator
-- **Danger combination detection** with risk assessment framework
-- **Defensive playbook recommendations** based on indicator combinations
-- **Core principles** for disciplined market analysis
-- **Summary table** with current status and positioning guidance
-- **Release schedule tracking** for data updates
-- **Modern finance-themed UI** with responsive design and heatmap visualizations
-- **High-performance architecture** with optimized algorithms (40-80% faster)
-- **Multi-level intelligent caching** with memory and disk storage
-- **Real-time performance monitoring** with benchmarking and metrics
-- **Service layer architecture** for better maintainability and testability
-- **Vectorized calculations** for improved speed and memory efficiency
-- **Market holiday handling** and trading day calculations for accurate volatility data
-- **Options quality assessment** with volume and bid-ask spread analysis
-- **Async processing** for concurrent data fetching and performance optimization
+- **13 macro indicator cards** plus a full-width **Growth/Inflation Regime** quadrant
+- **Implied vs Realized Volatility table** for 14 sector/market ETFs with heatmap styling
+- **Warning signals** and playbook text per indicator from the registry
+- **Danger combination** tracking (PMI + Claims + Hours Worked)
+- **Risk On / Off / Neutral** positioning from PCE + Initial Claims
+- **Daily IV scrape automation** via Windows Task Scheduler and GitHub Actions
+- **CSV exports** for IV/RV history and aligned macro analysis data
+- **Service layer** with async parallel fetching and multi-level caching
+- **Comprehensive pytest suite** under `tests/`
 
-## Code Structure
-
-The codebase follows a highly optimized modular architecture with comprehensive performance monitoring:
+## Project structure
 
 ```
 macro_dashboard/
-├── app.py                          # Main Streamlit application entry point
-├── requirements.txt                # Python dependencies (optimized)
-├── .env.example & .env             # FRED API key and environment settings
-├── README.md                       # Project documentation
-├── .gitignore                      # Git ignore rules
-├── Macro Dashboard.code-workspace  # VS Code workspace configuration
+├── app.py                          # Streamlit entry point
+├── requirements.txt
+├── pytest.ini
+├── .env.example                    # FRED_API_KEY template
 │
-├── src/                            # 🚀 Optimized source package
-│   ├── __init__.py
+├── src/
 │   ├── config/
-│   │   ├── indicator_registry.py   # ✨ NEW: Centralized indicator config
-│   │   └── settings.py             # Configuration management
-│   ├── core/
-│   │   ├── caching/
-│   │   │   └── cache_manager.py    # Intelligent caching
+│   │   ├── indicator_registry.py   # Single source of truth for all indicators
+│   │   ├── settings.py             # API, cache, and chart settings
+│   │   ├── growth_proxy.py         # Regime X-axis ratio config
+│   │   └── inflation_proxy.py      # Regime Y-axis ratio config
+│   ├── core/caching/
+│   │   └── cache_manager.py        # Memory + disk cache with TTL
 │   └── services/
-│       └── indicator_service.py    # Service layer logic
+│       └── indicator_service.py    # Async fetch orchestration
 │
-├── data/                           # Data fetching & processing
-│   ├── fred_client.py              # FRED API with caching
-│   ├── yahoo_client.py             # Yahoo Finance API
-│   ├── indicators.py               # Indicators data fetching
-│   ├── iv_db.py                    # ✨ Volatility SQLite database layer
-│   ├── iv_scraper.py               # ✨ Options chain scraper (30-day ATM)
-│   ├── rv_calculator.py            # ✨ Realized volatility (RV) calculator
-│   ├── vol_table_data.py           # ✨ Volatility table assembly & Z-scores
-│   └── market_utils.py             # Trading days & market holidays
+├── data/
+│   ├── fred_client.py              # FRED API client
+│   ├── yahoo_client.py             # Yahoo Finance prices + options
+│   ├── indicators.py               # Indicator data assembly
+│   ├── processing.py               # Shared transforms (MoM, YoY, etc.)
+│   ├── growth_proxy.py             # Growth proxy computation
+│   ├── inflation_proxy.py          # Inflation proxy computation
+│   ├── market_macro_export.py      # Aligned daily macro CSV export
+│   ├── iv_db.py                    # SQLite layer for IV/RV snapshots
+│   ├── iv_scraper.py               # Daily options-chain scraper
+│   ├── rv_calculator.py            # Realized volatility calculator
+│   ├── vol_table_data.py           # Vol table assembly + signal scores
+│   ├── vol_signal_backtest.py      # Contrarian signal backtest helpers
+│   ├── market_utils.py             # Trading days, holidays, scrape guards
+│   └── volatility/                 # iv_data.db lives here (gitignored locally)
 │
-├── ui/                             # Streamlit UI components
-│   ├── dashboard.py                # Main layout & status tables
-│   ├── indicators.py               # Indicator cards
-│   └── vol_table.py                # ✨ Heatmap volatility table display
+├── ui/
+│   ├── dashboard.py                # Page layout, status tables, card grid
+│   ├── indicators.py               # Indicator card rendering
+│   └── vol_table.py                # Vol heatmap table + cache helpers
 │
-├── visualization/                  # Chart and signal logic
-│   ├── charts.py                   # Plotly theming & creation
-│   ├── indicators.py               # Indicator-specific charts
-│   └── warning_signals.py          # Warning signal generation logic
+├── visualization/
+│   ├── charts.py                   # Plotly charts (regime quadrant, PSCF, etc.)
+│   ├── indicators.py               # Indicator-specific chart builders
+│   ├── generic_chart.py            # Registry-driven generic charts
+│   └── warning_signals.py          # Bullish/bearish/neutral status logic
 │
-├── scripts/                        # ⚡ Automation & scripting
-│   ├── scrape_iv.py                # Daily volatility scraper (standalone)
-│   └── setup_task_scheduler.ps1    # ✨ Windows Task Scheduler integration
+├── scripts/
+│   ├── scrape_iv.py                # Daily scraper entry point (cron / Actions)
+│   ├── setup_task_scheduler.ps1    # Windows scheduled task setup
+│   ├── backup_iv_db.py             # Backup before git pull
+│   ├── restore_iv_db.py            # Restore from backup
+│   ├── iv_db_stats.py              # Collection health / SPY day count
+│   ├── backfill_iv.py              # Backfill a missing trading day
+│   ├── export_market_macro.py      # CLI for macro CSV export
+│   └── vol_signal_backtest.py      # Vol signal backtest CLI
 │
-└── tests/                          # 🧪 Comprehensive test suite
-    ├── test_iv_db.py               # DB layer & performance tests
-    ├── test_iv_scraper.py          # Scraper & interpolation tests
-    ├── test_rv_calculator.py       # RV calculation tests
-    ├── test_vol_table_data.py      # Assembly & Z-score tests
-    └── test_vol_integration.py     # End-to-end integration tests
+├── .github/workflows/
+│   ├── scrape_iv.yml               # Weekday nightly IV scrape + DB commit
+│   └── test.yml                    # CI test runner
+│
+└── tests/                          # pytest suite (see Testing section)
 ```
 
-### 🏗️ Architecture Highlights
+## Local setup
 
-- **Service Layer Pattern**: Clean separation between UI, business logic, and data access
-- **Multi-Level Caching**: Memory + Disk caching with intelligent eviction
-- **Vectorized Algorithms**: High-performance calculations (40-80% faster)
-- **Performance Monitoring**: Real-time tracking and benchmarking
-- **Configuration Management**: Environment-based centralized settings
+1. Clone the repository and enter the project directory.
 
-## Local Setup
-
-1. Clone this repository:
-```bash
-git clone [your-repository-url]
-cd [repository-name]
-```
-
-2. Set up a Python virtual environment (recommended):
-```bash
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-# source venv/bin/activate
-```
-
-3. Install required packages:
-```bash
-pip install -r requirements.txt
-```
-
-**Dependencies Overview:**
-- `streamlit` - Web framework for the dashboard
-- `pandas` & `numpy` - Data processing and analysis
-- `plotly` - Interactive charts and visualizations
-- `fredapi` - FRED (Federal Reserve Economic Data) API client
-- `yfinance` - Yahoo Finance data access (options chains and price data)
-- `python-dotenv` - Environment variable management
-- `APScheduler` - Advanced Python Scheduler for data collection timing
-
-4. Get a FRED API key:
-    - Go to https://fred.stlouisfed.org/docs/api/api_key.html
-    - Create a free account and request an API key
-    - Copy your API key
-
-5. Set up your environment:
-    - Copy `.env.example` to a new file named `.env`
-    - Replace `your_api_key_here` with your actual FRED API key
-
-6. Run the dashboard locally:
-```bash
-streamlit run app.py
-```
-
-**Optional: Enable Service Layer Architecture**
-For enhanced performance and monitoring, enable the optimized service layer:
-```bash
-USE_SERVICE_LAYER=true streamlit run app.py
-```
-
-**Note:** If you encounter issues installing pandas with Python 3.13, consider using Python 3.12 or conda for better package compatibility.
-
-## ⚡ Automation & Scheduling
-
-The **IVOL/RVOL** dashboard requires daily data collection to build historical time series for Z-score accuracy. This has been automated via Windows Task Scheduler.
-
-### Windows Task Scheduler Integration
-A PowerShell script is provided to set up the daily scraping task:
-
-1. **Activate Environment**: Ensure you are in your project directory and virtual environment.
-2. **Run Setup**:
-   ```powershell
-   # Open PowerShell as Administrator
-   cd "u:\Code Hero\Macro Dashboard"
-   .\scripts\setup_task_scheduler.ps1
+2. Create and activate a virtual environment (recommended):
+   ```bash
+   python -m venv venv
+   # Windows:
+   venv\Scripts\activate
+   # macOS/Linux:
+   source venv/bin/activate
    ```
-3. **What happens**:
-   - Creates a scheduled task called `MacroDashboard_IVScrape`.
-   - Runs **daily at 4:30 PM** (30 mins after market close).
-   - Logs output to `scripts\scrape_iv.log`.
-   - You can verify the task in **Windows Task Scheduler** library.
 
-### GitHub Actions Nightly Scrape
-The repository also includes [`.github/workflows/scrape_iv.yml`](.github/workflows/scrape_iv.yml), which runs on weekdays and commits `data/volatility/iv_data.db` back to `main`.
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-This means there are two writers for the same IV database:
-- **Local machine (Task Scheduler at 4:30 PM)**: Primary source for day-to-day dashboard use.
-- **GitHub Actions (weekday schedule in UTC)**: Remote backup and sync source.
+4. Get a free FRED API key from [fred.stlouisfed.org/docs/api/api_key.html](https://fred.stlouisfed.org/docs/api/api_key.html).
 
-Operational guidance:
-- **Back up before `git pull`:** `python scripts/backup_iv_db.py` (creates `data/volatility/iv_data.latest_backup.db`).
-- If a pull overwrote your richer local DB, restore with: `python scripts/restore_iv_db.py`
-- Check collection health anytime: `python scripts/iv_db_stats.py`
-- Backfill a missing trading day (historical close/RV; IV estimated from neighbors):
-  `python scripts/backfill_iv.py --date 2026-06-02`
-- If you want your local copy to include remote updates from Actions, run `git pull` only after backing up.
-- GitHub Actions restores the `iv-database-latest` artifact before each scrape and refuses to publish if SPY day-count shrinks.
-- Avoid mixing local and remote updates blindly; pull intentionally so you know which DB history is current.
+5. Copy `.env.example` to `.env` and set your key:
+   ```
+   FRED_API_KEY=your_key_here
+   ```
 
-**Recovery tip (Windows/NAS):** If you previously had many days collected, right-click `data/volatility/iv_data.db` → **Properties** → **Previous Versions** and restore an older copy if available.
+6. Run the dashboard:
+   ```bash
+   streamlit run app.py
+   ```
 
-### Runtime Artifacts
-Runtime logs and generated cache snapshots are local-only artifacts and should not be committed:
-- `logs/`
-- `scripts/scrape_iv.log`
-- `data/cache/*.csv`
-- `data/cache/*.pkl`
+The app uses the service layer by default (`IndicatorService` in `app.py`). No feature flag is required.
 
-### Manual Data Refresh
-You can run the scraper manually at any time to update the SQLite database:
+**Note:** Python 3.12 is recommended if you hit pandas compatibility issues on 3.13.
+
+### Sidebar controls
+
+When volatility data exists in the local database, the sidebar shows:
+
+- **Reload Vol Table** — clears Streamlit caches and rebuilds from `iv_data.db` (fast; no Yahoo scrape)
+- **Scrape Volatility Data** — runs a live scrape (~30–40 seconds for all 14 ETFs)
+- **Export Options Data (CSV)** — downloads all stored IV/RV snapshots
+
+## Daily IV scrape automation
+
+The volatility table needs daily snapshots to populate historical premium and z-score columns. Two automation paths write to the same database:
+
+| Source | When | Entry point |
+|--------|------|-------------|
+| **Windows Task Scheduler** | Daily ~4:30 PM local | `scripts/setup_task_scheduler.ps1` → `scripts/scrape_iv.py` |
+| **GitHub Actions** | Weekdays 9 PM UTC | `.github/workflows/scrape_iv.yml` → commits `data/volatility/iv_data.db` |
+
+### Manual scrape
+
 ```bash
 python scripts/scrape_iv.py
 ```
 
-## 🔧 Performance Optimization
+The scraper skips tickers that already have today's row, backs up the DB before writing, and exits 0 even if individual tickers fail (fatal errors exit 1).
 
-### Architecture Toggle
-The dashboard supports two architectures that can be toggled via environment variable:
+### Database operations
 
-**Legacy Architecture** (Default):
 ```bash
-python app.py
-# Uses traditional IndicatorData class
+python scripts/backup_iv_db.py          # before git pull
+python scripts/restore_iv_db.py       # if pull overwrote local history
+python scripts/iv_db_stats.py           # SPY day count, date range, gaps
+python scripts/backfill_iv.py --date 2026-06-02   # fill a missing day
 ```
 
-**Service Layer Architecture** (Optimized):
-```bash
-USE_SERVICE_LAYER=true python app.py
-# Uses optimized IndicatorService with enhanced caching and monitoring
+**Two-writer guidance:** Local Task Scheduler is the primary source for day-to-day dashboard use. GitHub Actions is a remote backup/sync. Back up before `git pull` if you have richer local history. Actions restores the `iv-database-latest` artifact before each run and refuses to publish if SPY day-count shrinks.
+
+### Runtime artifacts (do not commit)
+
+- `logs/`
+- `scripts/scrape_iv.log`
+- `data/cache/*.csv` and `data/cache/*.pkl`
+
+## Indicators tracked
+
+The dashboard displays **13 indicator cards**, a **regime quadrant**, and the **volatility table**.
+
+| Registry key | Display name | Primary source |
+|--------------|--------------|----------------|
+| `hours_worked` | Average Weekly Hours Worked | FRED (`AWHAETP`) |
+| `core_cpi` | Core Consumer Price Index | FRED (`CPILFESL`) |
+| `initial_claims` | Initial Jobless Claims | FRED (`ICSA`) |
+| `pce` | Personal Consumption Expenditures | FRED (`PCE`) |
+| `pmi_proxy` | Manufacturing PMI Proxy | FRED (5 series composite) |
+| `new_orders` | New Orders Index | FRED (`NEWORDER`) |
+| `yield_curve` | 2-10 Year Treasury Spread | FRED (`T10Y2Y`) |
+| `credit_spread` | High Yield Credit Spread | FRED (`BAMLH0A0HYM2`) |
+| `xlp_xly_ratio` | Staples/Discretionary Ratio | Yahoo (`XLP`, `XLY`) |
+| `pscf_price` | Small Cap Financials (PSCF) | FRED (`PSCF`) |
+| `usd_liquidity` | USD Liquidity | FRED (Fed balance sheet components) |
+| `copper_gold_yield` | Copper/Gold vs 10Y Treasury | Yahoo + FRED |
+| `korea_exports_spy_eps` | Korea Exports vs SPY EPS Growth | FRED + Yahoo |
+| `regime_quadrant` | Growth/Inflation Regime | Yahoo ratio proxies |
+| *(vol table)* | Implied vs Realized Volatility | Local SQLite DB |
+
+### Manufacturing PMI proxy
+
+Built from five FRED series with diffusion-index transforms and weighted composite:
+
+| Component | Series | Weight |
+|-----------|--------|--------|
+| New Orders | `AMTMNO` | 30% |
+| Production | `IPMAN` | 25% |
+| Employment | `MANEMP` | 20% |
+| Supplier Deliveries | `AMDMUS` | 15% |
+| Inventories | `MNFCTRIMSA` | 10% |
+
+### Growth / inflation regime quadrant
+
+- **X-axis (growth proxy):** equal-weight z-score of 63-day log-ratio changes across CPER/GLD, XHB/IWM, EFA/SLV, CPER/FXI (`src/config/growth_proxy.py`)
+- **Y-axis (inflation proxy):** equal-weight z-score of DBC/CPER and XLV/QQQ ratios with EMA smoothing (`src/config/inflation_proxy.py`)
+- **Quadrants:** Reflation, Goldilocks, Stagflation, Deflation — with a 63-day AR(1)/OU projection cone (aligned with proxy momentum window)
+
+Use **Export Macro Analysis Data (CSV)** on the regime panel to download aligned daily ETF + FRED series (`data/market_macro_export.py`).
+
+### Key concepts
+
+**Danger combination:** PMI below 50 + Initial Claims rising 3 weeks + Hours Worked dropping.
+
+**Positioning:** Derived from PCE and Initial Claims status — Risk On, Risk Off, or Risk Neutral.
+
+## Implied vs Realized Volatility table
+
+Compares 30-day ATM implied volatility (from options) with 30-day realized volatility (from closes) across 14 ETFs.
+
+### ETF universe
+
+XLRE, XLF, XLE, XLC, XLK, QQQ, SPY, XLV, XLB, XLI, XLY, IWM, XLU, XLP
+
+### Database schema
+
+Stored in `data/volatility/iv_data.db`:
+
+```sql
+CREATE TABLE daily_iv (
+    date TEXT NOT NULL,          -- YYYY-MM-DD
+    ticker TEXT NOT NULL,
+    close_price REAL NOT NULL,
+    iv_30d REAL,                 -- annualized 30-day ATM implied vol
+    rv_30d REAL,                 -- annualized 30-day realized vol
+    iv_premium REAL,             -- (iv/rv - 1) * 100
+    ytd_return REAL,
+    UNIQUE(date, ticker)
+);
 ```
 
-### Performance Features
-- **Multi-level Caching**: Memory + Disk caching with intelligent eviction
-- **Vectorized Algorithms**: 40-80% faster calculations for critical indicators
-- **Parallel Processing**: Async operations for concurrent data fetching
-- **Performance Monitoring**: Real-time tracking of algorithm performance
-- **Memory Optimization**: Reduced memory usage with efficient data structures
-- **Optional CSV Export**: Set `EXPORT_USD_LIQUIDITY_CSV=true` to export liquidity CSV snapshots only when needed
+### Calculations
 
-## Deployment on Streamlit Cloud
+**Implied volatility:** ATM call/put average from Yahoo options chains; when two expirations bracket ~30 DTE, IV is linearly interpolated by DTE distance. Quality score (0–100) reflects volume and bid-ask spread.
 
-This dashboard can be deployed for free on Streamlit Cloud:
+**Realized volatility:** `std(ln(close_t / close_{t-1}), 30 days) × √252`
 
-1. Push your code to GitHub:
-   - Create a new repository on GitHub
-   - Push your code:
-   ```bash
-   git remote add origin [your-github-repo-url]
-   git branch -M main
-   git push -u origin main
-   ```
+**IV premium:** `((iv_30d / rv_30d) - 1) × 100`
 
-2. Deploy on Streamlit Cloud:
-   - Go to https://streamlit.io/cloud
-   - Sign in with your GitHub account
-   - Click "New app"
-   - Select your repository, branch, and main file (app.py)
-   - Add your FRED API key as a secret:
-     - In the app settings, add a secret named `FRED_API_KEY`
-     - Set its value to your FRED API key
+**Z-scores:** TTM (252 trading days) and 3-year (756 days) on the IV premium series.
 
-3. Your app will be available at a public URL provided by Streamlit
+### Table columns (display)
 
-## Security Notes
+The assembler (`data/vol_table_data.py`) produces columns including:
 
-- Never commit your `.env` file containing your FRED API key
-- Use environment variables or secrets management for API keys
-- The `.gitignore` file is configured to exclude the `.env` file
+| Column | Description |
+|--------|-------------|
+| ETF Name / Ticker | Static identifiers |
+| Vol Valuation | Options rich/cheap vs RV |
+| Contrarian Signal / scores | Fear/complacency setup with trend filters |
+| YTD % | Year-to-date return |
+| IVOL/RVOL Current | Current IV premium % |
+| IVOL/RVOL Percentile (1Y / 3Y) | Historical percentile of current premium |
+| IV-RV Spread / Ratio | Absolute and relative IV vs RV |
+| Prem Change (1W / 1M) | Change in premium vs prior periods |
+| IVOL Prem Yesterday / 1W / 1M | Historical premium snapshots |
+| TTM / 3Yr Z-Score | Relative value vs history |
+| Prem Z Velocity | Rate of change in premium z-score |
 
-## Indicators Tracked
+Sorted by YTD % descending with heatmap conditional formatting in `ui/vol_table.py`.
 
-1. **Average Weekly Hours**
-    - Hours worked in the private sector
-    - Warning signals for consecutive months of decline
-    - Part of the danger combination when declining
-
-2. **Core CPI (Consumer Price Index Less Food and Energy)**
-    - Inflation excluding volatile food and energy prices
-    - Month-over-month change tracking
-    - Warning signals for accelerating inflation
-
-3. **Initial Jobless Claims**
-    - Weekly unemployment claims data
-    - Warning signals for consecutive increases
-    - Part of the danger combination when rising
-
-4. **PCE (Personal Consumption Expenditures)**
-    - The Fed's preferred inflation measure
-    - Year-over-year change tracking
-    - Combined analysis with other indicators
-
-5. **Manufacturing PMI Proxy**
-    - Proxy for ISM Manufacturing PMI using FRED data
-    - Expansion/contraction threshold at 50
-    - Part of the danger combination when below 50
-
-6. **USD Liquidity**
-    - Federal Reserve balance sheet minus reverse repo and Treasury General Account
-    - Weekly data tracking liquidity conditions
-    - Key indicator of monetary policy stance
-
-7. **Non-Defense Durable Goods Orders**
-    - New orders for manufacturing capital goods
-    - Month-over-month percentage changes
-    - Leading indicator of business investment
-
-8. **2-10 Year Treasury Yield Spread**
-    - Difference between 10-year and 2-year Treasury yields
-    - Inverted spread signals potential recession risk
-    - Key yield curve indicator
-
-9. **Copper/Gold Ratio vs 10Y Treasury Yield**
-    - Ratio of copper to gold commodity prices
-    - Compared against 10-year Treasury yield
-    - Bullish sentiment indicator when ratio rises
-
-### Manufacturing PMI Proxy Calculation
-
-The Manufacturing PMI Proxy is a sophisticated calculation using five key FRED economic series:
-
-1. **Data Series Used**:
-   - `AMTMNO`: New Orders
-   - `IPMAN`: Production
-   - `MANEMP`: Employment
-   - `AMDMUS`: Supplier Deliveries
-   - `MNFCTRIMSA`: Inventories
-
-2. **Calculation Methodology**:
-   - Calculate month-over-month percentage changes for each component
-   - Transform to a diffusion index using the formula: 
-     ```
-     Diffusion Index = 50 + (pct_change / rolling_std_dev * 10)
-     ```
-   - Cap the index between 0 and 100
-
-3. **Component Weights**:
-   - New Orders: 30%
-   - Production: 25%
-   - Employment: 20%
-   - Supplier Deliveries: 15%
-   - Inventories: 10%
-
-4. **Interpretation**:
-   - Index above 50 indicates economic expansion
-   - Index below 50 indicates economic contraction
-   - Provides a proxy for the ISM Manufacturing Purchasing Managers' Index (PMI)
-
-## Implied vs Realized Volatility Table
-
-The dashboard includes a comprehensive **Volatility Table** that compares implied volatility (IV) from options pricing with realized volatility (RV) from actual price movements across 14 major ETFs. This advanced feature helps identify over/under-valued options and assess market sentiment.
-
-### 🎯 Features
-
-- **Real-time IV/RV data** for 14 major sector ETFs and market indices
-- **IV Premium calculations** showing when options are expensive or cheap relative to actual volatility
-- **Historical Z-scores** (1-year and 3-year lookbacks) for statistical context
-- **Time series analysis** comparing current IV premium to yesterday, 1 week, and 1 month ago
-- **Quality assessment** of options data with volume and bid-ask spread analysis
-- **Market holiday handling** for accurate trading day calculations
-- **Performance optimization** with multi-level caching and async processing
-
-### 📊 ETF Universe
-
-The volatility table tracks the following 14 ETFs across major market sectors:
-
-| Sector | ETF | Name |
-|--------|-----|------|
-| **Market Indices** | SPY | SPDR S&P 500 Trust |
-| | QQQ | Power Shares QQQ Trust (Nasdaq 100) |
-| | IWM | iShares Russell 2000 |
-| **Sectors** | XLK | Technology Sector SPDR |
-| | XLF | Financials Sector SPDR |
-| | XLV | Health Care Sector SPDR |
-| | XLE | Energy Sector SPDR |
-| | XLI | Industrials Sector SPDR |
-| | XLY | Consumer Discretionary SPDR |
-| | XLP | Consumer Staples SPDR |
-| | XLU | Utilities Sector SPDR |
-| | XLB | Materials Sector SPDR |
-| | XLC | Communication Services SPDR |
-| | XLRE | Real Estate Sector SPDR |
-
-### 🔍 Data Columns
-
-| Column | Description | Purpose |
-|--------|-------------|---------|
-| **ETF Name** | Full ETF name | Identification |
-| **Ticker** | Formatted as "TICKER US EQUITY" | Bloomberg-style display |
-| **YTD %** | Year-to-date return percentage | Performance ranking |
-| **IV/RV Current** | Current implied volatility premium | Options pricing relative to realized vol |
-| **IV Premium Yesterday** | IV premium from previous trading day | Short-term trend |
-| **IV Premium 1W** | IV premium from 1 week ago | Weekly trend |
-| **IV Premium 1M** | IV premium from 1 month ago | Monthly trend |
-| **TTM Z-Score** | Z-score over trailing 252 trading days | 1-year statistical context |
-| **3Y Z-Score** | Z-score over trailing 756 trading days | 3-year statistical context |
-
-### 🧮 Calculations
-
-**Implied Volatility (IV)**:
-- Extracted from at-the-money (ATM) options using Black-Scholes model
-- Quality-weighted based on volume and bid-ask spreads
-- 30-day expiration target for consistency
-
-**Realized Volatility (RV)**:
-- Calculated from daily log returns over 30-day rolling window
-- Uses close-to-close price movements
-- Annualized using √252 trading days
-
-**IV Premium**:
-```
-IV Premium = (Implied Volatility - Realized Volatility) / Realized Volatility * 100
-```
-
-**Z-Score Calculation**:
-```
-Z-Score = (Current IV Premium - Mean IV Premium) / Standard Deviation
-```
-
-### 🏗️ Architecture & Performance
-
-**Database Layer**:
-- SQLite database with optimized schema and indexing
-- WAL (Write-Ahead Logging) mode for better concurrency
-- Batch operations and connection pooling
-- Vacuum and analyze for optimal query performance
-
-**Data Collection**:
-- Options chain scraping with intelligent ATM strike selection
-- Market holiday detection and trading day calculations
-- Quality assessment scoring (0-100) based on:
-  - Options volume
-  - Bid-ask spreads
-  - IV value sanity checks
-
-**Performance Optimizations**:
-- Multi-level caching (`@st.cache_data` with 1-hour TTL)
-- Async processing for concurrent ETF data fetching
-- Batch database queries for multiple tickers
-- Pre-computed historical data retrieval
-
-**Market Utilities**:
-- Comprehensive US market holiday calendar (2024-2027)
-- Trading day arithmetic for accurate date calculations
-- Weekend and market closure detection
-- Business day lookback calculations
-
-### 🎨 Display Features
-
-- **Color-coded heatmap** for easy pattern recognition
-- **YTD performance sorting** with top performers first
-- **Real-time data freshness indicators**
-- **Responsive design** that works on mobile and desktop
-- **Loading states** for smooth user experience
-
-### 🔧 Usage Example
-
-To access the volatility data programmetically:
+### Programmatic access
 
 ```python
-from data.vol_table_data import VolTableDataAssembler
 from data.iv_db import IVDatabase
+from data.vol_table_data import VolTableDataAssembler
 
-# Initialize database and assembler
 with IVDatabase() as db:
     assembler = VolTableDataAssembler(db)
-    
-    # Get complete volatility table
     vol_table = assembler.build_table()
-    
-    # Check data freshness
     freshness = assembler.get_data_freshness_info()
-    print(f"Data coverage: {freshness['coverage_pct']:.1f}%")
     print(f"Latest date: {freshness['latest_date']}")
 ```
 
-**Scraping Options Data**:
 ```python
+from data.iv_db import IVDatabase
 from data.iv_scraper import IVScraper
-from data.market_utils import is_trading_day
 
-# Check if market is open for scraping
-if is_trading_day():
-    scraper = IVScraper()
-    
-    # Scrape single ETF with quality metrics
-    iv_data, quality = scraper.get_iv_at_strike('SPY', 450.0)
-    print(f"SPY IV: {iv_data:.1%}, Quality: {quality}/100")
-    
-    # Batch scrape all ETFs
-    scraper.scrape_daily()
+db = IVDatabase()
+scraper = IVScraper(db)
+result = scraper.scrape_daily()
+print(f"Success: {result['success']}, Failed: {result['failed']}")
 ```
 
-## Key Concepts
+## Testing
 
-### Danger Combination
-The dashboard tracks a specific combination of warning signals that indicate potential market trouble:
-- Manufacturing PMI below 50
-- Initial Claims rising for 3+ weeks
-- Average Weekly Hours dropping for 3+ months
+Run the full suite:
 
-### Risk Framework
-The dashboard uses a comprehensive framework for risk assessment based on PCE and Initial Claims:
-- **Risk On**: PCE Bullish + Initial Claims Bullish/Neutral (favorable economic conditions)
-- **Risk Off**: PCE Bearish + Initial Claims Bearish (stressful economic conditions)
-- **Risk Neutral**: Mixed signals requiring caution
-
-Additional context from USD Liquidity, yield curve positioning, and commodity ratios helps refine risk assessment.
-
-## Maintenance
-
-The dashboard automatically updates with new data as it becomes available from FRED and Yahoo Finance:
-- Initial Jobless Claims: Updated weekly (Thursday)
-- PCE: Updated monthly
-- Core CPI: Updated monthly
-- Average Weekly Hours: Updated monthly
-- Manufacturing PMI Proxy: Updated monthly (calculated from multiple FRED indicators)
-- USD Liquidity: Updated weekly (calculated from Fed balance sheet data)
-- Non-Defense Durable Goods Orders: Updated monthly
-- 2-10 Year Treasury Yield Spread: Updated daily
-- Copper/Gold Ratio: Updated daily (from Yahoo Finance commodity data)
-
-## 🧪 Testing & Validation
-
-The codebase includes comprehensive test suites for all optimization phases:
-
-### Test Suites
-- **`test_phase1.py`**: Validates configuration management and module structure fixes
-- **`test_phase2.py`**: Tests service layer architecture and caching system
-- **`test_phase3.py`**: Validates algorithm optimizations and performance monitoring
-
-### Running Tests
 ```bash
-# Test all phases
-python test_phase1.py
-python test_phase2.py
-python test_phase3.py
-
-# Test service layer integration
-python test_service_layer.py
+python -m pytest tests/ -q
 ```
 
-### Performance Validation
-The optimization improvements can be validated by:
-1. **Timing Comparisons**: Compare execution times between architectures
-2. **Memory Usage**: Monitor memory consumption improvements
-3. **Cache Performance**: Analyze cache hit rates and efficiency
-4. **Algorithm Benchmarking**: Review performance metrics from the monitoring system
+Focused volatility checks:
 
-## 📊 Performance Metrics
-
-After optimization, the dashboard delivers:
-
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **Module Structure** | 5 files with import issues | Clean imports | **100% resolved** |
-| **Algorithm Speed** | Baseline | 40-80% faster | **Significant gain** |
-| **Memory Usage** | Unoptimized | 30-50% reduction | **More efficient** |
-| **Caching** | Basic Streamlit only | Multi-level intelligent | **Enhanced performance** |
-| **Error Handling** | Basic | Comprehensive | **More robust** |
-| **Code Organization** | Mixed concerns | Service layer pattern | **Better maintainability** |
-
-## 🔧 Development
-
-### Architecture Options
-The dashboard supports flexible architecture selection:
-
-**For Development** (Default):
 ```bash
-python app.py
-# Uses traditional architecture for compatibility
+python -m pytest tests/test_iv_scraper.py tests/test_vol_table_data.py tests/test_vol_table.py tests/test_vol_integration.py -v
 ```
 
-**For Performance Testing**:
-```bash
-USE_SERVICE_LAYER=true python app.py
-# Uses optimized service layer with full monitoring
-```
+Other notable test modules: `test_regime_quadrant.py`, `test_inflation_proxy.py`, `test_growth_proxy.py`, `test_market_macro_export.py`, `test_indicator_service.py`.
 
-### Debugging & Monitoring
-- **Service-layer caching**: TTL and cache invalidation live in `src/core/caching/cache_manager.py`
-- **Volatility logging**: Scraper/data-quality/performance logs are emitted via `data/volatility_logging.py`
-- **Test coverage**: Use `python -m pytest tests/ -q --tb=no` for quick regression checks
+## Deployment on Streamlit Cloud
 
-## Contributing
+1. Push the repo to GitHub.
+2. Create an app at [streamlit.io/cloud](https://streamlit.io/cloud) pointing to `app.py`.
+3. Add `FRED_API_KEY` as a Streamlit secret.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Run the test suite to ensure optimizations are maintained:
-   ```bash
-   python test_phase1.py && python test_phase2.py && python test_phase3.py
-   ```
-4. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-5. Push to the branch (`git push origin feature/AmazingFeature`)
-6. Open a Pull Request
+**Volatility table on Streamlit Cloud:** The IV database must exist in the repo or be populated by GitHub Actions. Without `data/volatility/iv_data.db`, the vol table shows a prompt to run the scraper. Cloud deployments cannot scrape Yahoo on demand as reliably as a local/cron setup.
 
-## Note
+## Security
 
-This dashboard is for informational purposes only and should not be considered as financial advice. Always conduct your own research and consult with financial professionals before making investment decisions.
+- Never commit `.env` or API keys
+- `iv_data.db` is gitignored locally but force-committed by GitHub Actions for persistence
+- `.gitignore` excludes cache files and logs
+
+## Disclaimer
+
+This dashboard is for informational purposes only and is not financial advice. Conduct your own research and consult professionals before making investment decisions.

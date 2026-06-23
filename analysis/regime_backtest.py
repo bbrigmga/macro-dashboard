@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from data.processing import forecast_ou
+from src.config.growth_proxy import FORECAST_HORIZON_DAYS
 
 
 def _safe_float(value, default: float = 0.0) -> float:
@@ -19,7 +20,7 @@ def _safe_float(value, default: float = 0.0) -> float:
 
 def walk_forward_directional_hit_rate(
     df: pd.DataFrame,
-    horizon: int = 10,
+    horizon: int = FORECAST_HORIZON_DAYS,
     min_train: int = 126
 ) -> dict:
     """
@@ -155,7 +156,7 @@ def forward_returns_by_regime(
 def summarize_regime_backtest(
     regime_df: pd.DataFrame,
     asset_prices: dict[str, pd.Series] | None = None,
-    horizon: int = 10,
+    horizon: int = FORECAST_HORIZON_DAYS,
     min_train: int = 126
 ) -> dict:
     """Return a compact backtest summary for display and diagnostics."""

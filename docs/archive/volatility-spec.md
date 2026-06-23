@@ -1,3 +1,5 @@
+> Historical spec — feature implemented; see README.md for current behavior.
+
 # Implied & Realized Volatility Dashboard â€” Spec Sheet
 
 ## Overview

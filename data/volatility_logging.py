@@ -275,27 +275,3 @@ def log_data_quality_metric(metric_name: str, value: float, threshold: float | N
             quality_logger.warning(f"Data quality below threshold for {metric_name}: {value:.2f} < {threshold}")
     else:
         quality_logger.info(f"{metric_name}: {value:.2f}{ticker_str}")
-
-def setup_volatility_logging():
-    """
-    Initialize logging configuration for all volatility components.
-    Call this once at application startup.
-    """
-    config = get_logger_config()
-    
-    # Set up root volatility logger
-    root_logger = config.setup_logger("volatility")
-    root_logger.info("Volatility logging system initialized")
-    
-    # Set up specialized loggers
-    config.setup_performance_logger()
-    config.setup_data_quality_logger()
-    
-    # Log configuration details
-    root_logger.info(f"Log level: {logging.getLevelName(config.log_level)}")
-    root_logger.info(f"Log to file: {config.log_to_file}")
-    root_logger.info(f"Log to console: {config.log_to_console}")
-    if config.log_to_file:
-        root_logger.info(f"Log directory: {config.log_directory.absolute()}")
-    
-    return root_logger

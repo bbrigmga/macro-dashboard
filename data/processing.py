@@ -348,17 +348,20 @@ def classify_regime(
     return "Deflation"
 
 
-def forecast_ou(series: pd.Series, horizon: int = 10) -> dict:
+def forecast_ou(series: pd.Series, horizon: int | None = None) -> dict:
     """
     Forecast a mean-reverting series using an AR(1) / OU discretization.
 
     Args:
         series: Input series to model
-        horizon: Forecast horizon in steps
+        horizon: Forecast horizon in trading days (default matches proxy DELTA_DAYS)
 
     Returns:
         dict: projected, variance, beta, intercept, residual_std
     """
+    if horizon is None:
+        from src.config.growth_proxy import FORECAST_HORIZON_DAYS
+        horizon = FORECAST_HORIZON_DAYS
     clean = pd.to_numeric(series, errors='coerce').dropna()
     if clean.empty:
         return {

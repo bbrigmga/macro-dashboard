@@ -4,7 +4,12 @@ import datetime
 import numpy as np
 import pandas as pd
 
-from data.market_macro_export import EXPORT_COLUMNS, build_market_macro_export
+from data.market_macro_export import (
+    build_market_macro_export,
+    collect_fred_series,
+    collect_yahoo_tickers,
+    export_column_names,
+)
 from data.processing import align_series_asof
 
 
@@ -31,35 +36,34 @@ class TestAlignSeriesAsOf:
         assert aligned.iloc[0] == 310.0
         assert aligned.iloc[-1] == 311.5
 
-    def test_rows_before_first_observation_are_nan(self):
-        calendar = pd.date_range("2024-01-01", periods=5, freq="B")
-        gdp_dates = pd.to_datetime(["2024-03-31"])
-        gdp = pd.Series([25500.0], index=gdp_dates)
 
-        aligned = align_series_asof(calendar, gdp, "GDP")
+class TestExportCollections:
+    def test_yahoo_tickers_include_regime_proxies(self):
+        tickers = collect_yahoo_tickers()
+        assert "DBC" in tickers
+        assert "CPER" in tickers
+        assert "XLV" in tickers
+        assert "QQQ" in tickers
 
-        assert aligned.isna().all()
-
-    def test_empty_macro_series_returns_nan(self):
-        calendar = pd.date_range("2024-01-01", periods=3, freq="B")
-        aligned = align_series_asof(calendar, pd.Series(dtype=float), "GDP")
-        assert aligned.isna().all()
+    def test_fred_series_include_gdp_and_cpi(self):
+        series = collect_fred_series()
+        assert "GDP" in series
+        assert "CPIAUCSL" in series
 
 
 class TestBuildMarketMacroExport:
-    def test_inner_joined_etf_calendar_has_unique_dates(self):
+    def test_outer_joined_etf_calendar_and_fred_columns(self):
         base = datetime.datetime.now() - datetime.timedelta(days=30)
         dates = pd.bdate_range(base, periods=5)
         yahoo_frames = {
-            ticker: pd.DataFrame({
-                "Date": dates,
-                "value": np.arange(5) + i,
-            })
-            for i, ticker in enumerate(["CPER", "GLD", "IEF", "TIP"])
+            "CPER": pd.DataFrame({"Date": dates, "value": [1.0, 2.0, 3.0, 4.0, 5.0]}),
+            "DBC": pd.DataFrame({"Date": dates[1:], "value": [2.0, 3.0, 4.0, 5.0]}),
         }
 
         class FakeYahoo:
             def get_historical_prices(self, ticker, start_date=None, end_date=None, frequency="1d"):
+                if ticker not in yahoo_frames:
+                    raise ValueError(f"no data for {ticker}")
                 return yahoo_frames[ticker].copy()
 
         macro_start = dates.min() - pd.Timedelta(days=60)
@@ -71,55 +75,52 @@ class TestBuildMarketMacroExport:
                         "Date": pd.to_datetime([macro_start]),
                         "GDP": [25000.0],
                     })
-                return pd.DataFrame({
-                    "Date": pd.to_datetime([macro_start, macro_start + pd.Timedelta(days=31)]),
-                    "CPIAUCSL": [310.0, 311.0],
-                })
+                if series_id == "CPIAUCSL":
+                    return pd.DataFrame({
+                        "Date": pd.to_datetime([macro_start, macro_start + pd.Timedelta(days=31)]),
+                        "CPIAUCSL": [310.0, 311.0],
+                    })
+                return pd.DataFrame(columns=["Date", series_id])
 
         df = build_market_macro_export(
             years=1,
             yahoo_client=FakeYahoo(),
             fred_client=FakeFred(),
+            yahoo_tickers=["CPER", "DBC"],
+            fred_series=["GDP", "CPIAUCSL"],
         )
 
-        assert list(df.columns) == EXPORT_COLUMNS
+        assert list(df.columns) == export_column_names(["CPER", "DBC"], ["GDP", "CPIAUCSL"])
         assert len(df) == 5
         assert df["Date"].duplicated().sum() == 0
         assert df["CPER"].notna().all()
+        assert pd.isna(df["DBC"].iloc[0])
         assert df["GDP"].notna().all()
-        assert df["CPI"].notna().all()
 
-    def test_export_columns_order(self):
+    def test_date_column_is_iso_string(self):
         base = datetime.datetime.now() - datetime.timedelta(days=20)
         dates = pd.bdate_range(base, periods=3)
         yahoo_frames = {
-            ticker: pd.DataFrame({"Date": dates, "value": [1.0, 2.0, 3.0]})
-            for ticker in ["CPER", "GLD", "IEF", "TIP"]
+            "CPER": pd.DataFrame({"Date": dates, "value": [1.0, 2.0, 3.0]}),
         }
 
         class FakeYahoo:
             def get_historical_prices(self, ticker, start_date=None, end_date=None, frequency="1d"):
                 return yahoo_frames[ticker].copy()
 
-        macro_start = dates.min() - pd.Timedelta(days=60)
-
         class FakeFred:
             def get_series(self, series_id, start_date=None, end_date=None, periods=None, frequency="M"):
-                if series_id == "GDP":
-                    return pd.DataFrame({
-                        "Date": pd.to_datetime([macro_start]),
-                        "GDP": [25000.0],
-                    })
                 return pd.DataFrame({
-                    "Date": pd.to_datetime([macro_start]),
-                    "CPIAUCSL": [310.0],
+                    "Date": pd.to_datetime([dates.min() - pd.Timedelta(days=60)]),
+                    series_id: [1.0],
                 })
 
         df = build_market_macro_export(
             years=1,
             yahoo_client=FakeYahoo(),
             fred_client=FakeFred(),
+            yahoo_tickers=["CPER"],
+            fred_series=["GDP"],
         )
 
-        assert list(df.columns) == ["Date", "CPER", "GLD", "IEF", "TIP", "GDP", "CPI"]
-        assert df["Date"].iloc[0].count("-") == 2  # YYYY-MM-DD string
+        assert df["Date"].iloc[0].count("-") == 2

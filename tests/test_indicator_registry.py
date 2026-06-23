@@ -6,6 +6,7 @@ from src.config.indicator_registry import (
     INDICATOR_REGISTRY,
     get_indicator_config,
     list_indicators,
+    list_service_fetch_keys,
     get_indicators_by_chart_type,
     get_fred_indicators,
     get_yahoo_indicators
@@ -68,6 +69,7 @@ class TestIndicatorConfig:
         assert config.custom_chart_fn is None
         assert config.custom_status_fn is None
         assert config.cache_ttl == 3600
+        assert config.fetch_in_batch is True
         assert config.yahoo_series is None
         assert config.pmi_components is None
         assert config.liquidity_components is None
@@ -121,7 +123,7 @@ class TestIndicatorRegistry:
     def test_custom_indicators_have_custom_functions(self):
         """Test that custom indicators have appropriate custom functions."""
         for config in INDICATOR_REGISTRY.values():
-            if config.chart_type == 'custom':
+            if config.chart_type == 'custom' and config.key != 'implied_realized_vol':
                 assert config.custom_chart_fn is not None
             if config.bullish_condition == 'custom' and config.key not in ['copper_gold_yield', 'xlp_xly_ratio', 'implied_realized_vol']:
                 assert config.custom_status_fn is not None
@@ -237,6 +239,20 @@ class TestRegistryHelperFunctions:
             assert config.yahoo_series is not None
             assert len(config.yahoo_series) > 0
     
+    def test_list_service_fetch_keys_excludes_vol_table(self):
+        """Vol table is fetched on demand from iv_data.db, not at startup."""
+        keys = list_service_fetch_keys()
+
+        assert 'implied_realized_vol' not in keys
+        assert len(keys) == len(INDICATOR_REGISTRY) - 1
+
+    def test_implied_realized_vol_config(self):
+        """Vol indicator is table-only; no broken custom chart path."""
+        config = INDICATOR_REGISTRY['implied_realized_vol']
+
+        assert config.fetch_in_batch is False
+        assert config.custom_chart_fn is None
+
     def test_chart_type_coverage(self):
         """Test that we have reasonable coverage of chart types."""
         chart_types = {}

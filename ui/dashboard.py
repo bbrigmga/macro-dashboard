@@ -179,8 +179,8 @@ def create_dashboard(indicators, fred_client, market_macro_csv: bytes | None = N
                     file_name=f"market_macro_analysis_{datetime.date.today().isoformat()}.csv",
                     mime="text/csv",
                     help=(
-                        "Daily trading-day export (3 years): CPER, GLD, IEF, TIP closes; "
-                        "GDP and headline CPI (CPIAUCSL) aligned as-of each date."
+                        "Daily export: all dashboard Yahoo tickers (regime proxies, vol table, etc.) "
+                        "plus FRED macro series, backward as-of aligned to each trading day."
                     ),
                 )
             # Show the warning description from registry

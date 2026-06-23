@@ -31,6 +31,7 @@ class IndicatorConfig:
     custom_status_fn: Optional[str] = None # dotted path to custom status logic
     service_key: Optional[str] = None      # key used by IndicatorService/get_all_indicators
     cache_ttl: int = 3600
+    fetch_in_batch: bool = True            # if False, excluded from get_all_indicators()
     yahoo_series: Optional[list[str]] = None  # for Yahoo Finance data (copper, gold, etc.)
     
     # Additional fields for complex indicators
@@ -291,10 +292,11 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         key="regime_quadrant",
         display_name="Growth/Inflation Regime",
         emoji="🧭",
-        fred_series=["T5YIFR", "T10YIE"],
+        fred_series=[],
         yahoo_series=[
-            "TIP", "IEF", "CPER", "GLD", "XHB", "IWM", "EFA", "FXI",
-            "XLE", "SPY", "DBC", "TLT",
+            "DBC", "CPER", "XLV", "QQQ",
+            "CPER", "GLD", "XHB", "IWM", "EFA", "FXI",
+            "XLE", "SPY", "TLT",
         ],
         chart_type="custom",
         value_column="growth_zscore",      # Primary display column
@@ -306,8 +308,8 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
             "This chart shows the current macroeconomic regime using composite market-implied proxies. "
             "The X-axis is a GDP growth proxy: equal-weight z(Δ63d log ratio) across CPER/GLD, XHB/IWM, "
             "EFA/SLV, and CPER/FXI (config in src/config/growth_proxy.py). "
-            "The Y-axis blends inflation-sensitive signals (breakevens, energy, TIP/IEF) using "
-            "multi-horizon momentum z-scores with an expanding-window anchor and EMA smoothing. "
+            "The Y-axis is an inflation proxy: equal-weight z(Δ63d log ratio) for DBC/CPER and XLV/QQQ "
+            "(config in src/config/inflation_proxy.py), with EMA smoothing. "
             "The trailing path shows regime migration. The projection uses a mean-reverting AR(1)/OU model "
             "with an uncertainty cone; the description includes a walk-forward hit-rate.\n\n"
             "**Quadrants:**\n"
@@ -337,8 +339,9 @@ INDICATOR_REGISTRY: dict[str, IndicatorConfig] = {
         threshold=None,
         warning_description="IV premium > 0 means options market pricing more risk than realized...",
         chart_color="#e91e63",
-        custom_chart_fn="visualization.vol_table.create_vol_table",
+        custom_chart_fn=None,
         custom_status_fn=None,
+        fetch_in_batch=False,
         yahoo_series=["SPY", "QQQ", "IWM", "XLF", "XLE", "XLK", "XLV", "XLB",
                       "XLI", "XLY", "XLP", "XLU", "XLC", "XLRE"],
         cache_ttl=3600,
@@ -380,10 +383,12 @@ def get_service_key(registry_key: str) -> str:
 
 
 def list_service_fetch_keys() -> list[str]:
-    """Get deduplicated service fetch keys in registry order."""
+    """Get deduplicated service fetch keys in registry order (batch startup fetch)."""
     keys: list[str] = []
     seen: set[str] = set()
     for config in INDICATOR_REGISTRY.values():
+        if not config.fetch_in_batch:
+            continue
         service_key = config.service_key or config.key
         if service_key not in seen:
             keys.append(service_key)
