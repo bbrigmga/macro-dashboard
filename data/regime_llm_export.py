@@ -96,7 +96,9 @@ def build_regime_llm_context(regime_data: dict[str, Any]) -> dict[str, Any]:
             ),
         }
 
-    hit_rate = (regime_data.get("backtest_summary") or {}).get("hit_rate") or {}
+    backtest_summary = regime_data.get("backtest_summary") or {}
+    hit_rate = backtest_summary.get("hit_rate") or {}
+    accel_hit_rate = backtest_summary.get("accel_hit_rate") or {}
     forward_returns = (regime_data.get("backtest_summary") or {}).get("forward_returns") or {}
 
     return {
@@ -136,6 +138,12 @@ def build_regime_llm_context(regime_data: dict[str, Any]) -> dict[str, Any]:
                 "growth": hit_rate.get("growth_hit_rate"),
                 "inflation": hit_rate.get("inflation_hit_rate"),
                 "n_obs": hit_rate.get("n_obs"),
+            },
+            "ou_acceleration_hit_rate_63d": {
+                "overall": accel_hit_rate.get("overall_hit_rate"),
+                "growth": accel_hit_rate.get("growth_hit_rate"),
+                "inflation": accel_hit_rate.get("inflation_hit_rate"),
+                "n_obs": accel_hit_rate.get("n_obs"),
             },
             "forward_returns_by_regime": forward_returns,
         },

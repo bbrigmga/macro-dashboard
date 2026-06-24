@@ -96,6 +96,42 @@ class TestForecastOu:
         assert isinstance(fc["variance"], float)
 
 
+class TestRegimeQuadrantChart:
+    def test_chart_backfills_accel_hit_rate_from_raw_series(self):
+        from visualization.charts import create_regime_quadrant_chart
+
+        n = 400
+        trail = pd.DataFrame({
+            "Date": pd.date_range("2024-01-01", periods=10),
+            "growth_zscore": [0.1] * 10,
+            "inflation_zscore": [0.2] * 10,
+        })
+        mock_data = {
+            "trail_data": trail,
+            "current_growth": 0.5,
+            "current_inflation": 0.6,
+            "projected_growth": 0.6,
+            "projected_inflation": 0.7,
+            "growth_raw": pd.Series(range(n), dtype=float),
+            "inflation_raw": pd.Series(range(n), dtype=float),
+            "backtest_summary": {
+                "hit_rate": {"overall_hit_rate": 0.55, "n_obs": 100},
+            },
+        }
+
+        fig = create_regime_quadrant_chart(mock_data)
+        badge = next(
+            (
+                ann.text
+                for ann in fig.layout.annotations
+                if ann.text and ann.text.startswith("Forecast: OU")
+            ),
+            "",
+        )
+        assert "Accel:" in badge
+        assert fig is not None
+
+
 class TestRegimeQuadrantPayloadStructure:
     def test_return_dict_structure(self):
         mock_data = {

@@ -83,6 +83,82 @@ def walk_forward_directional_hit_rate(
     }
 
 
+def walk_forward_acceleration_hit_rate(
+    df: pd.DataFrame,
+    horizon: int = FORECAST_HORIZON_DAYS,
+    min_train: int = 126
+) -> dict:
+    """
+    Walk-forward hit-rate for predicted vs realized momentum acceleration.
+
+    Compares the sign of (forward velocity - recent velocity) where velocity
+    is the change in the raw proxy over ``horizon`` trading days.
+    """
+    empty = {
+        "overall_hit_rate": 0.0,
+        "growth_hit_rate": 0.0,
+        "inflation_hit_rate": 0.0,
+        "n_obs": 0,
+    }
+    required_cols = {"growth_raw", "inflation_raw"}
+    if df is None or df.empty or not required_cols.issubset(df.columns):
+        return empty
+
+    data = df.dropna(subset=["growth_raw", "inflation_raw"]).reset_index(drop=True)
+    max_idx = len(data) - horizon
+    start_idx = max(min_train, horizon)
+    if max_idx <= start_idx:
+        return empty
+
+    overall_hits = []
+    growth_hits = []
+    inflation_hits = []
+
+    for i in range(start_idx, max_idx):
+        hist = data.iloc[: i + 1]
+        current_growth = _safe_float(hist["growth_raw"].iloc[-1])
+        current_inflation = _safe_float(hist["inflation_raw"].iloc[-1])
+        past_growth = _safe_float(data["growth_raw"].iloc[i - horizon], current_growth)
+        past_inflation = _safe_float(data["inflation_raw"].iloc[i - horizon], current_inflation)
+
+        growth_fc = forecast_ou(hist["growth_raw"], horizon=horizon)
+        inflation_fc = forecast_ou(hist["inflation_raw"], horizon=horizon)
+        proj_growth = _safe_float(growth_fc["projected"], current_growth)
+        proj_inflation = _safe_float(inflation_fc["projected"], current_inflation)
+
+        realized_growth = _safe_float(data["growth_raw"].iloc[i + horizon], current_growth)
+        realized_inflation = _safe_float(data["inflation_raw"].iloc[i + horizon], current_inflation)
+
+        past_vel_g = current_growth - past_growth
+        past_vel_i = current_inflation - past_inflation
+        pred_vel_g = proj_growth - current_growth
+        pred_vel_i = proj_inflation - current_inflation
+        real_vel_g = realized_growth - current_growth
+        real_vel_i = realized_inflation - current_inflation
+
+        pred_accel_g = pred_vel_g - past_vel_g
+        pred_accel_i = pred_vel_i - past_vel_i
+        real_accel_g = real_vel_g - past_vel_g
+        real_accel_i = real_vel_i - past_vel_i
+
+        g_hit = np.sign(pred_accel_g) == np.sign(real_accel_g)
+        i_hit = np.sign(pred_accel_i) == np.sign(real_accel_i)
+        growth_hits.append(bool(g_hit))
+        inflation_hits.append(bool(i_hit))
+        overall_hits.append(bool(g_hit and i_hit))
+
+    n_obs = len(overall_hits)
+    if n_obs == 0:
+        return empty
+
+    return {
+        "overall_hit_rate": float(np.mean(overall_hits)),
+        "growth_hit_rate": float(np.mean(growth_hits)),
+        "inflation_hit_rate": float(np.mean(inflation_hits)),
+        "n_obs": int(n_obs),
+    }
+
+
 def count_regime_flips(regimes: pd.Series) -> int:
     """Count transitions between adjacent non-null regime labels."""
     if regimes is None or len(regimes) <= 1:
@@ -160,15 +236,25 @@ def summarize_regime_backtest(
     min_train: int = 126
 ) -> dict:
     """Return a compact backtest summary for display and diagnostics."""
+    empty_hit_rate = {
+        "overall_hit_rate": 0.0,
+        "growth_hit_rate": 0.0,
+        "inflation_hit_rate": 0.0,
+        "n_obs": 0,
+    }
     if regime_df is None or regime_df.empty:
         return {
-            "hit_rate": {"overall_hit_rate": 0.0, "growth_hit_rate": 0.0, "inflation_hit_rate": 0.0, "n_obs": 0},
+            "hit_rate": empty_hit_rate.copy(),
+            "accel_hit_rate": empty_hit_rate.copy(),
             "flip_count": 0,
             "forward_returns": {},
         }
 
     summary = {
         "hit_rate": walk_forward_directional_hit_rate(regime_df, horizon=horizon, min_train=min_train),
+        "accel_hit_rate": walk_forward_acceleration_hit_rate(
+            regime_df, horizon=horizon, min_train=min_train
+        ),
         "flip_count": count_regime_flips(regime_df.get("regime", pd.Series(dtype=str))),
         "forward_returns": {},
     }
@@ -177,3 +263,45 @@ def summarize_regime_backtest(
         summary["forward_returns"] = forward_returns_by_regime(regime_df, asset_prices)
 
     return summary
+
+
+def enrich_regime_quadrant_data(regime_data: dict) -> dict:
+    """
+    Ensure backtest_summary includes accel_hit_rate for older cached payloads.
+    """
+    if not regime_data:
+        return regime_data
+
+    backtest_summary = dict(regime_data.get("backtest_summary") or {})
+    if "accel_hit_rate" in backtest_summary:
+        return regime_data
+
+    growth_raw = regime_data.get("growth_raw")
+    inflation_raw = regime_data.get("inflation_raw")
+    if growth_raw is None or inflation_raw is None:
+        return regime_data
+
+    regime_df = pd.DataFrame({
+        "growth_raw": pd.to_numeric(growth_raw, errors="coerce"),
+        "inflation_raw": pd.to_numeric(inflation_raw, errors="coerce"),
+    }).dropna()
+    if regime_df.empty:
+        return regime_data
+
+    backtest_summary["accel_hit_rate"] = walk_forward_acceleration_hit_rate(regime_df)
+    enriched = dict(regime_data)
+    enriched["backtest_summary"] = backtest_summary
+
+    hit_rate = (backtest_summary.get("hit_rate") or {}).get("overall_hit_rate")
+    accel_hit_rate = backtest_summary["accel_hit_rate"].get("overall_hit_rate")
+    hit_obs = (backtest_summary.get("hit_rate") or {}).get("n_obs", 0)
+    description = str(enriched.get("regime_description") or "")
+    if hit_obs > 0 and hit_rate is not None:
+        base = description.split(" | Walk-forward")[0]
+        note = f" | Walk-forward {FORECAST_HORIZON_DAYS}d dir: {hit_rate:.0%}"
+        if accel_hit_rate is not None:
+            note += f", accel: {accel_hit_rate:.0%}"
+        note += f" ({hit_obs} obs)"
+        enriched["regime_description"] = base + note
+
+    return enriched

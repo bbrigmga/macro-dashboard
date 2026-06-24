@@ -1383,14 +1383,17 @@ class IndicatorData:
                 horizon=FORECAST_HORIZON_DAYS,
                 min_train=126
             )
-            hit_rate = backtest_summary.get("hit_rate", {}).get("overall_hit_rate", 0.0)
+            hit_rate = backtest_summary.get("hit_rate", {}).get("overall_hit_rate")
+            accel_hit_rate = backtest_summary.get("accel_hit_rate", {}).get("overall_hit_rate")
             hit_obs = backtest_summary.get("hit_rate", {}).get("n_obs", 0)
             hit_rate_note = ""
-            if hit_obs > 0:
+            if hit_obs > 0 and hit_rate is not None:
                 hit_rate_note = (
-                    f" | Walk-forward {FORECAST_HORIZON_DAYS}d hit-rate: "
-                    f"{hit_rate:.0%} ({hit_obs} obs)"
+                    f" | Walk-forward {FORECAST_HORIZON_DAYS}d dir: {hit_rate:.0%}"
                 )
+                if accel_hit_rate is not None:
+                    hit_rate_note += f", accel: {accel_hit_rate:.0%}"
+                hit_rate_note += f" ({hit_obs} obs)"
 
             return {
                 'data': result_df[['Date', 'growth_zscore', 'inflation_zscore']],

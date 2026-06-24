@@ -32,7 +32,7 @@ class IndicatorResult:
 class IndicatorService:
     """Service layer for economic indicator operations."""
 
-    CACHE_SCHEMA_VERSION = "v5"
+    CACHE_SCHEMA_VERSION = "v6"
 
     def __init__(self, settings=None):
         self.settings = settings or get_settings()
@@ -109,6 +109,9 @@ class IndicatorService:
 
             if cached_data is not None:
                 logger.info(f"Cache hit for {indicator_name}")
+                if indicator_name == "regime_quadrant":
+                    from analysis.regime_backtest import enrich_regime_quadrant_data
+                    cached_data = enrich_regime_quadrant_data(cached_data)
                 return IndicatorResult(
                     success=True,
                     data=cached_data,
@@ -309,6 +312,8 @@ class IndicatorService:
                 lookback_days=kwargs.get('lookback_days', config.get('default_lookback_days', 900)),
                 trail_days=kwargs.get('trail_days', 252)
             )
+            from analysis.regime_backtest import enrich_regime_quadrant_data
+            result = enrich_regime_quadrant_data(result)
             return IndicatorResult(success=True, data=result)
         except Exception as e:
             return IndicatorResult(success=False, error=str(e))

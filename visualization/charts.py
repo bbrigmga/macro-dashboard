@@ -531,7 +531,10 @@ def create_regime_quadrant_chart(data: dict):
     """
     from src.config.growth_proxy import GROWTH_AXIS_LABEL, FORECAST_HORIZON_DAYS
     from src.config.inflation_proxy import INFLATION_AXIS_LABEL
+    from analysis.regime_backtest import enrich_regime_quadrant_data
     import numpy as np
+
+    data = enrich_regime_quadrant_data(data)
     
     # Extract data
     trail_data = data.get('trail_data', pd.DataFrame())
@@ -695,13 +698,19 @@ def create_regime_quadrant_chart(data: dict):
 
     # Add compact forecast-method + hit-rate badge.
     hit_rate_info = backtest_summary.get("hit_rate", {})
+    accel_hit_rate_info = backtest_summary.get("accel_hit_rate", {})
     overall_hit_rate = hit_rate_info.get("overall_hit_rate")
+    overall_accel_hit_rate = accel_hit_rate_info.get("overall_hit_rate")
     hit_rate_obs = hit_rate_info.get("n_obs", 0)
     if overall_hit_rate is not None and hit_rate_obs:
-        badge_text = (
-            f"Forecast: OU ({FORECAST_HORIZON_DAYS}d) | "
-            f"Hit-rate: {overall_hit_rate:.0%} ({hit_rate_obs} obs)"
-        )
+        badge_parts = [
+            f"Forecast: OU ({FORECAST_HORIZON_DAYS}d)",
+            f"Dir: {overall_hit_rate:.0%}",
+        ]
+        if overall_accel_hit_rate is not None:
+            badge_parts.append(f"Accel: {overall_accel_hit_rate:.0%}")
+        badge_parts.append(f"({hit_rate_obs} obs)")
+        badge_text = " | ".join(badge_parts)
     else:
         badge_text = f"Forecast: OU ({FORECAST_HORIZON_DAYS}d)"
 
