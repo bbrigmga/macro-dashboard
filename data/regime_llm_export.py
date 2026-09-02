@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 
 from data.processing import classify_regime
+from data.realized_regime_forecast import load_realized_regime_forecast
 from src.config.growth_proxy import (
     DELTA_DAYS,
     FORECAST_HORIZON_DAYS,
@@ -101,7 +102,11 @@ def build_regime_llm_context(regime_data: dict[str, Any]) -> dict[str, Any]:
     accel_hit_rate = backtest_summary.get("accel_hit_rate") or {}
     forward_returns = (regime_data.get("backtest_summary") or {}).get("forward_returns") or {}
 
-    return {
+    realized_forecast = regime_data.get("realized_macro_forecast")
+    if realized_forecast is None:
+        realized_forecast = load_realized_regime_forecast()
+
+    payload = {
         "schema_name": SCHEMA_NAME,
         "schema_version": SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
@@ -151,6 +156,24 @@ def build_regime_llm_context(regime_data: dict[str, Any]) -> dict[str, Any]:
         "caveats": CAVEATS,
         "regime_description": regime_data.get("regime_description"),
     }
+
+    if realized_forecast:
+        payload["realized_macro_forecast"] = {
+            "source": "gdp_inflation_proxy_backtester",
+            "generated_at": realized_forecast.get("generated_at"),
+            "current_quarter": realized_forecast.get("horizons", {}).get("1", {}).get("latest_forecast"),
+            "next_quarter": realized_forecast.get("horizons", {}).get("3", {}).get("latest_forecast"),
+            "validation": {
+                "current_quarter": realized_forecast.get("horizons", {}).get("1", {}).get("metrics"),
+                "next_quarter": realized_forecast.get("horizons", {}).get("3", {}).get("metrics"),
+            },
+            "note": (
+                "Walk-forward calibrated probabilities vs realized FRED GDP QoQ and "
+                "quarter-end CPI YoY change; distinct from market-implied proxy regime above."
+            ),
+        }
+
+    return payload
 
 
 def write_regime_context_json(

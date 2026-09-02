@@ -13,29 +13,9 @@ from typing import Optional, List, Tuple
 import logging
 
 from .iv_db import IVDatabase
-from .market_utils import get_previous_trading_day, get_approximate_trading_day
-from .volatility_logging import get_volatility_logger, log_performance_metric
+from .market_utils import ETF_UNIVERSE, get_previous_trading_day, get_approximate_trading_day
 
-# Set up enhanced logging
-logger = get_volatility_logger(__name__)
-
-# ETF Universe constant from Phase 3
-ETF_UNIVERSE = [
-    {"ticker": "XLRE", "name": "Real Estate Sector SPDR ETF"},
-    {"ticker": "XLF",  "name": "Financials Sector SPDR ETF"},
-    {"ticker": "XLE",  "name": "Energy Sector SPDR ETF"},
-    {"ticker": "XLC",  "name": "Communication Services SPDR ETF"},
-    {"ticker": "XLK",  "name": "Technology Sector SPDR ETF"},
-    {"ticker": "QQQ",  "name": "Power Shares QQQ Trust ETF"},
-    {"ticker": "SPY",  "name": "SPDR S&P 500 Trust"},
-    {"ticker": "XLV",  "name": "Health Care Sector SPDR ETF"},
-    {"ticker": "XLB",  "name": "Materials Sector SPDR ETF"},
-    {"ticker": "XLI",  "name": "Industrials Sector SPDR ETF"},
-    {"ticker": "XLY",  "name": "Consumer Discretionary SPDR ETF"},
-    {"ticker": "IWM",  "name": "I-Shares Russell 2000"},
-    {"ticker": "XLU",  "name": "Utilities Sector SPDR ETF"},
-    {"ticker": "XLP",  "name": "Consumer Staples Sector SPDR ETF"},
-]
+logger = logging.getLogger(__name__)
 
 # Create lookup dict for ETF names
 ETF_NAME_LOOKUP = {etf["ticker"]: etf["name"] for etf in ETF_UNIVERSE}
@@ -404,16 +384,7 @@ class VolTableDataAssembler:
             logger.warning("No data available in database")
             return pd.DataFrame(columns=TABLE_COLUMNS)
 
-        batch_start = time.time()
         all_history = self.db.get_multiple_history(universe_tickers, lookback_days=756)
-        batch_duration = time.time() - batch_start
-
-        log_performance_metric(
-            "vol_table_batch_fetch",
-            batch_duration,
-            "seconds",
-            context={'tickers': len(universe_tickers), 'history_records': len(all_history)},
-        )
 
         history_by_ticker = {}
         if not all_history.empty:
@@ -442,13 +413,6 @@ class VolTableDataAssembler:
         ).reset_index(drop=True)
 
         total_duration = time.time() - start_time
-        log_performance_metric(
-            "vol_table_build_total",
-            total_duration,
-            "seconds",
-            context={'rows_built': len(df), 'tickers_available': len(latest_data)},
-        )
-
         logger.info(
             f"Built volatility table with {len(df)} rows in {total_duration:.2f}s"
         )

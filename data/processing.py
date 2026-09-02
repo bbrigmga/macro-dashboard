@@ -53,21 +53,6 @@ def calculate_pct_change(df, column, periods=1, annualize=False, fill_method=Non
     return series
 
 
-def cap_outliers(series, lower_limit=-2, upper_limit=2):
-    """
-    Handle outliers by capping extreme values.
-    
-    Args:
-        series (pd.Series): Series with data
-        lower_limit (float, optional): Lower limit for capping
-        upper_limit (float, optional): Upper limit for capping
-        
-    Returns:
-        pd.Series: Series with capped values
-    """
-    return series.clip(lower=lower_limit, upper=upper_limit)
-
-
 def check_consecutive_increase(values, count=3):
     """
     Check if values have been increasing for a specified number of periods.
@@ -174,33 +159,6 @@ def validate_indicator_data(data: dict | None, config=None) -> bool:
     return has_valid_data
 
 
-def calculate_roc_zscore(series: pd.Series, roc_period: int = 60, zscore_window: int = 252) -> pd.Series:
-    """
-    Calculate the Z-Score of the Rate of Change for a time series.
-    
-    This normalizes momentum into a comparable scale (roughly -3 to +3).
-    Positive Z-Score = Accelerating. Negative Z-Score = Decelerating.
-    
-    Args:
-        series: Price/ratio time series (daily frequency expected)
-        roc_period: Lookback period for Rate of Change (default 60 ≈ 3 months of trading days)
-        zscore_window: Rolling window for Z-Score normalization (default 252 ≈ 1 year of trading days)
-    
-    Returns:
-        pd.Series: Z-Score of the ROC, same index as input (with leading NaNs)
-    """
-    # Step 1: Rate of Change (percentage)
-    roc = series.pct_change(periods=roc_period) * 100
-    
-    # Step 2: Rolling Z-Score of the ROC
-    rolling_mean = roc.rolling(window=zscore_window).mean()
-    rolling_std = roc.rolling(window=zscore_window).std()
-    
-    zscore = (roc - rolling_mean) / rolling_std
-    
-    return zscore
-
-
 def apply_ema_smoothing(series: pd.Series, span: int = 20) -> pd.Series:
     """
     Apply Exponential Moving Average smoothing to reduce noise in daily data.
@@ -213,40 +171,6 @@ def apply_ema_smoothing(series: pd.Series, span: int = 20) -> pd.Series:
         pd.Series: Smoothed series
     """
     return series.ewm(span=span, adjust=False).mean()
-
-
-def blended_momentum_zscore(
-    series: pd.Series,
-    roc_periods: tuple[int, ...] = (20, 60, 120),
-    zscore_window: int = 252
-) -> pd.Series:
-    """
-    Blend multiple ROC-based z-score horizons into one momentum signal.
-
-    Args:
-        series: Input time series (price or ratio)
-        roc_periods: ROC lookbacks to combine (in trading days)
-        zscore_window: Rolling window for z-score normalization
-
-    Returns:
-        pd.Series: Blended z-score series
-    """
-    if series is None or len(series) == 0:
-        return pd.Series(dtype=float)
-
-    components = []
-    for period in roc_periods:
-        if period <= 0:
-            continue
-        z_component = calculate_roc_zscore(series, roc_period=period, zscore_window=zscore_window)
-        components.append(z_component.rename(f"roc_{period}"))
-
-    if not components:
-        return pd.Series(index=series.index, dtype=float)
-
-    blended = pd.concat(components, axis=1).mean(axis=1, skipna=True)
-    blended.name = "blended_momentum_zscore"
-    return blended
 
 
 def build_composite_axis(proxy_zscores: dict[str, pd.Series], min_series: int = 1) -> pd.Series:
@@ -279,37 +203,6 @@ def build_composite_axis(proxy_zscores: dict[str, pd.Series], min_series: int = 
     composite = composite.where(available_count >= max(1, min_series))
     composite.name = "composite_axis"
     return composite
-
-
-def anchor_zscore(rolling_z: pd.Series, series: pd.Series, weight: float = 0.3, min_periods: int = 126) -> pd.Series:
-    """
-    Anchor rolling z-scores using an expanding baseline to reduce drift.
-
-    Args:
-        rolling_z: Rolling-window z-score series
-        series: Raw underlying series used to compute expanding z-score
-        weight: Blend weight for expanding z-score contribution
-        min_periods: Minimum expanding window observations
-
-    Returns:
-        pd.Series: Anchored z-score series
-    """
-    if rolling_z is None or len(rolling_z) == 0:
-        return pd.Series(dtype=float)
-
-    weight = float(np.clip(weight, 0.0, 1.0))
-    series = pd.to_numeric(series, errors='coerce')
-
-    exp_mean = series.expanding(min_periods=min_periods).mean()
-    exp_std = series.expanding(min_periods=min_periods).std()
-    exp_std = exp_std.replace(0, np.nan)
-    expanding_z = (series - exp_mean) / exp_std
-
-    anchored = (1 - weight) * rolling_z + weight * expanding_z
-    anchored = anchored.where(~rolling_z.isna(), np.nan)
-    anchored = anchored.combine_first(rolling_z)
-    anchored.name = rolling_z.name if rolling_z.name else "anchored_zscore"
-    return anchored
 
 
 def classify_regime(

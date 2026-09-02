@@ -14,7 +14,6 @@ import concurrent.futures
 import requests
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create a module-level session for HTTP reuse
@@ -328,46 +327,34 @@ class FredClient:
         """
         # Optional: cap workers to reduce rate-limit risk
         max_workers = min(max_workers, 3)
-        result = None
-        series_fetch_results = {}
-        # Deduplicate incoming IDs to avoid redundant fetches
+        frames = []
         unique_series_ids = list(dict.fromkeys(series_ids))
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all series fetch tasks
             future_to_series = {
                 executor.submit(
-                    self.get_series, 
-                    series_id, 
-                    start_date, 
-                    end_date, 
-                    periods, 
+                    self.get_series,
+                    series_id,
+                    start_date,
+                    end_date,
+                    periods,
                     frequency
                 ): series_id for series_id in unique_series_ids
             }
-            
-            # Handle completed tasks
+
             for future in concurrent.futures.as_completed(future_to_series):
                 series_id = future_to_series[future]
                 try:
                     df = future.result()
-                    
-                    series_fetch_results[series_id] = df
-                    
-                    if result is None:
-                        result = df
-                    else:
-                        result = pd.merge(result, df, on='Date', how='outer')
+                    frames.append(df.set_index('Date'))
                 except Exception as e:
                     logger.error(f"Error in get_multiple_series for {series_id}: {str(e)}")
-                    series_fetch_results[series_id] = None
                     continue
-        
-        # Raise error if no series were successfully fetched
-        if result is None or len(result) == 0:
+
+        if not frames:
             logger.error("Failed to fetch any of the requested series")
             raise ValueError("Failed to fetch any of the requested series")
-        
-        # Ensure Date normalized once
+
+        result = pd.concat(frames, axis=1).reset_index()
         result['Date'] = pd.to_datetime(result['Date'])
         return result
 

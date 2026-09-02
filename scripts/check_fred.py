@@ -2,7 +2,6 @@ import os
 import logging
 import sys
 from data.fred_client import FredClient
-from src.config.settings import Settings
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')

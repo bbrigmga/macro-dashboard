@@ -14,29 +14,9 @@ import yfinance as yf
 from .iv_db import IVDatabase
 from .rv_calculator import RealizedVolCalculator
 from .yahoo_client import YahooClient
-from .market_utils import should_skip_scraping, is_trading_day
-from .volatility_logging import get_volatility_logger, log_performance_metric, log_data_quality_metric
+from .market_utils import should_skip_scraping, is_trading_day, ETF_UNIVERSE
 
-# Set up enhanced logging
-logger = get_volatility_logger(__name__)
-
-# ETF Universe from specification
-ETF_UNIVERSE = [
-    {"ticker": "XLRE", "name": "Real Estate Sector SPDR ETF"},
-    {"ticker": "XLF",  "name": "Financials Sector SPDR ETF"},
-    {"ticker": "XLE",  "name": "Energy Sector SPDR ETF"},
-    {"ticker": "XLC",  "name": "Communication Services SPDR ETF"},
-    {"ticker": "XLK",  "name": "Technology Sector SPDR ETF"},
-    {"ticker": "QQQ",  "name": "Power Shares QQQ Trust ETF"},
-    {"ticker": "SPY",  "name": "SPDR S&P 500 Trust"},
-    {"ticker": "XLV",  "name": "Health Care Sector SPDR ETF"},
-    {"ticker": "XLB",  "name": "Materials Sector SPDR ETF"},
-    {"ticker": "XLI",  "name": "Industrials Sector SPDR ETF"},
-    {"ticker": "XLY",  "name": "Consumer Discretionary SPDR ETF"},
-    {"ticker": "IWM",  "name": "I-Shares Russell 2000"},
-    {"ticker": "XLU",  "name": "Utilities Sector SPDR ETF"},
-    {"ticker": "XLP",  "name": "Consumer Staples Sector SPDR ETF"},
-]
+logger = logging.getLogger(__name__)
 
 
 class IVScraper:
@@ -732,15 +712,7 @@ class IVScraper:
                 
                 iv_30d, quality_metrics = iv_result
                 
-                # Log quality information with enhanced format
                 quality_score = quality_metrics['quality_score']
-                log_data_quality_metric(
-                    "iv_scrape_quality", 
-                    quality_score, 
-                    threshold=50.0,
-                    ticker=ticker
-                )
-                
                 if quality_score < 50:
                     logger.warning(f"{ticker}: Low quality IV data (Q:{quality_score:.1f}, "
                                  f"Vol:{quality_metrics['volume']}, Spread:{quality_metrics['bid_ask_spread_pct']:.1f}%)")

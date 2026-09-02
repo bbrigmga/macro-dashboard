@@ -4,19 +4,50 @@ Provides high-level business logic with caching and error handling.
 """
 import asyncio
 import logging
-from typing import Dict, Any, Optional, List
+import time
+from typing import Dict, Any, Optional
 from dataclasses import dataclass
-import pandas as pd
 
 from src.config.settings import get_settings
 from src.config.indicator_registry import INDICATOR_REGISTRY, list_service_fetch_keys
-from src.core.caching.cache_manager import CacheManager
 from data.fred_client import FredClient
 from data.indicators import IndicatorData
 from data.iv_db import IVDatabase
 from data.vol_table_data import VolTableDataAssembler
 
 logger = logging.getLogger(__name__)
+
+
+class CacheManager:
+    """ponytail: in-memory TTL dict. FRED/Yahoo CSV already persist across restarts."""
+
+    def __init__(self, settings=None):
+        self._store: dict[str, tuple[Any, float, int]] = {}
+
+    def get(self, key: str) -> Any:
+        item = self._store.get(key)
+        if item is None:
+            return None
+        data, ts, ttl = item
+        if time.time() - ts > ttl:
+            del self._store[key]
+            return None
+        return data
+
+    def set(self, key: str, value: Any, ttl: int = 3600) -> None:
+        self._store[key] = (value, time.time(), ttl)
+
+    def invalidate(self, key: str) -> bool:
+        return self._store.pop(key, None) is not None
+
+    def invalidate_pattern(self, pattern: str) -> int:
+        keys = [k for k in self._store if pattern in k]
+        for k in keys:
+            del self._store[k]
+        return len(keys)
+
+    def clear_all(self) -> None:
+        self._store.clear()
 
 
 @dataclass
@@ -99,7 +130,6 @@ class IndicatorService:
         Returns:
             IndicatorResult: Wrapped result with success status and data
         """
-        import time
         start_time = time.time()
 
         try:
@@ -158,7 +188,6 @@ class IndicatorService:
         Returns:
             IndicatorResult: Combined result with all indicators
         """
-        import time
         start_time = time.time()
 
         try:
@@ -267,7 +296,6 @@ class IndicatorService:
             config = self._indicators_config.get("usd_liquidity", {})
             result = self.indicator_data.get_usd_liquidity(
                 periods=kwargs.get('periods', config.get('default_periods', 120)),
-                use_sample_data=kwargs.get('use_sample_data', False)
             )
 
             return IndicatorResult(success=True, data=result)
@@ -342,14 +370,5 @@ class IndicatorService:
             pattern = indicator_name
             return self.cache_manager.invalidate_pattern(pattern)
         else:
-            # Clear all cache
             self.cache_manager.clear_all()
-            return -1  # Indicate full cache clear
-
-    def get_cache_stats(self) -> Dict[str, Any]:
-        """Get cache performance statistics."""
-        return self.cache_manager.get_stats()
-
-    def cleanup_cache(self) -> Dict[str, Any]:
-        """Clean up expired cache entries."""
-        return self.cache_manager.cleanup()
+            return -1

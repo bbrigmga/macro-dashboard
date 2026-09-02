@@ -5,8 +5,7 @@ Tests for volatility table UI component
 import pytest
 import pandas as pd
 import numpy as np
-import sys
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock
 from pandas.io.formats.style import Styler
 from ui.vol_table import _format_and_style_table, _render_data_freshness_info
 import streamlit as st
@@ -288,75 +287,6 @@ class TestDataFreshnessInfo:
         
         # Should not crash, might log a warning
         # No specific assertions needed since function should handle gracefully
-
-
-class TestIntegrationFunction:
-    """Test the convenience integration function"""
-    
-    @patch('ui.vol_table.render_vol_table')
-    def test_render_with_data_fetch_success(self, mock_render):
-        """Test successful data fetch and render"""
-        from ui.vol_table import render_vol_table_with_data_fetch
-        
-        mock_module = MagicMock()
-        mock_service_class = MagicMock()
-        mock_service = MagicMock()
-        mock_result = MagicMock()
-        mock_result.data = pd.DataFrame({'test': [1, 2, 3]})
-        
-        mock_service.get_indicator = AsyncMock(return_value=mock_result)
-        mock_service_class.return_value = mock_service
-        mock_module.IndicatorService = mock_service_class
-        
-        with patch.dict('sys.modules', {'src.services.indicator_service': mock_module}):
-            render_vol_table_with_data_fetch()
-            
-            # Should call render function
-            mock_render.assert_called_once()
-    
-    @patch('ui.vol_table.render_vol_table')
-    def test_render_with_data_fetch_no_data(self, mock_render):
-        """Test handling when no data is returned"""
-        from ui.vol_table import render_vol_table_with_data_fetch
-        
-        mock_module = MagicMock()
-        mock_service_class = MagicMock()
-        mock_service = MagicMock()
-        
-        mock_service.get_indicator = AsyncMock(return_value=None)
-        mock_service_class.return_value = mock_service
-        mock_module.IndicatorService = mock_service_class
-        
-        with patch.dict('sys.modules', {'src.services.indicator_service': mock_module}):
-            render_vol_table_with_data_fetch()
-            
-            # Should render with None data
-            mock_render.assert_called_once_with(None)
-    
-    @patch('ui.vol_table.st')
-    @patch('ui.vol_table.logger')
-    def test_render_with_data_fetch_import_error(self, mock_logger, mock_st):
-        """Test handling of import errors"""
-        from ui.vol_table import render_vol_table_with_data_fetch
-        
-        # Temporarily remove the module to simulate import error
-        if 'src.services.indicator_service' in sys.modules:
-            original_module = sys.modules['src.services.indicator_service']
-            del sys.modules['src.services.indicator_service']
-        else:
-            original_module = None
-            
-        try:
-            render_vol_table_with_data_fetch()
-            
-            # Should log error and show error message
-            mock_logger.error.assert_called_once()
-            mock_st.error.assert_called_once()
-            
-        finally:
-            # Restore the module if it existed
-            if original_module is not None:
-                sys.modules['src.services.indicator_service'] = original_module
 
 
 if __name__ == "__main__":

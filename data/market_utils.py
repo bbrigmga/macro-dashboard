@@ -11,10 +11,25 @@ import datetime as dt
 import logging
 from typing import List, Optional
 
-from .volatility_logging import get_volatility_logger
+logger = logging.getLogger(__name__)
 
-# Set up enhanced logging
-logger = get_volatility_logger(__name__)
+# Shared ETF universe for IV scrape + vol table
+ETF_UNIVERSE = [
+    {"ticker": "XLRE", "name": "Real Estate Sector SPDR ETF"},
+    {"ticker": "XLF",  "name": "Financials Sector SPDR ETF"},
+    {"ticker": "XLE",  "name": "Energy Sector SPDR ETF"},
+    {"ticker": "XLC",  "name": "Communication Services SPDR ETF"},
+    {"ticker": "XLK",  "name": "Technology Sector SPDR ETF"},
+    {"ticker": "QQQ",  "name": "Power Shares QQQ Trust ETF"},
+    {"ticker": "SPY",  "name": "SPDR S&P 500 Trust"},
+    {"ticker": "XLV",  "name": "Health Care Sector SPDR ETF"},
+    {"ticker": "XLB",  "name": "Materials Sector SPDR ETF"},
+    {"ticker": "XLI",  "name": "Industrials Sector SPDR ETF"},
+    {"ticker": "XLY",  "name": "Consumer Discretionary SPDR ETF"},
+    {"ticker": "IWM",  "name": "I-Shares Russell 2000"},
+    {"ticker": "XLU",  "name": "Utilities Sector SPDR ETF"},
+    {"ticker": "XLP",  "name": "Consumer Staples Sector SPDR ETF"},
+]
 
 # US Stock Market holidays for 2024-2027 (expandable as needed)
 # These are the actual dates markets are closed

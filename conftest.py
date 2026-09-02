@@ -164,20 +164,6 @@ def cached_data_sample():
         })
 
 
-@pytest.fixture(scope="session")
-def test_cache_manager():
-    """Mock CacheManager for testing."""
-    from unittest.mock import MagicMock
-    
-    cache_manager = MagicMock()
-    cache_manager.get = MagicMock(return_value=None)  # Always cache miss
-    cache_manager.set = MagicMock()
-    cache_manager.clear = MagicMock()
-    cache_manager.get_size = MagicMock(return_value=0)
-    
-    return cache_manager
-
-
 # Fixtures for specific indicator types
 @pytest.fixture
 def threshold_indicator_data():

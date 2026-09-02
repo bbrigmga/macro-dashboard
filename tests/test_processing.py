@@ -5,8 +5,7 @@ import pandas as pd
 import numpy as np
 from data.processing import (
     convert_dates,
-    calculate_pct_change, 
-    cap_outliers,
+    calculate_pct_change,
     check_consecutive_increase,
     check_consecutive_decrease,
     count_consecutive_changes,
@@ -101,36 +100,6 @@ class TestCalculatePctChange:
         
         assert len(result) == 1
         assert pd.isna(result.iloc[0])
-
-
-class TestCapOutliers:
-    """Test cap_outliers function."""
-    
-    def test_cap_outliers_basic(self):
-        """Test basic outlier capping."""
-        series = pd.Series([0.5, 1.0, -3.0, 2.5, 1.5])
-        
-        result = cap_outliers(series, lower_limit=-2, upper_limit=2)
-        
-        expected = pd.Series([0.5, 1.0, -2.0, 2.0, 1.5])
-        pd.testing.assert_series_equal(result, expected)
-    
-    def test_no_outliers(self):
-        """Test when no outliers exist."""
-        series = pd.Series([0.5, 1.0, -1.5, 1.8, -0.5])
-        
-        result = cap_outliers(series, lower_limit=-2, upper_limit=2)
-        
-        # Should be unchanged
-        pd.testing.assert_series_equal(result, series)
-    
-    def test_empty_series(self):
-        """Test with empty series."""
-        series = pd.Series(dtype=float)
-        
-        result = cap_outliers(series)
-        
-        assert len(result) == 0
 
 
 class TestConsecutiveChecks:

@@ -18,19 +18,8 @@ def clear_vol_table_cache() -> None:
 
 
 def reload_vol_table_caches() -> None:
-    """
-    Clear all caches that can serve stale vol table rows (Streamlit + indicator service).
-    """
+    """Clear Streamlit vol table cache so UI rebuilds from the database."""
     clear_vol_table_cache()
-    try:
-        from src.services.indicator_service import IndicatorService
-
-        service = IndicatorService()
-        cache_key = service._get_cache_key("implied_realized_vol")
-        service.cache_manager.invalidate(cache_key)
-        service.invalidate_indicator_cache("implied_realized_vol")
-    except Exception as e:
-        logger.warning("Could not invalidate implied_realized_vol indicator cache: %s", e)
 
 
 def _historical_premium_columns_empty(data: pd.DataFrame) -> bool:
@@ -512,32 +501,3 @@ def _render_data_freshness_info(data: pd.DataFrame) -> None:
                 )
                 rows = [{"Ticker": t, "Latest Date": d} for t, d in sorted(stale.items())]
                 st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=False)
-
-
-def render_vol_table_with_data_fetch() -> None:
-    """
-    Convenience function that fetches volatility data and renders the table.
-    Uses the indicator service to get formatted data.
-    """
-    try:
-        import asyncio
-        from src.services.indicator_service import IndicatorService
-
-        service = IndicatorService()
-        result = asyncio.run(service.get_indicator("implied_realized_vol"))
-
-        if result and result.data is not None:
-            inner = result.data
-            if isinstance(inner, dict) and "data" in inner:
-                render_vol_table(inner["data"])
-            else:
-                render_vol_table(inner)
-        else:
-            render_vol_table(None)
-
-    except ImportError as e:
-        logger.error(f"Cannot import indicator service: {e}")
-        st.error(f"Service import error: {e}")
-    except Exception as e:
-        logger.error(f"Error fetching volatility data: {e}")
-        st.error(f"Error fetching data: {e}")

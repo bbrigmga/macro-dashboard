@@ -5,7 +5,7 @@ import asyncio
 import pandas as pd
 from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from datetime import datetime, timedelta
-from src.services.indicator_service import IndicatorService, IndicatorResult
+from src.services.indicator_service import CacheManager, IndicatorService, IndicatorResult
 from src.config.settings import Settings
 
 
@@ -73,6 +73,22 @@ def sample_indicator_data():
         'change_pct': -1.39,
         'status': 'Bullish'
     }
+
+
+class TestTtlCache:
+    """In-memory TTL cache used by IndicatorService."""
+
+    def test_set_get_and_pattern_invalidate(self):
+        cache = CacheManager()
+        cache.set("v6|claims", {"ok": True}, ttl=60)
+        assert cache.get("v6|claims") == {"ok": True}
+        assert cache.invalidate_pattern("claims") == 1
+        assert cache.get("v6|claims") is None
+
+    def test_expired_entry_is_dropped(self):
+        cache = CacheManager()
+        cache.set("gone", 1, ttl=-1)
+        assert cache.get("gone") is None
 
 
 class TestIndicatorResult:
@@ -352,9 +368,10 @@ class TestGetAllIndicators:
         for method_name in ['get_initial_claims', 'get_pce', 'get_core_cpi',
                            'get_hours_worked', 'get_new_orders', 'get_yield_curve',
                            'get_pscf_price', 'get_credit_spread', 'get_usd_liquidity',
-                           'calculate_pmi_proxy', 'get_copper_gold_ratio']:
-            if hasattr(indicator_instance, method_name):
-                getattr(indicator_instance, method_name).return_value = sample_indicator_data
+                           'calculate_pmi_proxy', 'get_copper_gold_ratio',
+                           'get_xlp_xly_ratio', 'get_korea_exports_vs_spy_eps',
+                           'get_regime_quadrant_data']:
+            getattr(indicator_instance, method_name).return_value = sample_indicator_data
         
         service = IndicatorService(settings=mock_settings)
         
@@ -366,7 +383,8 @@ class TestGetAllIndicators:
             assert len(result.data) > 0
             assert result.execution_time > 0
         
-        asyncio.run(test_all_indicators())
+        with patch('analysis.regime_backtest.enrich_regime_quadrant_data', side_effect=lambda data: data):
+            asyncio.run(test_all_indicators())
     
     @patch('src.services.indicator_service.CacheManager')
     @patch('src.services.indicator_service.FredClient')
@@ -481,49 +499,6 @@ class TestCacheManagement:
         
         assert result == -1
         cache_instance.clear_all.assert_called_once()
-    
-    @patch('src.services.indicator_service.CacheManager')
-    @patch('src.services.indicator_service.FredClient')
-    @patch('src.services.indicator_service.IndicatorData')
-    def test_get_cache_stats(self, mock_indicator_data, mock_fred_client,
-                            mock_cache_manager, mock_settings):
-        """Test getting cache statistics."""
-        cache_instance = mock_cache_manager.return_value
-        cache_instance.get_stats.return_value = {
-            "memory_cache": {"entries": 50},
-            "disk_cache_files": 12,
-            "cache_dir": "cache"
-        }
-        
-        service = IndicatorService(settings=mock_settings)
-        
-        stats = service.get_cache_stats()
-        
-        assert isinstance(stats, dict)
-        assert 'memory_cache' in stats
-        assert 'disk_cache_files' in stats
-        assert stats['memory_cache']['entries'] == 50
-    
-    @patch('src.services.indicator_service.CacheManager')
-    @patch('src.services.indicator_service.FredClient')
-    @patch('src.services.indicator_service.IndicatorData')
-    def test_cleanup_cache(self, mock_indicator_data, mock_fred_client,
-                          mock_cache_manager, mock_settings):
-        """Test cache cleanup."""
-        cache_instance = mock_cache_manager.return_value
-        cache_instance.cleanup.return_value = {
-            "expired_disk_entries_removed": 2,
-            "memory_cache_stats": {"entries": 5}
-        }
-        
-        service = IndicatorService(settings=mock_settings)
-        
-        result = service.cleanup_cache()
-        
-        assert isinstance(result, dict)
-        assert 'expired_disk_entries_removed' in result
-        assert 'memory_cache_stats' in result
-        cache_instance.cleanup.assert_called_once()
 
 
 class TestServiceIntegration:

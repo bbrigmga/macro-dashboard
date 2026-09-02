@@ -1,80 +1,51 @@
 """
 Functions for fetching and processing economic indicators.
 """
-import pandas as pd
-import numpy as np
+import concurrent.futures
 import datetime
 import logging
-import os
-import streamlit as st
-from data.fred_client import FredClient
-from data.yahoo_client import YahooClient
+
+import numpy as np
+import pandas as pd
+
 from analysis.regime_backtest import summarize_regime_backtest
+from data.fred_client import FredClient
 from data.growth_proxy import build_gdp_growth_proxy
 from data.inflation_proxy import build_inflation_proxy
-from src.config.growth_proxy import GROWTH_PROXY_REQUIRED_TICKERS, FORECAST_HORIZON_DAYS
-from src.config.inflation_proxy import INFLATION_PROXY_REQUIRED_TICKERS
 from data.processing import (
-    calculate_pct_change,
-    check_consecutive_increase,
-    check_consecutive_decrease,
-    count_consecutive_changes,
-    calculate_roc_zscore,
     apply_ema_smoothing,
-    blended_momentum_zscore,
     build_composite_axis,
-    anchor_zscore,
+    calculate_pct_change,
+    check_consecutive_decrease,
+    check_consecutive_increase,
     classify_regime,
+    count_consecutive_changes,
     forecast_ou,
 )
+from data.realized_regime_forecast import attach_realized_regime_forecast
+from data.yahoo_client import YahooClient
+from src.config.growth_proxy import FORECAST_HORIZON_DAYS, GROWTH_PROXY_REQUIRED_TICKERS
+from src.config.inflation_proxy import INFLATION_PROXY_REQUIRED_TICKERS
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-
-def generate_sample_dates(periods, frequency='M'):
-    """
-    Generate sample dates for fallback data.
-    
-    Args:
-        periods (int): Number of periods to generate
-        frequency (str, optional): Frequency of dates ('D' for daily, 'W' for weekly, 'M' for monthly)
-        
-    Returns:
-        list: List of datetime objects
-    """
-    end_date = datetime.datetime.now()
-    
-    if frequency == 'D':
-        return [end_date - datetime.timedelta(days=i) for i in range(periods)][::-1]
-    elif frequency == 'W':
-        return [end_date - datetime.timedelta(weeks=i) for i in range(periods)][::-1]
-    else:  # Monthly
-        return [end_date - datetime.timedelta(days=30*i) for i in range(periods)][::-1]
 
 
 class IndicatorData:
     """Class for fetching and processing economic indicators."""
 
-    def __init__(self, fred_client=None, use_sample_data=False):
+    def __init__(self, fred_client=None):
         """
         Initialize the indicator data handler.
 
         Args:
             fred_client (FredClient, optional): FRED API client. If None, a new client will be created.
-            use_sample_data (bool, optional): Whether to use sample data instead of FRED API.
         """
-        if use_sample_data:
-            self.fred_client = None
-        else:
-            self.fred_client = fred_client if fred_client else FredClient()
+        self.fred_client = fred_client if fred_client else FredClient()
         self.yahoo_client = YahooClient()
 
     def _fred(self) -> "FredClient":
-        """Return the FRED client, raising if not available (sample-data mode)."""
         if self.fred_client is None:
-            raise RuntimeError("FRED client is not available in sample-data mode")
+            raise RuntimeError("FRED client is not available")
         return self.fred_client
     
     def get_initial_claims(_self, periods=52):
@@ -402,31 +373,7 @@ class IndicatorData:
             'component_weights': adjusted_weights # Add weights back
         }
     
-    def get_usd_liquidity(_self, periods=120, use_sample_data=False):
-        if not use_sample_data:
-            # Only cache for real data
-            result = _self._get_usd_liquidity_cached(periods, use_sample_data)
-        else:
-            # For sample data, don't cache
-            result = _self._get_usd_liquidity_impl(periods, use_sample_data)
-
-        export_csv = os.getenv('EXPORT_USD_LIQUIDITY_CSV', 'false').lower() == 'true'
-        if export_csv:
-            try:
-                csv_data = result['all_series'].copy()
-                csv_data['Date'] = csv_data['Date'].dt.strftime('%Y-%m-%d')
-                filename = 'usd_liquidity_data_sample.csv' if use_sample_data else 'usd_liquidity_data.csv'
-                csv_data.to_csv(filename, index=False)
-                logger.info(f"Exported USD liquidity data to {filename}")
-            except Exception as e:
-                logger.warning(f"Failed to export data to CSV: {e}")
-
-        return result
-
-    def _get_usd_liquidity_cached(_self, periods=120, use_sample_data=False):
-        return _self._get_usd_liquidity_impl(periods, use_sample_data)
-
-    def _get_usd_liquidity_impl(_self, periods=120, use_sample_data=False):
+    def get_usd_liquidity(_self, periods=120):
         """
         Get USD Liquidity data and S&P 500 data (quarterly).
 
@@ -437,57 +384,6 @@ class IndicatorData:
             dict: Dictionary containing quarterly liquidity and S&P 500 data, and analysis.
         """
         try:
-            if use_sample_data:
-                # Generate sample quarterly data for testing
-                import numpy as np
-                dates = pd.date_range(end=pd.Timestamp.now(), periods=20, freq='Q')
-                np.random.seed(42)  # For reproducible results
-                sample_data = []
-                base_liquidity = 3.5  # Base liquidity in trillions
-                base_gdp = 22000  # Base GDP
-                for i, date in enumerate(dates):
-                    # Simulate some trend and volatility
-                    trend = i * 0.02  # Slight upward trend
-                    noise = np.random.normal(0, 0.1)
-                    liquidity = base_liquidity + trend + noise
-                    # Simulate missing GDP for the last 2 quarters (most recent)
-                    gdp_value = base_gdp + i * 200 + np.random.normal(0, 500) if i < len(dates) - 2 else np.nan
-                    sample_data.append({
-                        'Date': date,
-                        'WALCL': 7200000 + i * 100000,  # Sample WALCL
-                        'RRPONTTLD': 500 - i * 10,  # Sample RRP
-                        'WTREGEN': 800 + i * 20,  # Sample TGA
-                        'CURRCIR': 2300 + i * 50,  # Sample CURRCIR
-                        'GDPC1': gdp_value,  # GDP with missing recent values
-                        'USD_Liquidity': max(0, liquidity),  # Ensure non-negative
-                        'USD_Liquidity_QoQ': np.random.normal(0, 2),  # Random QoQ change
-                        'SP500': 4500 + i * 50 + np.random.normal(0, 100)  # S&P 500 around 4500-5500
-                    })
-                quarterly_data = pd.DataFrame(sample_data)
-                sp500_data = quarterly_data[['Date', 'SP500']].copy()
-                current_liquidity = quarterly_data['USD_Liquidity'].iloc[-1]
-                current_liquidity_qoq = quarterly_data['USD_Liquidity_QoQ'].iloc[-1]
-                liquidity_increasing = quarterly_data['USD_Liquidity'].iloc[-1] > quarterly_data['USD_Liquidity'].iloc[-2] > quarterly_data['USD_Liquidity'].iloc[-3]
-                liquidity_decreasing = quarterly_data['USD_Liquidity'].iloc[-1] < quarterly_data['USD_Liquidity'].iloc[-2] < quarterly_data['USD_Liquidity'].iloc[-3]
-                details = {
-                    'WALCL': 7200000,  # Sample values
-                    'RRPONTTLD': 500,
-                    'WTREGEN': 800,
-                    'CURRCIR': 2300,
-                    'GDPC1': 22000
-                }
-
-                return {
-                    'data': quarterly_data,
-                    'all_series': quarterly_data,  # For sample data, quarterly_data has all components
-                    'sp500_data': sp500_data,
-                    'current_liquidity': current_liquidity,
-                    'current_liquidity_qoq': current_liquidity_qoq,
-                    'liquidity_increasing': liquidity_increasing,
-                    'liquidity_decreasing': liquidity_decreasing,
-                    'details': details
-                }
-
             # Convert periods (months) to quarters
             num_quarters = periods // 3 + 1 # Add a buffer
 
@@ -583,32 +479,29 @@ class IndicatorData:
             all_series = all_series.resample('Q').last()
             all_series.reset_index(inplace=True)
 
-            # Handle missing GDP data: fetch latest GDPC1 separately to ensure we have the most recent
-            if not use_sample_data:
-                try:
-                    latest_gdp_data = _self._fred().get_series('GDP', periods=1, frequency='Q')  # Get latest nominal GDP
-                    if not latest_gdp_data.empty:
-                        latest_gdp_date = latest_gdp_data['Date'].iloc[-1]
-                        latest_gdp_value = latest_gdp_data['GDP'].iloc[-1]
-                        # Check if this is newer than what's in all_series
-                        if 'GDP' in all_series.columns and not all_series['GDP'].dropna().empty:
-                            last_gdp_date = all_series['Date'].iloc[-1] if all_series['GDP'].isna().iloc[-1] else all_series[all_series['GDP'].notna()]['Date'].iloc[-1]
-                            if latest_gdp_date > last_gdp_date:
-                                # Add the new GDP data point
-                                new_row = all_series.iloc[-1].copy()
-                                new_row['Date'] = latest_gdp_date
-                                new_row['GDP'] = latest_gdp_value
-                                # Fill other columns with last known values
-                                for col in ['WALCL', 'RRPONTTLD', 'WTREGEN', 'CURRCIR']:
-                                    if col in all_series.columns:
-                                        new_row[col] = all_series[col].ffill().iloc[-1]
-                                all_series = pd.concat([all_series, pd.DataFrame([new_row])], ignore_index=True)
-                                all_series = all_series.drop_duplicates(subset='Date', keep='last').sort_values('Date').reset_index(drop=True)
-                except Exception as e:
-                    logger.warning(f"Failed to fetch latest GDP: {e}")
+            # Handle missing GDP data: fetch latest GDP separately to ensure we have the most recent
+            try:
+                latest_gdp_data = _self._fred().get_series('GDP', periods=1, frequency='Q')  # Get latest nominal GDP
+                if not latest_gdp_data.empty:
+                    latest_gdp_date = latest_gdp_data['Date'].iloc[-1]
+                    latest_gdp_value = latest_gdp_data['GDP'].iloc[-1]
+                    # Check if this is newer than what's in all_series
+                    if 'GDP' in all_series.columns and not all_series['GDP'].dropna().empty:
+                        last_gdp_date = all_series['Date'].iloc[-1] if all_series['GDP'].isna().iloc[-1] else all_series[all_series['GDP'].notna()]['Date'].iloc[-1]
+                        if latest_gdp_date > last_gdp_date:
+                            # Add the new GDP data point
+                            new_row = all_series.iloc[-1].copy()
+                            new_row['Date'] = latest_gdp_date
+                            new_row['GDP'] = latest_gdp_value
+                            # Fill other columns with last known values
+                            for col in ['WALCL', 'RRPONTTLD', 'WTREGEN', 'CURRCIR']:
+                                if col in all_series.columns:
+                                    new_row[col] = all_series[col].ffill().iloc[-1]
+                            all_series = pd.concat([all_series, pd.DataFrame([new_row])], ignore_index=True)
+                            all_series = all_series.drop_duplicates(subset='Date', keep='last').sort_values('Date').reset_index(drop=True)
+            except Exception as e:
+                logger.warning(f"Failed to fetch latest GDP: {e}")
 
-            # This section is now handled above with better error handling
-            
             # Fetch S&P 500 data separately to ensure we get it even if other data fails
             sp500_data = None
             try:
@@ -1272,23 +1165,30 @@ class IndicatorData:
 
             ticker_data: dict[str, pd.Series] = {}
             missing_tickers = set()
-            for ticker in all_tickers:
-                try:
-                    df = self.yahoo_client.get_historical_prices(
-                        ticker=ticker,
-                        start_date=start_date,
-                        end_date=end_date,
-                        frequency='1d'
-                    )
-                    if df is None or df.empty:
-                        raise ValueError(f"{ticker} price download returned no data")
 
-                    series = pd.to_numeric(df.set_index("Date")["value"], errors="coerce")
-                    series.index = pd.to_datetime(series.index).tz_localize(None)
-                    ticker_data[ticker] = series.rename(ticker).dropna()
-                except Exception as ticker_error:
-                    logger.warning(f"Skipping Yahoo proxy ticker {ticker}: {ticker_error}")
-                    missing_tickers.add(ticker)
+            def _fetch_ticker(ticker: str) -> tuple[str, pd.Series]:
+                df = self.yahoo_client.get_historical_prices(
+                    ticker=ticker,
+                    start_date=start_date,
+                    end_date=end_date,
+                    frequency='1d'
+                )
+                if df is None or df.empty:
+                    raise ValueError(f"{ticker} price download returned no data")
+                series = pd.to_numeric(df.set_index("Date")["value"], errors="coerce")
+                series.index = pd.to_datetime(series.index).tz_localize(None)
+                return ticker, series.rename(ticker).dropna()
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+                futures = {pool.submit(_fetch_ticker, ticker): ticker for ticker in all_tickers}
+                for future in concurrent.futures.as_completed(futures):
+                    ticker = futures[future]
+                    try:
+                        name, series = future.result()
+                        ticker_data[name] = series
+                    except Exception as ticker_error:
+                        logger.warning(f"Skipping Yahoo proxy ticker {ticker}: {ticker_error}")
+                        missing_tickers.add(ticker)
 
             missing_required = required_tickers.intersection(missing_tickers)
             if missing_required:
@@ -1395,7 +1295,7 @@ class IndicatorData:
                     hit_rate_note += f", accel: {accel_hit_rate:.0%}"
                 hit_rate_note += f" ({hit_obs} obs)"
 
-            return {
+            return attach_realized_regime_forecast({
                 'data': result_df[['Date', 'growth_zscore', 'inflation_zscore']],
                 'trail_data': trail_data[['Date', 'growth_zscore', 'inflation_zscore']],
                 'current_regime': current_regime,
@@ -1416,7 +1316,7 @@ class IndicatorData:
                     'growth': len(growth_proxy_zscores),
                     'inflation': len(inflation_proxy_zscores),
                 },
-            }
+            })
             
         except Exception as e:
             logger.error(f"Error fetching regime quadrant data: {str(e)}")

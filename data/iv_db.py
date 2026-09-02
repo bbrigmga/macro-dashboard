@@ -10,10 +10,7 @@ from datetime import datetime, date
 import pandas as pd
 import logging
 
-from .volatility_logging import get_volatility_logger, log_performance_metric
-
-# Set up enhanced logging
-logger = get_volatility_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class IVDatabase:

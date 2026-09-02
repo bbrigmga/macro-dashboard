@@ -5,25 +5,10 @@ import pytest
 
 from data.processing import (
     apply_ema_smoothing,
-    anchor_zscore,
-    blended_momentum_zscore,
     build_composite_axis,
-    calculate_roc_zscore,
     classify_regime,
     forecast_ou,
 )
-
-
-class TestCalculateRocZscore:
-    def test_returns_series_same_length(self):
-        series = pd.Series(np.random.randn(400).cumsum() + 100)
-        result = calculate_roc_zscore(series, roc_period=60, zscore_window=252)
-        assert len(result) == len(series)
-
-    def test_empty_series(self):
-        series = pd.Series(dtype=float)
-        result = calculate_roc_zscore(series)
-        assert len(result) == 0
 
 
 class TestApplyEmaSmoothing:
@@ -35,13 +20,6 @@ class TestApplyEmaSmoothing:
 
 
 class TestCompositeHelpers:
-    def test_blended_momentum_zscore_shape(self):
-        np.random.seed(42)
-        series = pd.Series(np.random.randn(700).cumsum() + 100)
-        result = blended_momentum_zscore(series, roc_periods=(20, 60, 120), zscore_window=252)
-        assert len(result) == len(series)
-        assert result.dropna().shape[0] > 0
-
     def test_build_composite_axis(self):
         idx = pd.date_range("2024-01-01", periods=6, freq="D")
         s1 = pd.Series([1, 2, 3, 4, 5, 6], index=idx)
@@ -50,14 +28,6 @@ class TestCompositeHelpers:
         assert len(comp) == 6
         assert np.isclose(comp.iloc[0], 1.5)
         assert np.isclose(comp.iloc[-1], 6.5)
-
-    def test_anchor_zscore_keeps_index(self):
-        idx = pd.date_range("2023-01-01", periods=300, freq="D")
-        base = pd.Series(np.linspace(10, 20, 300), index=idx)
-        rolling = calculate_roc_zscore(base, roc_period=20, zscore_window=60)
-        anchored = anchor_zscore(rolling, base, weight=0.3)
-        assert len(anchored) == len(rolling)
-        assert anchored.index.equals(rolling.index)
 
 
 class TestRegimeClassification:
