@@ -14,7 +14,6 @@ from data.growth_proxy import build_gdp_growth_proxy
 from data.inflation_proxy import build_inflation_proxy
 from data.processing import (
     apply_ema_smoothing,
-    build_composite_axis,
     calculate_pct_change,
     check_consecutive_decrease,
     check_consecutive_increase,
@@ -1195,10 +1194,7 @@ class IndicatorData:
                 raise ValueError(f"Required proxy ticker(s) unavailable: {', '.join(sorted(missing_required))}")
 
             growth_composite, growth_proxy_zscores = build_gdp_growth_proxy(ticker_data)
-            _, inflation_proxy_zscores = build_inflation_proxy(ticker_data)
-
-            growth_composite = build_composite_axis(growth_proxy_zscores, min_series=1)
-            inflation_composite = build_composite_axis(inflation_proxy_zscores, min_series=1)
+            inflation_composite, inflation_proxy_zscores = build_inflation_proxy(ticker_data)
             if growth_composite.empty or inflation_composite.empty:
                 raise ValueError("Unable to build regime composite axis from available proxies")
 
@@ -1241,18 +1237,18 @@ class IndicatorData:
             current_regime = result_df["regime"].iloc[-1]
             regime_confidence = float(np.hypot(current_growth, current_inflation))
 
-            # Forecast trajectory with mean-reverting AR(1)/OU model on unsmoothed composites.
-            growth_forecast = forecast_ou(result_df['growth_raw'], horizon=FORECAST_HORIZON_DAYS)
-            inflation_forecast = forecast_ou(result_df['inflation_raw'], horizon=FORECAST_HORIZON_DAYS)
+            # Forecast on the same smoothed series plotted on the chart (snail + arrow).
+            growth_forecast = forecast_ou(result_df['growth_zscore'], horizon=FORECAST_HORIZON_DAYS)
+            inflation_forecast = forecast_ou(result_df['inflation_zscore'], horizon=FORECAST_HORIZON_DAYS)
             projected_growth = float(growth_forecast["projected"])
             projected_inflation = float(inflation_forecast["projected"])
 
             var_growth = float(growth_forecast["variance"])
             var_inflation = float(inflation_forecast["variance"])
             covariance = 0.0
-            raw_changes = result_df[['growth_raw', 'inflation_raw']].diff().dropna()
-            if len(raw_changes) > 10:
-                corr = raw_changes['growth_raw'].corr(raw_changes['inflation_raw'])
+            smooth_changes = result_df[['growth_zscore', 'inflation_zscore']].diff().dropna()
+            if len(smooth_changes) > 10:
+                corr = smooth_changes['growth_zscore'].corr(smooth_changes['inflation_zscore'])
                 if corr is not None and not np.isnan(corr):
                     covariance = float(np.clip(corr, -0.95, 0.95) * np.sqrt(var_growth * var_inflation))
             forecast_cov = [
@@ -1278,7 +1274,12 @@ class IndicatorData:
                 if ticker in {"SPY", "XLE", "GLD", "TLT"}
             }
             backtest_summary = summarize_regime_backtest(
-                result_df[['Date', 'growth_raw', 'inflation_raw', 'regime']].copy(),
+                result_df[['Date', 'growth_zscore', 'inflation_zscore', 'regime']].rename(
+                    columns={
+                        'growth_zscore': 'growth_raw',
+                        'inflation_zscore': 'inflation_raw',
+                    }
+                ),
                 asset_prices=asset_prices,
                 horizon=FORECAST_HORIZON_DAYS,
                 min_train=126
@@ -1312,6 +1313,8 @@ class IndicatorData:
                 'backtest_summary': backtest_summary,
                 'growth_raw': result_df['growth_raw'],
                 'inflation_raw': result_df['inflation_raw'],
+                'growth_smooth': result_df['growth_zscore'],
+                'inflation_smooth': result_df['inflation_zscore'],
                 'proxy_counts': {
                     'growth': len(growth_proxy_zscores),
                     'inflation': len(inflation_proxy_zscores),

@@ -276,8 +276,11 @@ def enrich_regime_quadrant_data(regime_data: dict) -> dict:
     if "accel_hit_rate" in backtest_summary:
         return regime_data
 
-    growth_raw = regime_data.get("growth_raw")
-    inflation_raw = regime_data.get("inflation_raw")
+    growth_raw = regime_data.get("growth_smooth")
+    inflation_raw = regime_data.get("inflation_smooth")
+    if growth_raw is None or inflation_raw is None:
+        growth_raw = regime_data.get("growth_raw")
+        inflation_raw = regime_data.get("inflation_raw")
     if growth_raw is None or inflation_raw is None:
         return regime_data
 

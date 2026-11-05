@@ -101,6 +101,133 @@ class TestRegimeQuadrantChart:
         assert "Accel:" in badge
         assert fig is not None
 
+    def test_current_marker_visible_on_light_theme(self):
+        from visualization.charts import create_regime_quadrant_chart
+
+        trail = pd.DataFrame({
+            "Date": pd.date_range("2024-01-01", periods=5),
+            "growth_zscore": [0.1, 0.2, 0.3, 0.4, 0.5],
+            "inflation_zscore": [0.2, 0.3, 0.4, 0.5, 0.6],
+        })
+        fig = create_regime_quadrant_chart({
+            "trail_data": trail,
+            "current_regime": "Goldilocks",
+            "current_growth": 0.5,
+            "current_inflation": 0.6,
+            "projected_growth": 0.5,
+            "projected_inflation": 0.6,
+            "backtest_summary": {},
+        })
+        current_trace = fig.data[1]
+        assert str(current_trace.marker.color).lower() not in {"#ffffff", "#fff", "white"}
+
+    def test_axis_zooms_to_trail_not_fixed_three(self):
+        from visualization.charts import create_regime_quadrant_chart
+
+        trail = pd.DataFrame({
+            "Date": pd.date_range("2024-01-01", periods=20),
+            "growth_zscore": np.linspace(-0.4, 0.5, 20),
+            "inflation_zscore": np.linspace(0.2, 1.0, 20),
+        })
+        fig = create_regime_quadrant_chart({
+            "trail_data": trail,
+            "current_regime": "Reflation",
+            "current_growth": 0.5,
+            "current_inflation": 1.0,
+            "projected_growth": 0.45,
+            "projected_inflation": 0.95,
+            "backtest_summary": {},
+        })
+        assert fig.layout.xaxis.range[1] <= 1.5
+        assert fig.layout.yaxis.range[1] <= 1.5
+        assert fig.layout.xaxis.range == fig.layout.yaxis.range
+        assert fig.layout.xaxis.range[0] <= 0 <= fig.layout.xaxis.range[1]
+
+    def test_regime_margins_preserved_after_theme(self):
+        from visualization.charts import create_regime_quadrant_chart
+
+        trail = pd.DataFrame({
+            "Date": pd.date_range("2024-01-01", periods=5),
+            "growth_zscore": [0.1] * 5,
+            "inflation_zscore": [0.2] * 5,
+        })
+        fig = create_regime_quadrant_chart({
+            "trail_data": trail,
+            "current_regime": "Reflation",
+            "current_growth": 0.5,
+            "current_inflation": 0.6,
+            "projected_growth": 0.55,
+            "projected_inflation": 0.65,
+            "backtest_summary": {},
+        })
+        assert fig.layout.margin.l >= 60
+        assert fig.layout.margin.b >= 60
+
+    def test_arrow_endpoints_match_current_and_projected(self):
+        from src.config.growth_proxy import FORECAST_HORIZON_DAYS
+        from visualization.charts import create_regime_quadrant_chart
+
+        np.random.seed(0)
+        n = 300
+        growth_smooth = pd.Series(np.sin(np.linspace(0, 8, n)) + np.random.randn(n) * 0.05)
+        inflation_smooth = pd.Series(np.cos(np.linspace(0, 8, n)))
+        g_fc = forecast_ou(growth_smooth, horizon=FORECAST_HORIZON_DAYS)
+        i_fc = forecast_ou(inflation_smooth, horizon=FORECAST_HORIZON_DAYS)
+        current_g = float(growth_smooth.iloc[-1])
+        current_i = float(inflation_smooth.iloc[-1])
+
+        trail = pd.DataFrame({
+            "Date": pd.date_range("2024-01-01", periods=10),
+            "growth_zscore": [float(growth_smooth.iloc[-1])] * 10,
+            "inflation_zscore": [float(inflation_smooth.iloc[-1])] * 10,
+        })
+        fig = create_regime_quadrant_chart({
+            "trail_data": trail,
+            "current_regime": "Transition",
+            "current_growth": current_g,
+            "current_inflation": current_i,
+            "projected_growth": g_fc["projected"],
+            "projected_inflation": i_fc["projected"],
+            "forecast_cov": [[0.05, 0.0], [0.0, 0.05]],
+            "backtest_summary": {},
+        })
+        arrow = next(a for a in fig.layout.annotations if a.showarrow)
+        assert np.isclose(arrow.ax, current_g)
+        assert np.isclose(arrow.ay, current_i)
+        assert np.isclose(arrow.x, g_fc["projected"])
+        assert np.isclose(arrow.y, i_fc["projected"])
+
+
+class TestRegimeQuadrantForecastAlignment:
+    def test_get_regime_projected_matches_ou_on_smoothed_series(self):
+        from data.indicators import IndicatorData
+        from src.config.growth_proxy import FORECAST_HORIZON_DAYS
+
+        class FakeYahoo:
+            def get_historical_prices(self, ticker, start_date=None, end_date=None, frequency="1d", periods=None):
+                path = f"data/cache/{ticker.replace('=', '_').replace('/', '_')}.csv"
+                df = pd.read_csv(path)
+                df["Date"] = pd.to_datetime(df["Date"])
+                if start_date:
+                    df = df[df["Date"] >= pd.Timestamp(start_date)]
+                if end_date:
+                    df = df[df["Date"] < pd.Timestamp(end_date)]
+                return df.reset_index(drop=True)
+
+        ind = IndicatorData.__new__(IndicatorData)
+        ind.fred_client = None
+        ind.yahoo_client = FakeYahoo()
+        result = ind.get_regime_quadrant_data(lookback_days=1260, trail_days=252)
+
+        g_smooth = result["growth_smooth"]
+        i_smooth = result["inflation_smooth"]
+        expected_g = forecast_ou(g_smooth, horizon=FORECAST_HORIZON_DAYS)["projected"]
+        expected_i = forecast_ou(i_smooth, horizon=FORECAST_HORIZON_DAYS)["projected"]
+        assert np.isclose(result["projected_growth"], expected_g)
+        assert np.isclose(result["projected_inflation"], expected_i)
+        assert np.isclose(result["current_growth"], float(g_smooth.iloc[-1]))
+        assert np.isclose(result["current_inflation"], float(i_smooth.iloc[-1]))
+
 
 class TestRegimeQuadrantPayloadStructure:
     def test_return_dict_structure(self):

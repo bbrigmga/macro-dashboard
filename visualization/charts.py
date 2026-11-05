@@ -519,6 +519,43 @@ def create_xlp_xly_ratio_chart(xlp_xly_data):
     return fig
 
 
+def _regime_quadrant_axis_ranges(
+    x_values,
+    y_values,
+    *,
+    pad: float = 0.2,
+    min_half_span: float = 0.75,
+    max_half_span: float = 1.5,
+) -> tuple[list[float], list[float]]:
+    """
+    Square, zero-centered limits so the snail trail fills the plot.
+
+    Uses one shared half-span for both axes (growth and inflation) so x and y always match.
+    """
+    import numpy as np
+
+    xs = np.asarray(x_values, dtype=float)
+    ys = np.asarray(y_values, dtype=float)
+    xs = xs[np.isfinite(xs)]
+    ys = ys[np.isfinite(ys)]
+    if xs.size == 0 or ys.size == 0:
+        half = min(min_half_span, max_half_span)
+        return [-half, half], [-half, half]
+
+    x_lo, x_hi = float(xs.min()), float(xs.max())
+    y_lo, y_hi = float(ys.min()), float(ys.max())
+    x_lo = min(x_lo, 0.0)
+    x_hi = max(x_hi, 0.0)
+    y_lo = min(y_lo, 0.0)
+    y_hi = max(y_hi, 0.0)
+
+    x_half = max(abs(x_lo), abs(x_hi)) + pad
+    y_half = max(abs(y_lo), abs(y_hi)) + pad
+    half = max(x_half, y_half, min_half_span)
+    half = min(half, max_half_span)
+    return [-half, half], [-half, half]
+
+
 def create_regime_quadrant_chart(data: dict):
     """
     Create the Growth/Inflation Regime Quadrant Chart (Snail Trail).
@@ -560,28 +597,31 @@ def create_regime_quadrant_chart(data: dict):
         fig.update_layout(height=500)
         return fig
     
-    # Fixed axis range of ±3 for both axes
-    x_range = [-3, 3]
-    y_range = [-3, 3]
-    
+    plot_x = list(trail_data["growth_zscore"])
+    plot_y = list(trail_data["inflation_zscore"])
+    plot_x.extend([current_growth, projected_growth])
+    plot_y.extend([current_inflation, projected_inflation])
+    x_range, y_range = _regime_quadrant_axis_ranges(plot_x, plot_y)
+    half_span = x_range[1]
+    label_offset = max(0.08, half_span * 0.06)
+
     fig = go.Figure()
     
-    # Add quadrant background shading
+    # Add quadrant background shading (readable on light plot background)
     fig.add_shape(type="rect", x0=0, x1=x_range[1], y0=0, y1=y_range[1],
-                  fillcolor="rgba(255, 152, 0, 0.08)", line=dict(width=0))  # Top-Right: Reflation
+                  fillcolor="rgba(255, 152, 0, 0.18)", line=dict(width=0))  # Top-Right: Reflation
     fig.add_shape(type="rect", x0=0, x1=x_range[1], y0=y_range[0], y1=0,
-                  fillcolor="rgba(76, 175, 80, 0.08)", line=dict(width=0))   # Bottom-Right: Goldilocks  
+                  fillcolor="rgba(76, 175, 80, 0.18)", line=dict(width=0))   # Bottom-Right: Goldilocks
     fig.add_shape(type="rect", x0=x_range[0], x1=0, y0=0, y1=y_range[1],
-                  fillcolor="rgba(244, 67, 54, 0.08)", line=dict(width=0))   # Top-Left: Stagflation
+                  fillcolor="rgba(244, 67, 54, 0.18)", line=dict(width=0))   # Top-Left: Stagflation
     fig.add_shape(type="rect", x0=x_range[0], x1=0, y0=y_range[0], y1=0,
-                  fillcolor="rgba(33, 150, 243, 0.08)", line=dict(width=0))  # Bottom-Left: Deflation
+                  fillcolor="rgba(33, 150, 243, 0.18)", line=dict(width=0))  # Bottom-Left: Deflation
     
     # Add zero lines
     fig.add_hline(y=0, line=dict(color='rgba(128,128,128,0.5)', width=2))
     fig.add_vline(x=0, line=dict(color='rgba(128,128,128,0.5)', width=2))
     
     # Add quadrant labels
-    label_offset = 0.1
     fig.add_annotation(x=x_range[1] - label_offset, y=y_range[1] - label_offset,
                       text="Reflation<br>Commodities, Energy", showarrow=False,
                       xref="x", yref="y", xanchor="right", yanchor="top",
@@ -632,15 +672,15 @@ def create_regime_quadrant_chart(data: dict):
             showlegend=False,
         ))
     
-    # Add current point (distinct color to stand out from the trail)
+    # Add current point (high contrast on light theme)
     fig.add_trace(go.Scatter(
         x=[current_growth],
         y=[current_inflation],
         mode='markers+text',
-        marker=dict(size=18, color='#FFFFFF', line=dict(color='#ff6f00', width=2)),
+        marker=dict(size=18, color='#ff6f00', line=dict(color=THEME['font_color'], width=2)),
         text=[current_regime],
         textposition='top center',
-        textfont=dict(size=12, color='#FFFFFF'),
+        textfont=dict(size=12, color=THEME['font_color']),
         name='Current Regime',
         showlegend=False,
         hovertemplate=f'Current: {current_regime}<br>Growth: {current_growth:.2f}<br>Inflation: {current_inflation:.2f}<extra></extra>'
@@ -716,20 +756,22 @@ def create_regime_quadrant_chart(data: dict):
 
     fig.add_annotation(
         x=0.5,
-        y=0.99,
+        y=0.01,
         xref="paper",
         yref="paper",
         xanchor="center",
-        yanchor="top",
+        yanchor="bottom",
         text=badge_text,
         showarrow=False,
-        font=dict(size=10, color="#ffb36a"),
-        bgcolor="rgba(20, 20, 20, 0.55)",
+        font=dict(size=10, color="#c45c00"),
+        bgcolor="rgba(255, 255, 255, 0.85)",
         bordercolor="rgba(255,111,0,0.45)",
         borderwidth=1,
         borderpad=4,
     )
-    
+
+    regime_margins = dict(l=72, r=48, t=48, b=72)
+
     # Apply layout
     fig.update_layout(
         height=500,
@@ -737,19 +779,26 @@ def create_regime_quadrant_chart(data: dict):
             title=GROWTH_AXIS_LABEL,
             zeroline=True, zerolinewidth=2, zerolinecolor='rgba(128,128,128,0.5)',
             range=x_range,
+            constrain="range",
         ),
         yaxis=dict(
             title=INFLATION_AXIS_LABEL,
             zeroline=True, zerolinewidth=2, zerolinecolor='rgba(128,128,128,0.5)',
             range=y_range,
+            constrain="range",
         ),
-        margin=dict(l=60, r=60, t=40, b=60),
+        margin=regime_margins,
         hovermode='closest',
         title=dict(text='Growth/Inflation Regime Quadrant', font=dict(size=14))
     )
-    
-    # Apply dark theme
+
+    # Apply theme (name is historical; colors come from settings chart theme)
     fig = apply_dark_theme(fig)
-    fig.update_layout(height=500)  # Override the default height from apply_dark_theme
-    
+    fig.update_layout(
+        height=500,
+        margin=regime_margins,
+        xaxis=dict(range=x_range),
+        yaxis=dict(range=y_range),
+    )
+
     return fig
